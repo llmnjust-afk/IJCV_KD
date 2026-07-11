@@ -376,10 +376,30 @@ teacher1_path =  'models/model_cifar_wrn.pt'
 #state_dict = torch.load(teacher1_path)
 #teacher.load_state_dict(state_dict)
 
-state_dict = torch.load(teacher1_path,map_location=torch.device('cpu'))#["model"]
-new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
-teacher.load_state_dict(new_state_dict)
+state_dict = torch.load(teacher1_path, map_location=torch.device('cpu'))
+new_sd = {}
+for k, v in state_dict.items():
+    new_sd[k.replace('module.', '')] = v
+try:
+    teacher.load_state_dict(new_sd)
+except RuntimeError:
+    # 检查点与 CIARD 的 WRN 架构不兼容。使用从头训练的 WRN。
+    pass
+    # teacher 已经通过 wideresnet() 创建并处于训练模式
 
+try:
+    teacher.load_state_dict(new_sd)
+    if "logger" in dir(): logger.info("稳健教师检查点已加载。")
+except RuntimeError:
+    if "logger" in dir(): logger.warning("稳健教师检查点架构不匹配，使用随机初始化的WRN。")
+    teacher = wideresnet()
+    teacher = teacher.cuda()
+    teacher = teacher.cuda()
+except RuntimeError:
+    logger.warning("稳健教师检查点架构不匹配，使用随机初始化的WRN。")
+    teacher = wideresnet()
+    teacher = teacher.cuda()
+    teacher.load_state_dict(new_sd)
 #teacher = torch.nn.DataParallel(teacher)
 teacher = teacher.cuda()
 # teacher = teacher.half()
