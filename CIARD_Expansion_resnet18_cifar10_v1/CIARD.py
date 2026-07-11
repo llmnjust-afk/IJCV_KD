@@ -224,6 +224,22 @@ CFG = {
     # =========================================================================
     "weight_averaging": True,
     "wa_alpha": 0.5,             # weight of pre-margin checkpoint (1.0=white-box, 0.0=black-box)
+    # =========================================================================
+    # IJCV EXTENSION: Label Smoothing + Adaptive Temperature
+    # -------------------------------------------------------------------------
+    # Problem: Teachers (especially robust teacher) produce overconfident wrong 
+    # predictions on x_adv, giving extreme KL gradients that force the student 
+    # to blindly mimic teacher boundary artifacts.
+    # Solution: (1) Label Smoothing softens the teacher targets, preventing 
+    # zero-probability mass issues in KL divergence. (2) Adaptive Temperature 
+    # starts high (softer labels) and decays, letting the student first learn 
+    # high-level patterns before sharp distilled signals.
+    # =========================================================================
+    "use_label_smoothing": True,
+    "ls_alpha": 0.1,            # Label smoothing factor (0.0=off, 0.1=standard)
+    "use_adaptive_temp": True,  # Higher temp early, decay to 1.0
+    "temp_init_scale": 2.0,     # Initial temperature multiplier (T_init = init_scale)
+    "temp_decay_epochs": 150,   # Over how many epochs to decay to T=1.0
     # -------------------------------------------------------------------------
     # PCGrad-style gradient surgery for teacher-margin.
     # -------------------------------------------------------------------------
@@ -236,6 +252,15 @@ CFG = {
     # that would increase the base loss.
     "pcgrad_teacher_margin": True,
     "pcgrad_start": 120,
+    "late_clean_recovery": True,
+    "late_clean_ce_weight": 0.015,
+    "late_clean_start": 220,
+    "late_clean_warmup": 40,
+    "fgsm_anchor": True,
+    "fgsm_anchor_weight": 0.025,
+    "fgsm_anchor_start": 170,
+    "fgsm_anchor_warmup": 60,
+    "fgsm_anchor_kl_weight": 0.5,
 }
 
 class AverageMeter(object):
@@ -516,6 +541,20 @@ for epoch in range(begin_epoch,epochs+1):
 
         kl_Loss1 = kl_loss(F.log_softmax(student_adv_logits,dim=1),F.softmax(robust_soft_logits.detach()/temp_adv,dim=1))
         kl_Loss2 = kl_loss(F.log_softmax(student_nat_logits,dim=1),F.softmax(teacher_nat_logits.detach()/temp_nat,dim=1))
+        # Label Smoothing: softens teacher targets to prevent zero-mass KL gradients.
+        # Applied AFTER the kl_loss computation so the loss itself uses smoothed targets.
+        if USE_CIARDPP and CFG.get("use_label_smoothing", False):
+            num_classes = student_adv_logits.size(-1)
+            alpha = CFG["ls_alpha"]
+            # Smooth robust teacher's target
+            robust_target = F.softmax(robust_soft_logits.detach()/temp_adv, dim=1)
+            robust_target = robust_target * (1 - alpha) + alpha / num_classes
+            # Smooth clean teacher's target
+            clean_target = F.softmax(teacher_nat_logits.detach()/temp_nat, dim=1)
+            clean_target = clean_target * (1 - alpha) + alpha / num_classes
+            # Recompute kl_Loss with smoothed targets
+            kl_Loss1 = kl_loss(F.log_softmax(student_adv_logits, dim=1), robust_target)
+            kl_Loss2 = kl_loss(F.log_softmax(student_nat_logits, dim=1), clean_target)
         # Reliability-aware robust KD: do not blindly imitate a wrong robust
         # teacher. If the robust teacher is correct and confident on y, the KL
         # keeps nearly full weight; if it is wrong, the KL drops to a floor and
@@ -558,6 +597,16 @@ for epoch in range(begin_epoch,epochs+1):
         temp_nat = temp_nat - temp_learn_rate * torch.sign((nat_teacher_entropy.detach() / adv_teacher_entropy.detach() - 1)).item()
         temp_adv = max(min(temp_max, temp_adv), temp_min)
         temp_nat = max(min(temp_max, temp_nat), temp_min)
+        # Adaptive Temperature: Start with higher temperature (softer labels) and
+        # decay over training. This prevents early overfitting to noisy soft labels.
+        if USE_CIARDPP and CFG.get("use_adaptive_temp", False):
+            decay_epochs = CFG["temp_decay_epochs"]
+            init_scale = CFG["temp_init_scale"]
+            # Linearly decay from init_scale to 1.0 over decay_epochs
+            progress = min(1.0, epoch / decay_epochs)
+            temp_scale = init_scale - (init_scale - 1.0) * progress
+            temp_adv = max(1.0, temp_adv * temp_scale)
+            temp_nat = max(1.0, temp_nat * temp_scale)
         if init_loss_nat == None:
             init_loss_nat = kl_Loss2.item()
         if init_loss_adv == None:
