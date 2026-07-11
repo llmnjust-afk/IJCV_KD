@@ -240,6 +240,21 @@ CFG = {
     "use_adaptive_temp": True,  # Higher temp early, decay to 1.0
     "temp_init_scale": 2.0,     # Initial temperature multiplier (T_init = init_scale)
     "temp_decay_epochs": 150,   # Over how many epochs to decay to T=1.0
+    # =========================================================================
+    # IJCV R18 FIX: late clean CE recovery + FGSM anchor
+    # =========================================================================
+    # Clean Acc and FGSM are the two remaining weak metrics on ResNet-18.
+    # (1) Late clean CE recovery only activates after epoch 200, after the
+    #     robust boundary has formed, so it won't pull it back.
+    # (2) FGSM anchor explicitly trains on one-step adversarial examples
+    #     (using robust teacher KD) to fix the FGSM-specific failure mode
+    #     without changing the main PGD objective.
+    "late_clean_ce_recovery": True,
+    "late_clean_ce_weight": 0.03,
+    "late_clean_ce_start": 200,
+    "fgsm_anchor": True,
+    "fgsm_anchor_weight": 0.05,
+    "fgsm_anchor_start": 150,
     # -------------------------------------------------------------------------
     # PCGrad-style gradient surgery for teacher-margin.
     # -------------------------------------------------------------------------
