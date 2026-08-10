@@ -330,7 +330,7 @@ for _legacy_tm_env in ("CIARD_TM_WEIGHT", "CIARD_TM_START", "CIARD_TM_WARMUP",
 
 resume_student_path = None 
 if resume_student_path != None:
-    state_dict = torch.load(resume_student_path,map_location=torch.device('cpu'))["model"]
+    state_dict = torch.load(resume_student_path, map_location=torch.device('cpu'), weights_only=False)["model"]
     new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
     student.load_state_dict(new_state_dict)
 student = student.cuda()
@@ -406,7 +406,7 @@ teacher1_path =  'models/model_cifar_wrn.pt'
 #state_dict = torch.load(teacher1_path)
 #teacher.load_state_dict(state_dict)
 
-state_dict = torch.load(teacher1_path,map_location=torch.device('cpu'))#["model"]
+state_dict = torch.load(teacher1_path, map_location=torch.device('cpu'), weights_only=False)#["model"]
 new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 teacher.load_state_dict(new_state_dict)
 
@@ -425,7 +425,7 @@ teacher2_path = 'models/nat_teacher_checkpoint/cifar10_resnnet56.pth'
 #state_dict_1 = torch.load(teacher2_path)
 #teacher_nat.load_state_dict(state_dict_1)
 
-state_dict = torch.load(teacher2_path,map_location=torch.device('cpu'))
+state_dict = torch.load(teacher2_path, map_location=torch.device('cpu'), weights_only=False)
 new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 teacher_nat.load_state_dict(new_state_dict)
 
@@ -1179,8 +1179,8 @@ if USE_CIARDPP and CFG.get("weight_averaging", False):
         logger.info("  alpha = {} (1.0=white-box-optimal, 0.0=black-box-optimal)".format(alpha))
 
         # load both checkpoints
-        pre_state = torch.load(pre_margin_path, map_location='cpu')
-        post_state = torch.load(post_margin_path, map_location='cpu')
+        pre_state = torch.load(pre_margin_path, map_location='cpu', weights_only=False)
+        post_state = torch.load(post_margin_path, map_location='cpu', weights_only=False)
         pre_sd = pre_state['model']
         post_sd = post_state['model']
 

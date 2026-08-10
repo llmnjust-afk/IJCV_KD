@@ -315,7 +315,7 @@ if os.environ.get("CIARD_TM_ADV_TAU") is not None:
 
 resume_student_path = None 
 if resume_student_path != None:
-    state_dict = torch.load(resume_student_path,map_location=torch.device('cpu'))["model"]
+    state_dict = torch.load(resume_student_path, map_location=torch.device('cpu'), weights_only=False)["model"]
     new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
     student.load_state_dict(new_state_dict)
 student = student.cuda()
@@ -391,7 +391,7 @@ teacher1_path =  'models/model_cifar_wrn.pt'
 #state_dict = torch.load(teacher1_path)
 #teacher.load_state_dict(state_dict)
 
-state_dict = torch.load(teacher1_path, map_location=torch.device('cpu'))
+state_dict = torch.load(teacher1_path, map_location=torch.device('cpu'), weights_only=False)
 new_sd = {}
 for k, v in state_dict.items():
     new_sd[k.replace('module.', '')] = v
@@ -430,7 +430,7 @@ teacher2_path = 'models/nat_teacher_checkpoint/cifar10_resnnet56.pth'
 #state_dict_1 = torch.load(teacher2_path)
 #teacher_nat.load_state_dict(state_dict_1)
 
-state_dict = torch.load(teacher2_path,map_location=torch.device('cpu'))
+state_dict = torch.load(teacher2_path, map_location=torch.device('cpu'), weights_only=False)
 new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 teacher_nat.load_state_dict(new_state_dict)
 
