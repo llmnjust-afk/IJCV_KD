@@ -931,7 +931,7 @@ for epoch in range(begin_epoch,epochs+1):
             s_fgsm_logits = student(x_fgsm)
             fgsm_anchor_loss = kl_loss(
                 F.log_softmax(s_fgsm_logits, dim=1),
-                F.softmax(t_fgsm_logits.detach() / temp_adv, dim=1))
+                F.softmax(t_fgsm_logits.detach() / temp_adv, dim=1)).mean()
             total_loss = total_loss + CFG["fgsm_anchor_weight"] * fgsm_anchor_loss
 
         student.train()
