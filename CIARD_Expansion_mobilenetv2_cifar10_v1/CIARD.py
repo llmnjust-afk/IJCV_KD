@@ -865,6 +865,40 @@ for epoch in range(begin_epoch,epochs+1):
             weight_learn_rate *= 0.1
             temp_learn_rate *= 0.1
                     
+        # =====================================================================
+        # IJCV R18 FIX: Late Clean CE Recovery + FGSM Anchor
+        # =====================================================================
+        # (1) Late Clean CE Recovery: after epoch 200, add a small ungated clean
+        #     CE to recover clean accuracy. The existing clean_ce is robust-gated
+        #     which protects robustness but limits clean recovery. This ungated
+        #     term only activates late, after the robust boundary is formed.
+        late_clean_ce = torch.tensor(0.0).cuda()
+        if (USE_CIARDPP and CFG.get("late_clean_ce_recovery", False)
+                and epoch >= CFG["late_clean_ce_start"]):
+            late_clean_ce = ce_loss(student_nat_logits, train_batch_labels)
+            total_loss = total_loss + CFG["late_clean_ce_weight"] * late_clean_ce
+
+        # (2) FGSM Anchor: after epoch 150, generate single-step FGSM adversarial
+        #     examples and add a KL divergence between student and robust teacher
+        #     on them. This specifically trains the student to be robust against
+        #     single-step (FGSM) attacks without changing the multi-step PGD
+        #     objective that drives PGD/TRADES/CW robustness.
+        fgsm_anchor_loss = torch.tensor(0.0).cuda()
+        if (USE_CIARDPP and CFG.get("fgsm_anchor", False)
+                and epoch >= CFG["fgsm_anchor_start"]):
+            x_fgsm_grad = train_batch_data.clone().detach().requires_grad_(True)
+            s_clean_for_grad = student(x_fgsm_grad)
+            fgsm_ce = F.cross_entropy(s_clean_for_grad, train_batch_labels)
+            grad_fgsm = torch.autograd.grad(fgsm_ce, x_fgsm_grad, create_graph=False)[0]
+            x_fgsm = torch.clamp(train_batch_data + epsilon * grad_fgsm.sign(), 0.0, 1.0).detach()
+            with torch.no_grad():
+                t_fgsm_logits = teacher(x_fgsm)
+            s_fgsm_logits = student(x_fgsm)
+            fgsm_anchor_loss = kl_loss(
+                F.log_softmax(s_fgsm_logits, dim=1),
+                F.softmax(t_fgsm_logits.detach() / temp_adv, dim=1))
+            total_loss = total_loss + CFG["fgsm_anchor_weight"] * fgsm_anchor_loss
+
         student.train()
         total_loss.backward()
         optimizer.step()
