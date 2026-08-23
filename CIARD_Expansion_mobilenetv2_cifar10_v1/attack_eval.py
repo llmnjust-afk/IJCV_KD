@@ -33,7 +33,7 @@ path = "model/Cifar10_MobileNetV2_tm010_repeat0620/student_best.pth"
 student = mobilenet_v2()# cifar10_resnet56()# wideresnet()##resnet18()#
 
 teacher1_path =  'models/model_cifar_wrn.pt' #for blackbox attack
-teacher = wideresnet()
+teacher = wideresnet(widen_factor=20, normalize=True)
 
 transform_test = transforms.Compose([
     transforms.ToTensor(),

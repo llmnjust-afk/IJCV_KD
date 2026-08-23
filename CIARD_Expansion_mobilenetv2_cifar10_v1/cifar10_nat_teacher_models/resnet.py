@@ -102,8 +102,12 @@ class BasicBlock(nn.Module):
 
 class CifarResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=10):
+    def __init__(self, block, layers, num_classes=10, normalize=False):
         super(CifarResNet, self).__init__()
+        self.normalize = normalize
+        if normalize:
+            self.register_buffer('mu', torch.tensor([[[[0.4914]], [[0.4822]], [[0.4465]]]]))
+            self.register_buffer('sigma', torch.tensor([[[[0.2471]], [[0.2470]], [[0.2616]]]]))
         self.inplanes = 16
         self.conv1 = conv3x3(3, 16)
         self.bn1 = nn.BatchNorm2d(16)
@@ -140,6 +144,8 @@ class CifarResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x, return_feature=False):
+        if self.normalize:
+            x = (x - self.mu) / self.sigma
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)

@@ -50,8 +50,12 @@ class NetworkBlock(nn.Module):
 
 
 class WideResNet(nn.Module):
-    def __init__(self, depth=34, num_classes=10, widen_factor=10, dropRate=0.0):
+    def __init__(self, depth=34, num_classes=10, widen_factor=10, dropRate=0.0, normalize=False):
         super(WideResNet, self).__init__()
+        self.normalize = normalize
+        if normalize:
+            self.register_buffer('mu', torch.tensor([[[[0.4914]], [[0.4822]], [[0.4465]]]]))
+            self.register_buffer('sigma', torch.tensor([[[[0.2471]], [[0.2435]], [[0.2616]]]]))
         nChannels = [16, 16 * widen_factor, 32 * widen_factor, 64 * widen_factor]
         assert ((depth - 4) % 6 == 0)
         n = (depth - 4) / 6
@@ -84,6 +88,8 @@ class WideResNet(nn.Module):
                 m.bias.data.zero_()
 
     def forward(self, x):
+        if self.normalize:
+            x = (x - self.mu) / self.sigma
         out = self.conv1(x)
         out = self.block1(out)
         out = self.block2(out)
@@ -93,6 +99,6 @@ class WideResNet(nn.Module):
         out = out.view(-1, self.nChannels)
         return self.fc(out)
 
-def wideresnet(pretrained=False):
-    model = WideResNet()
+def wideresnet(pretrained=False, widen_factor=10, normalize=False):
+    model = WideResNet(widen_factor=widen_factor, normalize=normalize)
     return model

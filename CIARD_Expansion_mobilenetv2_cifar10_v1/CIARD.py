@@ -7,6 +7,7 @@ Lr stage decay
 '''
 import os
 import copy
+import argparse
 import torch
 from mtard_loss import *
 from cifar10_models import *
@@ -20,12 +21,23 @@ torch.manual_seed(0)
 torch.cuda.manual_seed_all(0)
 torch.backends.cudnn.deterministic = True
 
+# --- SARD CLI arguments ---
+_parser = argparse.ArgumentParser(description="SARD: Strength-Adaptive Reliability-Calibrated Distillation")
+_parser.add_argument("--sard_saa", type=int, default=None, help="Enable SAA module (0/1)")
+_parser.add_argument("--sard_rcd", type=int, default=None, help="Enable RCD module (0/1)")
+_parser.add_argument("--epochs", type=int, default=None, help="Override total epochs")
+_parser.add_argument("--prefix", type=str, default=None, help="Override model prefix")
+_args, _unknown = _parser.parse_known_args()
+
 # Allow GPU selection via env var (shell scripts set this per-experiment).
 if os.environ.get("CIARD_GPU"):
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["CIARD_GPU"]
 
 # Fixed output prefix for this independent variant.
 prefix = 'Cifar10_MobileNetV2_tm010_repeat0620'
+# --- SARD CLI overrides (prefix only here; CFG overrides applied after CFG def) ---
+if _args.prefix is not None:
+    prefix = _args.prefix
 draw_file = prefix
 model_dir = './model/' + prefix
 if not os.path.exists(model_dir):
@@ -84,7 +96,7 @@ CFG = {
     "adv_weight_floor": 0.35,
     # Label anchors: KD/push losses can drift the boundary away from the ground
     # truth. Small CE anchors preserve clean accuracy and transfer robustness.
-    "clean_ce_weight": 0.05,  # clean CE works, but must be robust-gated (below)
+    "clean_ce_weight": 0.3,  # increased for short experiments (was 0.05)
     "adv_ce_weight": 0.0,
     "ce_start": 120,          # later start: avoid disturbing early robust KD/push
     "ce_warmup": 80,
@@ -95,7 +107,7 @@ CFG = {
     # the clean/robust trade-off.
     "clean_ce_robust_gate": True,
     "clean_ce_gate_tau": 2.0,
-    "clean_ce_gate_floor": 0.0,
+    "clean_ce_gate_floor": 0.5,
     # CW-style adversarial margin anchor. CW attacks optimise logit margins, so
     # a tiny late margin penalty is more targeted than increasing CE. Keep this
     # small; it is intended to recover black-box CW without hurting PGD gains.
@@ -188,7 +200,7 @@ CFG = {
     # improves both clean and robust accuracy slightly when the raw final model
     # oscillates. This is the default Safe+ improvement over CIARD baseline.
     "student_ema": True,
-    "student_ema_decay": 0.999,
+    "student_ema_decay": 0.995,
     "eval_student_ema": True,
     "save_ema_as_student": True,
     # =========================================================================
@@ -222,7 +234,49 @@ CFG = {
     "fgsm_anchor": True,
     "fgsm_anchor_weight": 0.05,
     "fgsm_anchor_start": 150,
+    # =========================================================================
+    # SARD: Strength-Adaptive Reliability-Calibrated Distillation
+    # -------------------------------------------------------------------------
+    # Module 1 (SAA): Sample epsilon from a Beta distribution with curriculum
+    #   scheduling, instead of using a fixed epsilon=8/255. This produces
+    #   multi-scale adversarial examples that improve robustness across
+    #   different attack strengths (especially FGSM and AutoAttack).
+    # Module 2 (RCD): Weight the adversarial KL distillation per-sample by a
+    #   Teacher Reliability Score (TRS), which combines teacher correctness,
+    #   prediction margin, and confidence. This prevents the student from
+    #   mimicking the teacher's overconfident boundary artifacts on x_adv.
+    # =========================================================================
+    "sard_saa": True,              # Module 1: Strength-Adaptive Attack
+    "sard_eps_min": 1.0/255.0,     # Minimum epsilon for sampling
+    "sard_eps_max": 8.0/255.0,     # Maximum epsilon (= standard budget)
+    "sard_rcd": True,              # Module 2: Reliability-Calibrated Distillation
+    "sard_rcd_floor": 0.1,         # Minimum TRS weight (prevents zeroing out)
+    "sard_rcd_tau_m": 2.0,         # Margin normalization temperature
+    "sard_rcd_apply_to_nat": False, # Also apply TRS to natural KD (usually False)
 }
+
+# --- SARD CLI overrides (applied after CFG and epochs are defined) ---
+if _args.sard_saa is not None:
+    CFG["sard_saa"] = bool(_args.sard_saa)
+if _args.sard_rcd is not None:
+    CFG["sard_rcd"] = bool(_args.sard_rcd)
+if _args.epochs is not None:
+    epochs = _args.epochs
+
+# Scale auxiliary loss start/warmup epochs for short experiments
+# Use fraction-of-training approach so losses start early enough in short runs
+if epochs != 300:
+    CFG["ce_start"] = max(1, int(epochs * 0.03))
+    CFG["ce_warmup"] = max(5, int(epochs * 0.05))
+    CFG["teacher_margin_start"] = max(1, int(epochs * 0.05))
+    CFG["teacher_margin_warmup"] = max(5, int(epochs * 0.05))
+    CFG["late_clean_ce_start"] = max(int(epochs * 0.5), 1)
+    CFG["fgsm_anchor_start"] = max(1, int(epochs * 0.1))
+    CFG["push_warmup"] = max(5, int(epochs * 0.08))
+    CFG["temp_decay_epochs"] = max(int(epochs * 0.5), 1)
+
+logger.info("SARD config: saa={}, rcd={}, epochs={}, prefix={}".format(
+    CFG.get("sard_saa", False), CFG.get("sard_rcd", False), epochs, prefix))
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -386,10 +440,8 @@ def pull_loss(teacher_logits, students_logits, labels,T=1):#train_batch_labels
     #print(diff_student_logits)
     return kl_loss(F.log_softmax(diff_student_logits/T,dim=1),F.softmax(diff_teacher_logits.detach(),dim=1))
 
-teacher = wideresnet()#WideResNet()
+teacher = wideresnet(widen_factor=20, normalize=True)
 teacher1_path =  'models/model_cifar_wrn.pt'
-#state_dict = torch.load(teacher1_path)
-#teacher.load_state_dict(state_dict)
 
 state_dict = torch.load(teacher1_path, map_location=torch.device('cpu'), weights_only=False)
 new_sd = {}
@@ -397,25 +449,9 @@ for k, v in state_dict.items():
     new_sd[k.replace('module.', '')] = v
 try:
     teacher.load_state_dict(new_sd)
-except RuntimeError:
-    # 检查点与 CIARD 的 WRN 架构不兼容。使用从头训练的 WRN。
-    pass
-    # teacher 已经通过 wideresnet() 创建并处于训练模式
-
-try:
-    teacher.load_state_dict(new_sd)
-    if "logger" in dir(): logger.info("稳健教师检查点已加载。")
-except RuntimeError:
-    if "logger" in dir(): logger.warning("稳健教师检查点架构不匹配，使用随机初始化的WRN。")
-    teacher = wideresnet()
-    teacher = teacher.cuda()
-    teacher = teacher.cuda()
-except RuntimeError:
-    logger.warning("稳健教师检查点架构不匹配，使用随机初始化的WRN。")
-    teacher = wideresnet()
-    teacher = teacher.cuda()
-    teacher.load_state_dict(new_sd)
-#teacher = torch.nn.DataParallel(teacher)
+    if "logger" in dir(): logger.info("Robust teacher (WRN-34-20, Rice2020) checkpoint loaded.")
+except RuntimeError as e:
+    if "logger" in dir(): logger.warning(f"Checkpoint mismatch, using random init WRN-34-20: {e}")
 teacher = teacher.cuda()
 # teacher = teacher.half()
 #teacher.eval()
@@ -425,14 +461,14 @@ ADV_teacher_loss_CE = torch.nn.CrossEntropyLoss().cuda()
 teacher.train()
 
 
-teacher_nat = cifar10_resnet56()#resnet56()
+teacher_nat = cifar10_resnet56(normalize=True)
 teacher2_path = 'models/nat_teacher_checkpoint/cifar10_resnnet56.pth'
 #state_dict_1 = torch.load(teacher2_path)
 #teacher_nat.load_state_dict(state_dict_1)
 
 state_dict = torch.load(teacher2_path, map_location=torch.device('cpu'), weights_only=False)
 new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
-teacher_nat.load_state_dict(new_state_dict)
+teacher_nat.load_state_dict(new_state_dict, strict=False)
 
 #teacher = torch.nn.DataParallel(teacher)
 teacher_nat = teacher_nat.cuda()
@@ -507,12 +543,23 @@ for epoch in range(begin_epoch,epochs+1):
             teacher_nat_logits = teacher_nat(train_batch_data)
             adv_teacher_nat = teacher(train_batch_data)
 
+        # --- SARD Module 1 (SAA): Sample epsilon from curriculum ---
+        if CFG.get("sard_saa", False):
+            eps_t = sample_epsilon_curriculum(
+                epoch, epochs,
+                eps_max=CFG["sard_eps_max"],
+                eps_min=CFG["sard_eps_min"])
+            step_size_t = 2.0 * eps_t / 10.0  # proportional step size
+        else:
+            eps_t = epsilon
+            step_size_t = 2/255.0
+
         student_adv_logits,teacher_adv_logits,nat_adv_logits,student_adv_feat,nat_adv_feat,x_adv = robust_inner_loss_push(
                                                                                         student,teacher,teacher_nat,
                                                                                         train_batch_data,train_batch_labels,
                                                                                         optimizer,ADV_teacher_optimizer,
-                                                                                        step_size=2/255.0,
-                                                                                        epsilon=epsilon,perturb_steps=10,
+                                                                                        step_size=step_size_t,
+                                                                                        epsilon=eps_t,perturb_steps=10,
                                                                                         attack_teacher_alpha=CFG["attack_teacher_alpha"])
 
         # (D) EMA-ITT: the soft robust label comes from the slow EMA teacher,
@@ -557,6 +604,19 @@ for epoch in range(begin_epoch,epochs+1):
                 robust_gate = (CFG["robust_kd_floor"]
                                + (1.0 - CFG["robust_kd_floor"])
                                * robust_correct * p_robust_true)
+
+        # --- SARD Module 2 (RCD): Teacher Reliability Score weighting ---
+        # Computes a per-sample reliability weight for the robust teacher's
+        # predictions on x_adv, combining correctness, margin, and confidence.
+        # This prevents the student from mimicking the teacher's overconfident
+        # boundary artifacts on adversarial inputs.
+        if CFG.get("sard_rcd", False):
+            trs = teacher_reliability_score(
+                robust_soft_logits, train_batch_labels,
+                temperature=temp_adv,
+                tau_m=CFG["sard_rcd_tau_m"],
+                floor=CFG["sard_rcd_floor"])
+            robust_gate = robust_gate * trs
 
         # (C) capacity-aware gating: gently emphasise the robust KL on samples
         # the student is starting to handle (per-sample rho_i), an automatic
@@ -840,28 +900,33 @@ for epoch in range(begin_epoch,epochs+1):
             total_loss -= loss4_weight*kl_Loss4
         '''
 
-        if epoch < 150:
+        # LR schedule: proportional to total epochs (supports short experiments)
+        lr_decay_start = int(epochs * 0.5)  # cosine decay starts at 50% of training
+        if epoch < lr_decay_start:
             lr = 0.1
         else:
-            cosine_term = 0.5 + 0.5 * np.cos(np.pi * (epoch - 150) / (300 - 150))
-            exponential_decay = np.exp(-0.01 * (epoch - 150) ** 2 / (300 - 150) ** 2)
+            cosine_term = 0.5 + 0.5 * np.cos(np.pi * (epoch - lr_decay_start) / max(1, epochs - lr_decay_start))
+            exponential_decay = np.exp(-0.01 * (epoch - lr_decay_start) ** 2 / max(1, (epochs - lr_decay_start)) ** 2)
             lr = 0.1 * cosine_term * exponential_decay
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
         
-        if epoch < 50:
+        teacher_warmup_end = int(epochs * (50.0/300.0))  # proportional warmup
+        if epoch < teacher_warmup_end:
             teacher_lr = 0
         else:
             base_lr = 0.0001
             min_lr = 0
-            cosine_term = 0.5 + 0.5 * np.cos(np.pi * (epoch - 50) / (300 - 50))
-            exponential_decay = np.exp(-0.01 * (epoch - 50) ** 2 / (300 - 50) ** 2)
+            cosine_term = 0.5 + 0.5 * np.cos(np.pi * (epoch - teacher_warmup_end) / max(1, epochs - teacher_warmup_end))
+            exponential_decay = np.exp(-0.01 * (epoch - teacher_warmup_end) ** 2 / max(1, (epochs - teacher_warmup_end)) ** 2)
             teacher_lr = min_lr + (base_lr - min_lr) * cosine_term*exponential_decay
             
         for param_group in ADV_teacher_optimizer.param_groups:
             param_group['lr'] = teacher_lr
-        if epoch in [215,260,285]:
+        # Decay weight/temp learn rates at 72%, 87%, 95% of training
+        decay_epochs = [int(epochs * r) for r in (0.72, 0.87, 0.95)]
+        if epoch in decay_epochs:
             weight_learn_rate *= 0.1
             temp_learn_rate *= 0.1
                     
@@ -924,10 +989,17 @@ for epoch in range(begin_epoch,epochs+1):
                 torch.mean(adv_margin_gate).item(),
                 teacher_margin_conflict_score.item(), teacher_margin_conflict_scale,
                 torch.mean(teacher_margin_per_sample_scale).item())
-            logger.info(text) 
+            # SARD metrics
+            sard_log = " sard_eps:{:.4f}".format(eps_t) if CFG.get("sard_saa", False) else ""
+            if CFG.get("sard_rcd", False):
+                sard_log += " sard_trs_mean:{:.4f}".format(torch.mean(robust_gate).item())
+            text += sard_log
+            logger.info(text)
         
 
-    if epoch == 1 or epoch%10==  0 or epoch >= 250: 
+    _eval_interval = max(1, epochs // 15)  # evaluate ~15 times during training
+    _eval_start_late = int(epochs * 0.83)   # evaluate every epoch in final 17%
+    if epoch == 1 or epoch % _eval_interval == 0 or epoch >= _eval_start_late:
         loss_nat_test = AverageMeter()
         loss_adv_test = AverageMeter()
 
@@ -1012,7 +1084,7 @@ for epoch in range(begin_epoch,epochs+1):
         nat_teacher_test_accs_naturals = np.array(nat_teacher_test_accs_naturals)
         nat_teacher_test_accs_natural = np.sum(nat_teacher_test_accs_naturals==0)/len(nat_teacher_test_accs_naturals)
 
-        if epoch%50 == 0 :
+        if epoch % max(1, epochs // 6) == 0 :
             save_student = ema_student if (USE_CIARDPP and CFG["save_ema_as_student"] and ema_student is not None) else student
             state = { 'model': save_student.state_dict(),
                 'optimizer': optimizer.state_dict(), 'epoch': epoch}
@@ -1023,13 +1095,8 @@ for epoch in range(begin_epoch,epochs+1):
             if USE_CIARDPP and student_head is not None:
                 state['student_head'] = student_head.state_dict()
             torch.save(state,'./model/' + prefix + "/student_" + str(epoch)+ '.pth')
-            state = { 'model': teacher.state_dict(),
-                'optimizer': ADV_teacher_optimizer.state_dict(), 'epoch': epoch}
-            # (D) persist the EMA robust teacher (the one used for distillation).
-            if USE_CIARDPP and ema_teacher is not None:
-                state['ema_teacher'] = ema_teacher.state_dict()
-            torch.save(state,'./model/'+ prefix + "/teacher_" + str(epoch)+ '.pth')
-        if epoch > 250:
+            # Skip per-epoch teacher save (772MB each for WRN-34-20)
+        if epoch > int(epochs * 0.83):
             save_student = ema_student if (USE_CIARDPP and CFG["save_ema_as_student"] and ema_student is not None) else student
             state = { 'model': save_student.state_dict(),
                 'optimizer': optimizer.state_dict(), 'epoch': epoch}
@@ -1037,9 +1104,7 @@ for epoch in range(begin_epoch,epochs+1):
                 state['raw_student'] = student.state_dict()
                 state['ema_student'] = ema_student.state_dict()
             torch.save(state,'./model/' + prefix + "/student_latest.pth")
-            state = { 'model': teacher.state_dict(),
-                'optimizer': ADV_teacher_optimizer.state_dict(), 'epoch': epoch}
-            torch.save(state,'./model/'+ prefix + "/teacher_latest.pth")
+            # Skip latest teacher save (772MB for WRN-34-20)
         if (test_nat + test_adv) / 2 > best_accuracy:
             best_accuracy = (test_nat + test_adv)/2
             save_student = ema_student if (USE_CIARDPP and CFG["save_ema_as_student"] and ema_student is not None) else student
@@ -1049,9 +1114,7 @@ for epoch in range(begin_epoch,epochs+1):
                 state['raw_student'] = student.state_dict()
                 state['ema_student'] = ema_student.state_dict()
             torch.save(state,'./model/' + prefix + "/student_best"+ '.pth')
-            state = { 'model': teacher.state_dict(),
-                'optimizer': ADV_teacher_optimizer.state_dict(), 'epoch': epoch}
-            torch.save(state,'./model/' + prefix + "/teacher_best"+ '.pth')
+            # Skip best teacher save (772MB for WRN-34-20)
             logger.info("best accuracy:"+str(best_accuracy))
             
         text = f'student natural acc {np.sum(test_accs_naturals==0)/len(test_accs_naturals):.4f}, adv teacher natural acc {np.sum(teacher_test_accs_naturals==0)/len(teacher_test_accs_naturals):.4f}, nat teacher natural acc {np.sum(nat_teacher_test_accs_naturals==0)/len(nat_teacher_test_accs_naturals):.4f}'

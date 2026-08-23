@@ -1,3 +1,48 @@
-.DS_Store
-__pycache__/
+# Git ignore file for IJCV_KD project
+# Temporary files
 *.pyc
+__pycache__/
+*.pyo
+*.egg-info/
+*.so
+
+# Data files (auto-downloaded, too large for git)
+**/data/cifar-10-python.tar.gz
+**/data/cifar-10-batches-py/
+
+# Large model checkpoints (>100MB, use setup_models.sh to download)
+**/models/model_cifar_wrn.pt
+**/models/model_cifar_wrn_standard.pt
+**/models/cifar10/
+
+# Natural teacher checkpoint (small but per-machine)
+**/models/nat_teacher_checkpoint/*.pth
+**/models/nat_teacher_checkpoint/*.pt
+
+# Training outputs (large, per-run)
+**/model/
+**/logs/
+
+# RobustBench cache
+**/models/cifar10/
+
+# chenyaofo download cache
+**/cifar10_resnet56_chenyaofo.pt
+
+# Tensorboard logs
+runs/
+events.out.tfevents.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Credentials
+.env
+*.token
+PAT
