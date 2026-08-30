@@ -13,13 +13,14 @@ parameters remain independent.
 ## Source status
 
 This directory is a repaired source snapshot, not an independent experiment
-directory and not a submission target. Its historical Slurm files still refer
-to old locations. Before a formal run, copy the selected student source into a
-new, empty run directory, link that directory's `data` and `models` to the
-project-wide read-only resources, fix the configuration and unique prefix in
-that copy, and prepare matching training/evaluation scripts.
+directory and not a submission target. Its bundled Slurm templates include
+CUDA/data/teacher preflight and completion guards, but still refer to historical
+local locations/resources. Before a formal run, copy the selected student
+source into a new, empty run directory, link that directory's `data` and
+`models` to the project-wide read-only resources, fix the configuration and
+unique prefix in that copy, and prepare matching training/evaluation scripts.
 
-The source deliberately does not select a physical GPU. It respects the
+The Python source deliberately does not select a physical GPU. It respects the
 `CUDA_VISIBLE_DEVICES` allocation supplied by Slurm and discards the legacy
 `CIARD_GPU`, `CIARD_STUDENT`, and `CIARD_PREFIX` variables.
 
@@ -28,12 +29,13 @@ and `--original_ciard` for source-level diagnostics. Formal independent
 variants must still write the selected settings directly into their copied
 `CIARD.py`, use a unique initially empty prefix, and print the resolved
 configuration from Python. The four conceptual SARD controls are baseline,
-SAA-only, RCD-only, and SAA+RCD; the actual 0830 experiment matrix has not yet
-been selected or prepared.
+SAA-only, RCD-only, and SAA+RCD. The downstream 0830 matrix is maintained in
+independent run directories and is deliberately not copied back into this
+parameter-neutral source repository.
 
 ## Evaluation
 
-### Fast Evaluation (white-box + black-box, ~2 min)
+### Diagnostic Fast Evaluation (white-box + black-box, ~2 min)
 
 ```bash
 python fast_eval.py --checkpoint model/sard_200ep/student_best.pth --prefix sard_200ep
@@ -41,7 +43,8 @@ python fast_eval.py --checkpoint model/sard_200ep/student_best.pth --prefix sard
 
 Runs: Clean Accuracy, WB PGD-20 (two step sizes), WB FGSM, WB CW L-inf, BB PGD-20, BB CW L-inf.
 Outputs structured JSON to `fast_eval_<prefix>_<job-or-time>.json` and prints
-`EVAL_COMPLETE` only after all required metrics are present.
+`EVAL_COMPLETE` only after all required diagnostic metrics are present. This
+shortcut is not a substitute for the formal full evaluation below.
 
 ### Full Evaluation (includes AutoAttack, ~30 min)
 
@@ -50,6 +53,10 @@ Edit `attack_eval.py` to set the checkpoint path, then:
 ```bash
 python attack_eval.py
 ```
+
+Formal stochastic evaluation explicitly fixes seed 0 for AutoAttack, Square,
+and each random-start PGD metric, records the seed in structured JSON, and
+checks the robust-teacher SHA256 before any attack runs.
 
 ## Teacher Models
 
@@ -83,6 +90,15 @@ Training saves checkpoints to `model/<prefix>/`:
 | `student_best.pth` | When (clean+robust)/2 improves on **validation set** | Best student model |
 
 > Checkpoint selection uses a 5k validation split from the training set, NOT the test set, to avoid test set leakage.
+
+The bundled training templates fail before `CIARD.py` starts unless exactly one
+CUDA GPU is visible and usable, CIFAR-10 is present with 50,000/10,000
+train/test samples, and both teacher hashes match. Successful preflight prints
+`PRECHECK_OK`. Training completion requires a zero process exit and a non-empty
+`student_best.pth`, then prints `TRAIN_COMPLETE` with its path and SHA256.
+Formal evaluation requires a non-empty checkpoint and prints `EVAL_COMPLETE`
+only after writing complete structured results. An empty Slurm `.err` alone is
+not completion proof when stderr is merged through `2>&1 | tee`.
 
 ## Key Bug Fixes (vs previous version)
 
@@ -135,6 +151,17 @@ Training saves checkpoints to `model/<prefix>/`:
     - PGD/FGSM: call `model.zero_grad()` to prevent parameter gradient accumulation
     - `parse_known_args` → `parse_args` to catch typos
     - Structured JSON output with `EVAL_COMPLETE` marker
+
+15. **Epoch-51 teacher mode type failure (FIXED)** — NumPy learning-rate
+    schedules can make `teacher_lr > 0` return `numpy.bool_`, which PyTorch 1.10
+    rejects in `Module.train()`. The resolved predicate is now explicitly
+    converted to native `bool`.
+
+16. **Runtime and evaluation reproducibility (FIXED)** — Formal stochastic
+    attacks receive/reset explicit seed 0; structured results record it; teacher
+    integrity is checked before attacks; training templates perform fail-closed
+    preflight and print a hash-bearing `TRAIN_COMPLETE` marker only after a
+    non-empty best checkpoint exists.
 
 ## SARD Method Details
 

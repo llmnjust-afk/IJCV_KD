@@ -17,7 +17,7 @@ export OMP_NUM_THREADS=4
 export PYTHONPATH="$PWD:${PYTHONPATH:-}"
 
 CKPT='model/Cifar10_MobileNetV2_tm010_repeat0620/student_best.pth'
-test -f "$CKPT" || { echo "Missing checkpoint: $CKPT" >&2; exit 1; }
+test -s "$CKPT" || { echo "Missing or empty checkpoint: $CKPT" >&2; exit 1; }
 echo '========== CIARD 0624 EVALUATION =========='
 echo 'resolved evaluation parameters are emitted by attack_eval.py'
 echo "data_path=$(readlink -f data)"

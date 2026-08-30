@@ -20,7 +20,7 @@ unset CIARD_TM_CLEAN_GATE CIARD_TM_ADV_GATE CIARD_TM_CONFLICT_FLOOR CIARD_TM_PS_
 unset CIARD_TM_RELATIVE_ETA CIARD_TM_CLEAN_TAU CIARD_TM_ADV_TAU CIARD_TM_TWO_STAGE CIARD_TM_FINETUNE_START CIARD_TM_DETACHED
 
 CKPT='model/Cifar10_ResNet18_0703_pcgrad_optuna_transfer/student_best.pth'
-test -f "$CKPT" || { echo "Missing checkpoint: $CKPT" >&2; exit 1; }
+test -s "$CKPT" || { echo "Missing or empty checkpoint: $CKPT" >&2; exit 1; }
 echo '========== CIARD 0703 PCGRAD EVAL BEST: r18_pcgrad_optuna_transfer =========='
 echo 'resolved evaluation parameters are emitted by attack_eval.py'
 echo "data_path=$(readlink -f data)"

@@ -631,7 +631,7 @@ CFG:
 
 for epoch in range(begin_epoch,epochs+1):
     logger.info('the {}th epoch '.format(epoch))
-    teacher_should_update = epoch > teacher_update_epoch and teacher_lr > 0
+    teacher_should_update = bool((epoch > teacher_update_epoch) and (teacher_lr > 0))
     epoch_temp_scale = 1.0
     if USE_CIARDPP and CFG.get("use_adaptive_temp", False):
         decay_epochs = CFG["temp_decay_epochs"]

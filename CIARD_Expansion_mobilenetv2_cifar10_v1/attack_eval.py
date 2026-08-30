@@ -18,6 +18,9 @@ VARIANT_NAME = "mobilenetv2_cifar10_0830_source"
 EVAL_TARGET = "student_best"
 CHECKPOINT = "model/Cifar10_MobileNetV2_tm010_repeat0620/student_best.pth"
 ROBUST_TEACHER_CHECKPOINT = "models/model_cifar_wrn.pt"
+EVAL_SEED = 0
+EXPECTED_ROBUST_TEACHER_SHA256 = (
+    "2ede52bd042bbdf40a0c27e8008034afd9cbb0b256b9077a255e555d25f957f4")
 RESULTS_REQUIRED = (
     "clean", "autoattack", "wb_pgd_trades", "wb_pgd_sat", "wb_fgsm",
     "wb_cw", "bb_pgd_trades", "bb_square", "bb_cw",
@@ -37,6 +40,11 @@ def checkpoint_sha256(path):
         for chunk in iter(lambda: checkpoint_file.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def reset_evaluation_seed():
+    torch.manual_seed(EVAL_SEED)
+    torch.cuda.manual_seed_all(EVAL_SEED)
 
 
 def strip_module_prefix(state_dict):
@@ -118,14 +126,17 @@ def evaluate_autoattack(model, dataloader, device, epsilon=8/255.0):
         labels.append(batch_labels)
     x_test = torch.cat(inputs, dim=0).to(device)
     y_test = torch.cat(labels, dim=0).to(device)
-    adversary = AutoAttack(model, norm="Linf", eps=epsilon, version="standard", verbose=True)
+    adversary = AutoAttack(
+        model, norm="Linf", eps=epsilon, version="standard", seed=EVAL_SEED,
+        verbose=True)
     x_adv = adversary.run_standard_evaluation(x_test, y_test, bs=128)
     with torch.no_grad():
         return (model(x_adv).argmax(1) == y_test).float().mean().item()
 
 
 def evaluate_square(model, dataloader, device, epsilon=8/255.0, queries=100):
-    attack = torchattacks.Square(model, norm="Linf", eps=epsilon, n_queries=queries)
+    attack = torchattacks.Square(
+        model, norm="Linf", eps=epsilon, n_queries=queries, seed=EVAL_SEED)
     correct = 0
     total = 0
     for data, labels in dataloader:
@@ -144,8 +155,7 @@ def main():
         if not os.path.isfile(required_path):
             raise FileNotFoundError(required_path)
 
-    torch.manual_seed(0)
-    torch.cuda.manual_seed_all(0)
+    reset_evaluation_seed()
     device = torch.device("cuda:0")
 
     student = mobilenet_v2()
@@ -169,6 +179,10 @@ def main():
 
     student_hash = checkpoint_sha256(CHECKPOINT)
     teacher_hash = checkpoint_sha256(ROBUST_TEACHER_CHECKPOINT)
+    if teacher_hash != EXPECTED_ROBUST_TEACHER_SHA256:
+        raise RuntimeError(
+            "Robust teacher SHA256 mismatch: expected {}, got {}".format(
+                EXPECTED_ROBUST_TEACHER_SHA256, teacher_hash))
     logger.info("""CIARD resolved evaluation config:
 variant: {}
 eval_target: {}
@@ -179,38 +193,44 @@ test_samples: {}
 student: MobileNetV2
 num_classes: 10
 batch_size: 128
-seed: 0
+seed: {}
 blackbox_teacher_arch: WRN-34-10 raw
 blackbox_teacher_checkpoint: {}
 blackbox_teacher_sha256: {}
-autoattack: standard Linf epsilon=8/255
-whitebox_pgd_trades: steps=20 step_size=0.003 epsilon=8/255
-whitebox_pgd_sat: steps=20 step_size=2/255 epsilon=8/255
+autoattack: standard Linf epsilon=8/255 seed={}
+whitebox_pgd_trades: steps=20 step_size=0.003 epsilon=8/255 seed={}
+whitebox_pgd_sat: steps=20 step_size=2/255 epsilon=8/255 seed={}
 whitebox_fgsm: epsilon=8/255
 whitebox_cw: steps=30 step_size=2/255 epsilon=8/255 confidence=50
-blackbox_pgd_trades: source=WRN-34-10 steps=20 step_size=0.003 epsilon=8/255
-blackbox_square: queries=100 epsilon=8/255
+blackbox_pgd_trades: source=WRN-34-10 steps=20 step_size=0.003 epsilon=8/255 seed={}
+blackbox_square: queries=100 epsilon=8/255 seed={}
 blackbox_cw: source=WRN-34-10 steps=30 step_size=2/255 epsilon=8/255 confidence=50
 """.format(
         VARIANT_NAME, EVAL_TARGET, os.path.realpath(CHECKPOINT), student_hash,
-        len(testset), os.path.realpath(ROBUST_TEACHER_CHECKPOINT), teacher_hash))
+        len(testset), EVAL_SEED,
+        os.path.realpath(ROBUST_TEACHER_CHECKPOINT), teacher_hash,
+        EVAL_SEED, EVAL_SEED, EVAL_SEED, EVAL_SEED, EVAL_SEED))
 
     results = {
         "variant": VARIANT_NAME,
         "eval_target": EVAL_TARGET,
         "checkpoint": os.path.realpath(CHECKPOINT),
         "checkpoint_sha256": student_hash,
+        "seed": EVAL_SEED,
         "blackbox_teacher_checkpoint": os.path.realpath(ROBUST_TEACHER_CHECKPOINT),
         "blackbox_teacher_sha256": teacher_hash,
     }
     results["clean"] = evaluate_clean(student, testloader, device)
     logger.info("student clean acc: {:.4f}", results["clean"])
+    reset_evaluation_seed()
     results["autoattack"] = evaluate_autoattack(student, testloader, device)
     logger.info("student robust acc under AutoAttack: {:.4f}", results["autoattack"])
+    reset_evaluation_seed()
     results["wb_pgd_trades"] = evaluate_attack(
         student, student, testloader, device, attack_pgd,
         attack_iters=20, step_size=0.003, epsilon=8/255.0)
     logger.info("student robust acc under white-box PGD_trades Attack: {:.4f}", results["wb_pgd_trades"])
+    reset_evaluation_seed()
     results["wb_pgd_sat"] = evaluate_attack(
         student, student, testloader, device, attack_pgd,
         attack_iters=20, step_size=2/255.0, epsilon=8/255.0)
@@ -222,10 +242,12 @@ blackbox_cw: source=WRN-34-10 steps=30 step_size=2/255 epsilon=8/255 confidence=
         student, student, testloader, device, attack_cw_inf,
         confidence=50, num_classes=10, epsilon=8/255.0, step_size=2/255.0, steps=30)
     logger.info("student robust acc under white-box CW L_inf: {:.4f}", results["wb_cw"])
+    reset_evaluation_seed()
     results["bb_pgd_trades"] = evaluate_attack(
         robust_teacher, student, testloader, device, attack_pgd,
         attack_iters=20, step_size=0.003, epsilon=8/255.0)
     logger.info("student robust acc under black-box PGD_trades Attack: {:.4f}", results["bb_pgd_trades"])
+    reset_evaluation_seed()
     results["bb_square"] = evaluate_square(student, testloader, device)
     logger.info("student robust acc under black-box Square Attack: {:.4f}", results["bb_square"])
     results["bb_cw"] = evaluate_attack(

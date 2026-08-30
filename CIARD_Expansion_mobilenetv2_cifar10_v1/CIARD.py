@@ -631,7 +631,7 @@ CFG:
 
 for epoch in range(begin_epoch,epochs+1):
     logger.info('the {}th epoch '.format(epoch))
-    teacher_should_update = epoch > teacher_update_epoch and teacher_lr > 0
+    teacher_should_update = bool((epoch > teacher_update_epoch) and (teacher_lr > 0))
 
     # Adaptive Temperature: compute temp_scale ONCE per epoch, not per batch.
     # Previously this was inside the batch loop, causing ~391 multiplications
