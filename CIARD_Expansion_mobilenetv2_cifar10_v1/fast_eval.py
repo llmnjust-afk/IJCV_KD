@@ -4,6 +4,8 @@ Usage: python fast_eval.py --checkpoint model/PREFIX/student_best.pth
 """
 import os
 import argparse
+import datetime
+import hashlib
 import json
 import torch
 import numpy as np
@@ -16,8 +18,6 @@ _parser = argparse.ArgumentParser(description="Fast evaluation for SARD experime
 _parser.add_argument("--checkpoint", type=str, required=True, help="Path to student checkpoint .pth file")
 _parser.add_argument("--prefix", type=str, default="", help="Experiment prefix (for logging)")
 _args = _parser.parse_args()
-
-os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("CIARD_GPU", "0")
 
 import sys
 sys.path.insert(0, '.')
@@ -35,6 +35,18 @@ def safe_torch_load(path, map_location=torch.device('cpu'), weights_only=False):
     except TypeError:
         return torch.load(path, map_location=map_location)
 
+def checkpoint_sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as checkpoint_file:
+        for chunk in iter(lambda: checkpoint_file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+if not torch.cuda.is_available():
+    raise RuntimeError("Fast evaluation requires a CUDA GPU")
+if not os.path.isfile(_args.checkpoint):
+    raise FileNotFoundError(_args.checkpoint)
+
 transform_test = transforms.Compose([transforms.ToTensor()])
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=0)
@@ -47,39 +59,42 @@ student = student.cuda()
 student.eval()
 
 teacher1_path = 'models/model_cifar_wrn.pt'
-teacher = wideresnet(widen_factor=20, normalize=True)
-has_teacher = False
-try:
-    sd = safe_torch_load(teacher1_path, map_location=torch.device('cpu'), weights_only=False)
-    new_sd = {k.replace('module.', ''): v for k, v in sd.items()}
-    missing, unexpected = teacher.load_state_dict(new_sd, strict=False)
-    if unexpected:
-        logger.warning(f"Unexpected keys in teacher checkpoint: {unexpected[:5]}...")
-    if missing:
-        non_subblock = [k for k in missing if 'sub_block1' not in k]
-        if non_subblock:
-            logger.warning(f"Critical missing keys in teacher: {non_subblock[:5]}...")
-    teacher = teacher.cuda()
-    teacher.eval()
-    has_teacher = True
-except Exception as e:
-    logger.warning(f"Could not load robust teacher: {e}")
+if not os.path.isfile(teacher1_path):
+    raise FileNotFoundError(teacher1_path)
+teacher = wideresnet()
+sd = safe_torch_load(teacher1_path, map_location=torch.device('cpu'), weights_only=False)
+new_sd = {k.replace('module.', ''): v for k, v in sd.items()}
+teacher.load_state_dict(new_sd, strict=True)
+teacher = teacher.cuda()
+teacher.eval()
+has_teacher = True
 
-logger.info(f"Eval: checkpoint={_args.checkpoint}, student=MobileNetV2, has_teacher={has_teacher}")
+logger.info("""Fast evaluation config:
+checkpoint: {}
+checkpoint_sha256: {}
+student: MobileNetV2
+blackbox_teacher_arch: WRN-34-10 raw
+blackbox_teacher_checkpoint: {}
+blackbox_teacher_sha256: {}
+test_samples: {}
+batch_size: {}
+seed: 0
+""".format(
+    os.path.realpath(_args.checkpoint), checkpoint_sha256(_args.checkpoint),
+    os.path.realpath(teacher1_path), checkpoint_sha256(teacher1_path),
+    len(testset), batch_size))
 
 results = {}
 
 def attack_pgd(model, data, labels, attack_iters=20, step_size=2/255.0, epsilon=8/255.0):
-    ce = torch.nn.CrossEntropyLoss().cuda()
     x_adv = data.detach() + torch.zeros_like(data).uniform_(-epsilon, epsilon)
     x_adv = torch.clamp(x_adv, 0, 1)
     for _ in range(attack_iters):
         x_adv.requires_grad_()
         model.zero_grad()
         logits = model(x_adv)
-        loss = ce(logits, labels)
-        loss.backward()
-        grad = x_adv.grad.detach()
+        loss = F.cross_entropy(logits, labels)
+        grad = torch.autograd.grad(loss, x_adv)[0].detach()
         x_adv = x_adv.detach() + step_size * torch.sign(grad)
         x_adv = torch.min(torch.max(x_adv, data - epsilon), data + epsilon)
         x_adv = torch.clamp(x_adv, 0, 1).detach()
@@ -87,13 +102,11 @@ def attack_pgd(model, data, labels, attack_iters=20, step_size=2/255.0, epsilon=
     return x_adv
 
 def attack_fgsm(model, data, labels, epsilon=8/255.0):
-    ce = torch.nn.CrossEntropyLoss().cuda()
     data = data.detach().requires_grad_(True)
     model.zero_grad()
     logits = model(data)
-    loss = ce(logits, labels)
-    loss.backward()
-    grad = data.grad.detach().sign()
+    loss = F.cross_entropy(logits, labels)
+    grad = torch.autograd.grad(loss, data)[0].detach().sign()
     model.zero_grad()
     return torch.clamp(data + epsilon * grad, 0, 1).detach()
 
@@ -109,7 +122,8 @@ def attack_cw_inf(model, input, target, confidence=50, num_classes=10, epsilon=8
         loss = -torch.clamp(real - other + confidence, min=0.).mean()
         grad = torch.autograd.grad(loss, perturbation)[0]
         perturbation = (perturbation.detach() + lr * torch.sign(grad)).clamp(-epsilon, epsilon)
-        perturbation = perturbation.requires_grad_()
+        projected = torch.clamp(input + perturbation, 0.0, 1.0)
+        perturbation = (projected - input).detach().requires_grad_()
     model.zero_grad()
     return torch.clamp(input + perturbation, 0, 1).detach()
 
@@ -156,46 +170,50 @@ cw = evaluate_attack(student, attack_cw_inf, confidence=50, num_classes=10, epsi
 logger.info(f"WB CW L_inf: {cw:.4f}")
 results['wb_cw'] = cw
 
-if has_teacher:
-    bb_pgd_correct = 0
-    bb_pgd_total = 0
-    for data, labels in testloader:
-        data, labels = data.float().cuda(), labels.cuda()
-        x_adv = attack_pgd(teacher, data, labels, attack_iters=20, step_size=0.003, epsilon=epsilon)
-        with torch.no_grad():
-            logits = student(x_adv)
-        bb_pgd_correct += (logits.argmax(1) == labels).sum().item()
-        bb_pgd_total += labels.size(0)
-    bb_pgd = bb_pgd_correct / bb_pgd_total
-    logger.info(f"BB PGD-20: {bb_pgd:.4f}")
-    results['bb_pgd'] = bb_pgd
+bb_pgd_correct = 0
+bb_pgd_total = 0
+for data, labels in testloader:
+    data, labels = data.float().cuda(), labels.cuda()
+    x_adv = attack_pgd(teacher, data, labels, attack_iters=20, step_size=0.003, epsilon=epsilon)
+    with torch.no_grad():
+        logits = student(x_adv)
+    bb_pgd_correct += (logits.argmax(1) == labels).sum().item()
+    bb_pgd_total += labels.size(0)
+bb_pgd = bb_pgd_correct / bb_pgd_total
+logger.info(f"BB PGD-20: {bb_pgd:.4f}")
+results['bb_pgd'] = bb_pgd
 
-    bb_cw_correct = 0
-    bb_cw_total = 0
-    for data, labels in testloader:
-        data, labels = data.float().cuda(), labels.cuda()
-        x_adv = attack_cw_inf(teacher, data, labels, confidence=50, num_classes=10, epsilon=epsilon, lr=2/255, steps=30)
-        with torch.no_grad():
-            logits = student(x_adv)
-        bb_cw_correct += (logits.argmax(1) == labels).sum().item()
-        bb_cw_total += labels.size(0)
-    bb_cw = bb_cw_correct / bb_cw_total
-    logger.info(f"BB CW L_inf: {bb_cw:.4f}")
-    results['bb_cw'] = bb_cw
-else:
-    logger.warning("Black-box attacks SKIPPED: teacher not loaded")
+bb_cw_correct = 0
+bb_cw_total = 0
+for data, labels in testloader:
+    data, labels = data.float().cuda(), labels.cuda()
+    x_adv = attack_cw_inf(teacher, data, labels, confidence=50, num_classes=10, epsilon=epsilon, lr=2/255, steps=30)
+    with torch.no_grad():
+        logits = student(x_adv)
+    bb_cw_correct += (logits.argmax(1) == labels).sum().item()
+    bb_cw_total += labels.size(0)
+bb_cw = bb_cw_correct / bb_cw_total
+logger.info(f"BB CW L_inf: {bb_cw:.4f}")
+results['bb_cw'] = bb_cw
 
 logger.info("="*60)
 summary_parts = [f"clean={clean_acc:.4f}", f"pgd_trades={pgd_trades:.4f}", f"pgd_sat={pgd_sat:.4f}", f"fgsm={fgsm:.4f}", f"cw={cw:.4f}"]
-if has_teacher:
-    summary_parts.append(f"bb_pgd={results['bb_pgd']:.4f}")
-    summary_parts.append(f"bb_cw={results['bb_cw']:.4f}")
+summary_parts.append(f"bb_pgd={results['bb_pgd']:.4f}")
+summary_parts.append(f"bb_cw={results['bb_cw']:.4f}")
 logger.info("SUMMARY: " + " ".join(summary_parts))
-logger.info("EVAL_COMPLETE")
 
 results['has_teacher'] = has_teacher
 results['checkpoint'] = _args.checkpoint
-out_path = f"eval_{_args.prefix or 'results'}.json" if _args.prefix else "eval_results.json"
-with open(out_path, 'w') as f:
+required_metrics = {'clean', 'wb_pgd_trades', 'wb_pgd_sat', 'wb_fgsm', 'wb_cw', 'bb_pgd', 'bb_cw'}
+missing_metrics = sorted(required_metrics.difference(results))
+if missing_metrics:
+    raise RuntimeError("Fast evaluation incomplete: {}".format(missing_metrics))
+result_tag = os.environ.get(
+    "SLURM_JOB_ID", datetime.datetime.now().strftime("manual_%Y%m%d_%H%M%S"))
+out_path = os.path.join(
+    os.path.dirname(_args.checkpoint),
+    "fast_eval_{}_{}.json".format(_args.prefix or "results", result_tag))
+with open(out_path, 'x') as f:
     json.dump(results, f, indent=2)
 logger.info(f"Results saved to {out_path}")
+logger.info("EVAL_COMPLETE")

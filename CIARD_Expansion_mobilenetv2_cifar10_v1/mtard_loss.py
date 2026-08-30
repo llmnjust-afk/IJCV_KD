@@ -191,16 +191,17 @@ def attack_pgd(model,train_batch_data,train_batch_labels,attack_iters=10,step_si
     train_ifgsm_data = torch.clamp(train_ifgsm_data,0,1)
     for i in range(attack_iters):
         train_ifgsm_data.requires_grad_()
+        model.zero_grad()
         logits = model(train_ifgsm_data)
         loss = ce_loss(logits,train_batch_labels.to(device))
-        loss.backward()
-        train_grad = train_ifgsm_data.grad.detach()
+        train_grad = torch.autograd.grad(loss, train_ifgsm_data)[0].detach()
         train_ifgsm_data = train_ifgsm_data + step_size*torch.sign(train_grad)
         train_ifgsm_data = torch.clamp(train_ifgsm_data.detach(),0,1)
         train_ifgsm_pert = train_ifgsm_data - train_batch_data
         train_ifgsm_pert = torch.clamp(train_ifgsm_pert,-epsilon,epsilon)
         train_ifgsm_data = train_batch_data + train_ifgsm_pert
         train_ifgsm_data = train_ifgsm_data.detach()
+    model.zero_grad()
     return train_ifgsm_data
 
 def robust_inner_loss_push(model,
@@ -214,7 +215,8 @@ def robust_inner_loss_push(model,
                 epsilon=0.031,
                 perturb_steps=10,
                 beta=6.0,
-                attack_teacher_alpha=0.0):
+                attack_teacher_alpha=0.0,
+                teacher_train_mode=True):
 
     criterion_ce_loss = torch.nn.CrossEntropyLoss().cuda()
     model.eval()
@@ -238,7 +240,9 @@ def robust_inner_loss_push(model,
         x_adv = torch.clamp(x_adv, 0.0, 1.0)
 
     model.train()
-    teacher_adv_model.train()
+    # Keep the robust teacher BatchNorm frozen during its warm-up period.  The
+    # caller enables train mode only once iterative teacher updates start.
+    teacher_adv_model.train(teacher_train_mode)
     teacher_nat.eval()
     x_adv = Variable(torch.clamp(x_adv, 0.0, 1.0), requires_grad=False)
     optimizer.zero_grad()
@@ -377,4 +381,4 @@ def sample_epsilon_curriculum(epoch, total_epochs, eps_max=8.0/255.0,
 
     sample = float(torch.distributions.Beta(alpha, beta).sample().item())
     eps_sample = eps_min + sample * (eps_max - eps_min)
-    return max(eps_sample, eps_min)
+    return min(max(eps_sample, eps_min), eps_max)

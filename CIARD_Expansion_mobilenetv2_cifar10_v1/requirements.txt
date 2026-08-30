@@ -1,16 +1,10 @@
-# Core dependencies for SARD (CIARD IJCV extension)
-# Install PyTorch separately matching your CUDA version:
-#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
-#
-# The original requirements.txt pinned torch==1.10.0 which is incompatible
-# with weights_only=False (requires PyTorch >=2.6). We now require >=2.0.
-# The code uses safe_torch_load() for backward compatibility.
-
-torch>=2.0.0
-torchvision>=0.15.0
-loguru>=0.7.0
-torchattacks>=3.5.0
-autoattack>=0.1.0
-robustbench>=0.1.0
-numpy>=1.22.0
-pillow>=10.0.0
+# Minimal runtime dependencies. The project is verified in the existing
+# `ciard` environment (Python 3.8, torch 1.10.0+cu113,
+# torchvision 0.11.1+cu113). safe_torch_load keeps newer torch compatible.
+torch>=1.10
+torchvision>=0.11
+numpy>=1.22
+loguru>=0.7
+torchattacks>=3.5
+# AutoAttack is imported as `autoattack`; use the installation already present
+# in the project environment or the official fra31/auto-attack package.

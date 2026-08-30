@@ -1,43 +1,22 @@
-# IJCV_KD: SARD — Strength-Adaptive Reliability-Calibrated Distillation
+# IJCV_KD 0830v1 source
 
-IJCV journal extension of ICCV 2025 paper **CIARD** (Cyclic Iterative Adversarial Robustness Distillation).
+This snapshot contains the SARD extension of CIARD for CIFAR-10 with two
+independent student lines:
 
-## What's New (SARD)
+- `CIARD_Expansion_mobilenetv2_cifar10_v1`: MobileNet-V2 student.
+- `CIARD_Expansion_resnet18_cifar10_v1`: ResNet-18 student, retaining its
+  architecture-specific PCGrad and weight-averaging implementation.
 
-SARD adds two modules to CIARD:
-- **SAA** (Strength-Adaptive Attack): Beta-distribution epsilon sampling with curriculum
-- **RCD** (Reliability-Calibrated Distillation): Per-sample Teacher Reliability Score weighting
+Both lines now share the same SAA/RCD implementation and common correctness
+fixes. In accordance with the CIARD paper, both use the existing raw
+WRN-34-10 robust teacher and raw ResNet-56 natural teacher on CIFAR-10. The
+student architectures remain different.
 
-## Quick Start
+The verified local runtime is the existing `ciard` environment (Python 3.8,
+PyTorch 1.10.0+cu113, torchvision 0.11.1+cu113). Teacher weights and CIFAR-10
+data are shared from the project root through links created in future run
+directories; this source snapshot does not download or overwrite them.
 
-```bash
-git clone https://github.com/llmnjust-afk/IJCV_KD.git
-cd IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10_v1
-pip install torch torchvision loguru torchattacks autoattack robustbench
-bash setup_models.sh                    # Download teacher models
-python CIARD.py --sard_saa 1 --sard_rcd 1 --epochs 200 --prefix sard_200ep
-python fast_eval.py --checkpoint model/sard_200ep/student_best.pth
-```
-
-## Documentation
-
-- **[EXPERIMENT_GUIDE.md](EXPERIMENT_GUIDE.md)** — Complete guide: setup, training, evaluation, ablation, code modifications
-- **[CIARD_Expansion_mobilenetv2_cifar10_v1/README.md](CIARD_Expansion_mobilenetv2_cifar10_v1/README.md)** — Original CIARD README
-
-## Directory Layout
-
-| Directory | Description |
-|-----------|-------------|
-| `CIARD_Expansion_mobilenetv2_cifar10_v1/` | Main experiment (MobileNetV2 student, SARD-enabled) |
-| `CIARD_Expansion_resnet18_cifar10_v1/` | ResNet18 variant (original CIARD, for reference) |
-| `scripts/` | Experiment runner and analysis scripts |
-| `configs/` | Experiment configurations |
-| `results/` | Experiment results |
-
-## Ablation Results (60 epochs)
-
-| Metric | CIARD Baseline | SARD | Delta |
-|--------|---------------|------|-------|
-| Clean Acc | 89.63% | **92.42%** | +2.79% |
-| Robust Acc | 1.95% | **3.14%** | +1.19% |
-| Best Combined | 49.53% | **52.34%** | +2.81% |
+No formal training/evaluation run directories or parameter matrix have been
+prepared from this repaired source yet, and no cluster job has been submitted.
+See `EXPERIMENT_GUIDE.md` for the implementation and evaluation interfaces.

@@ -1,5 +1,7 @@
 # CIARD IJCV 扩展版改进方案总结
 
+> 本文件是 0830 来源提交附带的历史设计说明，不表示当前修复源码已经完成训练或评测。当前身份、教师协议和完成状态以仓库 `README.md`、`EXPERIMENT_GUIDE.md` 与项目版本台账为准。
+
 ## 背景
 
 CIARD (Cyclic Iterative Adversarial Robustness Distillation) 已被 ICCV 2025 接收。为了投稿 IJCV 期刊，需要对其进行扩展改进。本仓库包含两个独立的实验版本：

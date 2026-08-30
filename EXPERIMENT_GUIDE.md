@@ -6,50 +6,30 @@ SARD introduces two modules on top of CIARD:
 1. **SAA** (Strength-Adaptive Attack) — Beta-distribution epsilon sampling with curriculum, replacing fixed-epsilon adversarial example generation
 2. **RCD** (Reliability-Calibrated Distillation) — Per-sample Teacher Reliability Score (TRS) weighting that down-weights distillation from unreliable teacher predictions
 
-## Quick Start
+The MobileNet-V2 and ResNet-18 directories now expose the same SARD switches
+and core fixes. Their student architectures and architecture-specific baseline
+parameters remain independent.
 
-```bash
-# 1. Clone
-git clone https://github.com/llmnjust-afk/IJCV_KD.git
-cd IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10_v1
+## Source status
 
-# 2. Install dependencies (requires PyTorch >= 2.0)
-pip install torch torchvision loguru torchattacks autoattack robustbench
+This directory is a repaired source snapshot, not an independent experiment
+directory and not a submission target. Its historical Slurm files still refer
+to old locations. Before a formal run, copy the selected student source into a
+new, empty run directory, link that directory's `data` and `models` to the
+project-wide read-only resources, fix the configuration and unique prefix in
+that copy, and prepare matching training/evaluation scripts.
 
-# 3. Download teacher models (CIFAR-10 + WRN-34-20 robust + ResNet-56 natural)
-bash setup_models.sh
+The source deliberately does not select a physical GPU. It respects the
+`CUDA_VISIBLE_DEVICES` allocation supplied by Slurm and discards the legacy
+`CIARD_GPU`, `CIARD_STUDENT`, and `CIARD_PREFIX` variables.
 
-# 4. Train SARD (200 epochs)
-python CIARD.py --sard_saa 1 --sard_rcd 1 --epochs 200 --prefix sard_200ep
-
-# 5. Train CIARD baseline (original CIARD, single-variable control)
-python CIARD.py --sard_saa 0 --sard_rcd 0 --original_ciard --epochs 200 --prefix baseline_200ep
-
-# 6. Evaluate
-python fast_eval.py --checkpoint model/sard_200ep/student_best.pth --prefix sard_200ep
-```
-
-## GPU Selection
-
-Set the `CIARD_GPU` environment variable before running:
-
-```bash
-CIARD_GPU=0 python CIARD.py --sard_saa 1 --sard_rcd 1 --epochs 200 --prefix sard_200ep
-CIARD_GPU=1 python CIARD.py --sard_saa 0 --sard_rcd 0 --original_ciard --epochs 200 --prefix baseline_200ep
-```
-
-## Ablation Study
-
-Run all four configurations to isolate SAA and RCD contributions:
-
-| Config | SAA | RCD | Command |
-|--------|-----|-----|---------|
-| CIARD baseline | 0 | 0 | `python CIARD.py --sard_saa 0 --sard_rcd 0 --original_ciard --epochs 60 --prefix ablation_baseline` |
-| SAA only | 1 | 0 | `python CIARD.py --sard_saa 1 --sard_rcd 0 --original_ciard --epochs 60 --prefix ablation_saa_only` |
-| RCD only | 0 | 1 | `python CIARD.py --sard_saa 0 --sard_rcd 1 --original_ciard --epochs 60 --prefix ablation_rcd_only` |
-| SARD (SAA+RCD) | 1 | 1 | `python CIARD.py --sard_saa 1 --sard_rcd 1 --original_ciard --epochs 60 --prefix ablation_sard_full` |
-
-> **Important**: Always use `--original_ciard` for ablation experiments. Without it, the "baseline" includes engineering changes (label smoothing, adaptive temperature, FGSM anchor, etc.) that make it not a true single-variable comparison.
+Both training files expose `--sard_saa`, `--sard_rcd`, `--epochs`, `--prefix`,
+and `--original_ciard` for source-level diagnostics. Formal independent
+variants must still write the selected settings directly into their copied
+`CIARD.py`, use a unique initially empty prefix, and print the resolved
+configuration from Python. The four conceptual SARD controls are baseline,
+SAA-only, RCD-only, and SAA+RCD; the actual 0830 experiment matrix has not yet
+been selected or prepared.
 
 ## Evaluation
 
@@ -60,7 +40,8 @@ python fast_eval.py --checkpoint model/sard_200ep/student_best.pth --prefix sard
 ```
 
 Runs: Clean Accuracy, WB PGD-20 (two step sizes), WB FGSM, WB CW L-inf, BB PGD-20, BB CW L-inf.
-Outputs structured JSON to `eval_<prefix>.json` with an `EVAL_COMPLETE` marker.
+Outputs structured JSON to `fast_eval_<prefix>_<job-or-time>.json` and prints
+`EVAL_COMPLETE` only after all required metrics are present.
 
 ### Full Evaluation (includes AutoAttack, ~30 min)
 
@@ -74,10 +55,12 @@ python attack_eval.py
 
 | Teacher | Architecture | Source | Clean Acc | Role |
 |---------|-------------|--------|-----------|------|
-| Robust teacher | WRN-34-20 | RobustBench Rice2020Overfitting | ~85% | Adversarial distillation |
-| Natural teacher | ResNet-56 | chenyaofo/pytorch-cifar-models | ~94% | Clean distillation |
+| Robust teacher | WRN-34-10 (raw) | Project shared TRADES checkpoint | ~85% | Adversarial distillation |
+| Natural teacher | ResNet-56 (raw) | Project shared checkpoint | ~93% | Clean distillation |
 
-`setup_models.sh` downloads and converts both automatically, with accuracy verification.
+The paper uses this same teacher pair for both MobileNet-V2 and ResNet-18
+students on CIFAR-10. `setup_models.sh` now performs strict CPU verification
+only; it never downloads or overwrites the project-wide checkpoints.
 
 ## CLI Arguments
 
@@ -108,7 +91,7 @@ Training saves checkpoints to `model/<prefix>/`:
 1. **Adaptive Temperature per-batch multiply (FIXED)**
    - `temp_scale` was computed inside the batch loop, multiplying `temp_adv` ~391 times per epoch
    - Temperature exploded to `temp_max=10` within 5 batches, destroying KD signal
-   - Fix: compute `temp_scale` once per epoch, before the batch loop
+   - Fix: compute one epoch scale and apply it to non-persistent effective temperatures; the base temperatures are never multiplied per batch
 
 2. **KL temperature asymmetry (FIXED)**
    - Only teacher logits were divided by temperature; student logits were not
@@ -140,12 +123,12 @@ Training saves checkpoints to `model/<prefix>/`:
 
 11. **Test set leakage (FIXED)** — Checkpoint selection now uses 5k validation split from training set instead of test set.
 
-12. **PyTorch version compatibility (FIXED)** — Added `safe_torch_load()` wrapper for `weights_only` parameter compatibility across PyTorch versions. Updated `requirements.txt` to `torch>=2.0.0`.
+12. **PyTorch version compatibility (FIXED)** — Added `safe_torch_load()` around all training, evaluation, and weight-averaging loads, including support for the verified PyTorch 1.10 environment.
 
-13. **Script bugs (FIXED)**:
-    - `convert_rb_teacher.py`: removed `CUDA_VISIBLE_DEVICES=""` that conflicted with `.cuda()` call
-    - `train_teacher.py`: changed from WRN-34-10 to WRN-34-20 to match main training
-    - `setup_models.sh`: added strict key verification and accuracy threshold checks
+13. **Teacher setup safety (FIXED)**:
+    - Default training strict-loads the existing raw WRN-34-10 and ResNet-56 checkpoints.
+    - The incompatible WRN-34-20 converter and generic teacher-training entrypoint are disabled.
+    - `setup_models.sh` is verification-only and cannot overwrite shared weights.
 
 14. **Eval bugs (FIXED)**:
     - CW attack: clamp `input + perturbation` to [0,1] inside loop, not just at end

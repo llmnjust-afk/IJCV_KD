@@ -1,38 +1,27 @@
-# CIARD  
-# WE HAVE BEEN ACCEPTED AT ICCV2025!cheeeeeeeeeeers! soon we will upload more detailed and polished codes and more ckpts!
-**CIARD: Enhancing Accuracy and Robustness of Student Models through Cyclic Iterative Distillation**
+# CIFAR-10 / MobileNet-V2 source
 
-## Instructions for Reproducing Results
+Fixed identity:
 
-1. **Environment Setup**  
-   Ensure you are using **Python 3.8**. Install all required packages using:
+- student: MobileNet-V2
+- robust teacher: raw WRN-34-10
+- natural teacher: raw ResNet-56
+- shared checkpoints: `models/model_cifar_wrn.pt` and
+  `models/nat_teacher_checkpoint/cifar10_resnnet56.pth`
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+`CIARD.py` exposes `--sard_saa`, `--sard_rcd`, `--epochs`, `--prefix`, and
+`--original_ciard`. It strict-loads both teachers, uses a fixed 45k/5k
+train/validation split for checkpoint selection, and refuses to reuse a
+non-empty output prefix. The resolved configuration and checkpoint identities
+are printed before training.
 
-2. **Download Teacher Models**  
-   - Download the **clean teacher** model checkpoint and place it in:  
-     `models/nat_teacher_checkpoint/`  
-   - Download the **robust teacher** model and place it accordingly.  
-     The models we used can be found [here](https://github.com/google-deepmind/deepmind-research/tree/master/adversarial_robustness).
+`attack_eval.py` is the formal test-only evaluation. It reports AutoAttack,
+clean accuracy, four white-box attacks, and three black-box attacks, then writes
+JSON and prints `EVAL_COMPLETE` only when every metric succeeds.
 
-3. **Dataset**  
-   - Store the dataset in the `data/` folder.
+`setup_models.sh` only verifies existing shared checkpoints. The old
+WRN-34-20 converter and generic teacher trainer are deliberately disabled to
+prevent accidental replacement of public project weights.
 
-4. **Run the Model**
-   -  To run CIARD, use:
-
-   ```bash
-   python CIARD.py
-   ```
-
-   - You can modify the configuration in `CIARD.py` to change the student architecture or dataset.
-   
-   - To run evaluation, use:
-
-   ```bash
-   python attack_eval.py
-   ```
-
-   - You can（should) modify the configuration in `attack_eval.py` to set the student path.
+This is a repaired source snapshot, not a prepared experiment directory. Its
+historical Slurm files are not submission commands for the forthcoming 0830
+parameter experiments.
