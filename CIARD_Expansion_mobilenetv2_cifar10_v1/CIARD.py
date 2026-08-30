@@ -16,6 +16,14 @@ import torchvision
 from torchvision import transforms
 from loguru import logger
 import math
+
+def safe_torch_load(path, map_location=torch.device('cpu'), weights_only=False):
+    """Compatibility wrapper for torch.load across PyTorch versions.
+    PyTorch <2.6 does not support weights_only; PyTorch >=2.6 defaults to True."""
+    try:
+        return torch.load(path, map_location=map_location, weights_only=weights_only)
+    except TypeError:
+        return torch.load(path, map_location=map_location)
 # we fix the random seed to 0, this method can keep the results consistent in the same conputer.
 torch.manual_seed(0)
 torch.cuda.manual_seed_all(0)
@@ -27,6 +35,10 @@ _parser.add_argument("--sard_saa", type=int, default=None, help="Enable SAA modu
 _parser.add_argument("--sard_rcd", type=int, default=None, help="Enable RCD module (0/1)")
 _parser.add_argument("--epochs", type=int, default=None, help="Override total epochs")
 _parser.add_argument("--prefix", type=str, default=None, help="Override model prefix")
+_parser.add_argument("--original_ciard", action="store_true",
+                     help="Disable ALL non-original-CIARD modifications (label smoothing, "
+                          "adaptive temp, FGSM anchor, late CE, push_soft, teacher_margin). "
+                          "Use this for a true single-variable CIARD baseline.")
 _args, _unknown = _parser.parse_known_args()
 
 # Allow GPU selection via env var (shell scripts set this per-experiment).
@@ -263,6 +275,25 @@ if _args.sard_rcd is not None:
 if _args.epochs is not None:
     epochs = _args.epochs
 
+# --- Original CIARD mode: disable ALL non-original modifications ---
+# This ensures a true single-variable ablation: the only difference between
+# baseline and SARD is the SAA/RCD modules, not accumulated engineering changes.
+if _args.original_ciard:
+    logger.info("ORIGINAL_CIARD mode: disabling all non-original-CIARD modifications")
+    CFG["use_label_smoothing"] = False
+    CFG["use_adaptive_temp"] = False
+    CFG["late_clean_ce_recovery"] = False
+    CFG["fgsm_anchor"] = False
+    CFG["push_soft"] = False
+    CFG["teacher_margin_weight"] = 0.0
+    CFG["clean_ce_weight"] = 0.05    # original CIARD value
+    CFG["student_ema_decay"] = 0.999  # original CIARD value
+    CFG["clean_ce_gate_floor"] = 0.0  # original CIARD value
+    # Keep student EMA for evaluation (doesn't affect gradients)
+    CFG["robust_kd_reliable"] = False
+    CFG["capacity_aware"] = False
+    CFG["ema_itt"] = False
+
 # Scale auxiliary loss start/warmup epochs for short experiments
 # Use fraction-of-training approach so losses start early enough in short runs
 if epochs != 300:
@@ -304,7 +335,25 @@ transform_test = transforms.Compose([
 ])
 
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
+
+# Split training set into train (45k) + validation (5k) for model selection.
+# Previously the test set was used for checkpoint selection AND final evaluation,
+# which constitutes test set leakage. Now best-checkpoint selection uses the
+# validation set, and the test set is only for reporting.
+_full_train = trainset
+n_total = len(_full_train)
+n_val = 5000
+n_train = n_total - n_val
+g = torch.Generator().manual_seed(42)
+indices = torch.randperm(n_total, generator=g).tolist()
+train_indices = indices[:n_train]
+val_indices = indices[n_train:]
+trainset = torch.utils.data.Subset(_full_train, train_indices)
+valset = torch.utils.data.Subset(
+    torchvision.datasets.CIFAR10(root='./data', train=True, download=False, transform=transform_test),
+    val_indices)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=0)
+valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=False, num_workers=0)
 
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=0)
@@ -369,7 +418,7 @@ if os.environ.get("CIARD_TM_ADV_TAU") is not None:
 
 resume_student_path = None 
 if resume_student_path != None:
-    state_dict = torch.load(resume_student_path, map_location=torch.device('cpu'), weights_only=False)["model"]
+    state_dict = safe_torch_load(resume_student_path, map_location=torch.device('cpu'), weights_only=False)["model"]
     new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
     student.load_state_dict(new_state_dict)
 student = student.cuda()
@@ -443,7 +492,7 @@ def pull_loss(teacher_logits, students_logits, labels,T=1):#train_batch_labels
 teacher = wideresnet(widen_factor=20, normalize=True)
 teacher1_path =  'models/model_cifar_wrn.pt'
 
-state_dict = torch.load(teacher1_path, map_location=torch.device('cpu'), weights_only=False)
+state_dict = safe_torch_load(teacher1_path, map_location=torch.device('cpu'), weights_only=False)
 new_sd = {}
 for k, v in state_dict.items():
     new_sd[k.replace('module.', '')] = v
@@ -466,7 +515,7 @@ teacher2_path = 'models/nat_teacher_checkpoint/cifar10_resnnet56.pth'
 #state_dict_1 = torch.load(teacher2_path)
 #teacher_nat.load_state_dict(state_dict_1)
 
-state_dict = torch.load(teacher2_path, map_location=torch.device('cpu'), weights_only=False)
+state_dict = safe_torch_load(teacher2_path, map_location=torch.device('cpu'), weights_only=False)
 new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 teacher_nat.load_state_dict(new_state_dict, strict=False)
 
@@ -528,7 +577,18 @@ logger.info("CIARD resolved train config: prefix={}, dataset={} (train_samples={
     student.linear.out_features, teacher1_path, teacher2_path, USE_CIARDPP, CIARD_SAFE_PLUS, CFG))
 
 for epoch in range(begin_epoch,epochs+1):
-    logger.info('the {}th epoch '.format(epoch)) 
+    logger.info('the {}th epoch '.format(epoch))
+
+    # Adaptive Temperature: compute temp_scale ONCE per epoch, not per batch.
+    # Previously this was inside the batch loop, causing ~391 multiplications
+    # per epoch, pushing temperature to temp_max within 5 batches.
+    _epoch_temp_scale = 1.0
+    if USE_CIARDPP and CFG.get("use_adaptive_temp", False):
+        decay_epochs = CFG["temp_decay_epochs"]
+        init_scale = CFG["temp_init_scale"]
+        progress = min(1.0, epoch / max(decay_epochs, 1))
+        _epoch_temp_scale = init_scale - (init_scale - 1.0) * progress
+
     for step,(train_batch_data,train_batch_labels) in enumerate(trainloader): 
         student.train()
         teacher.train()
@@ -541,7 +601,6 @@ for epoch in range(begin_epoch,epochs+1):
         student_nat_logits = student(train_batch_data)
         with torch.no_grad():
             teacher_nat_logits = teacher_nat(train_batch_data)
-            adv_teacher_nat = teacher(train_batch_data)
 
         # --- SARD Module 1 (SAA): Sample epsilon from curriculum ---
         if CFG.get("sard_saa", False):
@@ -549,7 +608,7 @@ for epoch in range(begin_epoch,epochs+1):
                 epoch, epochs,
                 eps_max=CFG["sard_eps_max"],
                 eps_min=CFG["sard_eps_min"])
-            step_size_t = 2.0 * eps_t / 10.0  # proportional step size
+            step_size_t = 2.0 / 255.0  # FIXED: same step size as baseline
         else:
             eps_t = epsilon
             step_size_t = 2/255.0
@@ -574,22 +633,25 @@ for epoch in range(begin_epoch,epochs+1):
         else:
             robust_soft_logits = teacher_adv_logits
 
-        kl_Loss1 = kl_loss(F.log_softmax(student_adv_logits,dim=1),F.softmax(robust_soft_logits.detach()/temp_adv,dim=1))
-        kl_Loss2 = kl_loss(F.log_softmax(student_nat_logits,dim=1),F.softmax(teacher_nat_logits.detach()/temp_nat,dim=1))
+        # KL distillation with symmetric temperature: BOTH teacher and student
+        # logits are divided by the same temperature T. This is standard KD.
+        # Previously only the teacher was divided by T, which broke the KL
+        # gradient (teacher target softened but student kept sharp logits).
+        kl_Loss1 = kl_loss(F.log_softmax(student_adv_logits / max(temp_adv, 1e-6), dim=1),
+                           F.softmax(robust_soft_logits.detach() / max(temp_adv, 1e-6), dim=1))
+        kl_Loss2 = kl_loss(F.log_softmax(student_nat_logits / max(temp_nat, 1e-6), dim=1),
+                           F.softmax(teacher_nat_logits.detach() / max(temp_nat, 1e-6), dim=1))
         # Label Smoothing: softens teacher targets to prevent zero-mass KL gradients.
         # Applied AFTER the kl_loss computation so the loss itself uses smoothed targets.
         if USE_CIARDPP and CFG.get("use_label_smoothing", False):
             num_classes = student_adv_logits.size(-1)
             alpha = CFG["ls_alpha"]
-            # Smooth robust teacher's target
-            robust_target = F.softmax(robust_soft_logits.detach()/temp_adv, dim=1)
+            robust_target = F.softmax(robust_soft_logits.detach()/max(temp_adv, 1e-6), dim=1)
             robust_target = robust_target * (1 - alpha) + alpha / num_classes
-            # Smooth clean teacher's target
-            clean_target = F.softmax(teacher_nat_logits.detach()/temp_nat, dim=1)
+            clean_target = F.softmax(teacher_nat_logits.detach()/max(temp_nat, 1e-6), dim=1)
             clean_target = clean_target * (1 - alpha) + alpha / num_classes
-            # Recompute kl_Loss with smoothed targets
-            kl_Loss1 = kl_loss(F.log_softmax(student_adv_logits, dim=1), robust_target)
-            kl_Loss2 = kl_loss(F.log_softmax(student_nat_logits, dim=1), clean_target)
+            kl_Loss1 = kl_loss(F.log_softmax(student_adv_logits / max(temp_adv, 1e-6), dim=1), robust_target)
+            kl_Loss2 = kl_loss(F.log_softmax(student_nat_logits / max(temp_nat, 1e-6), dim=1), clean_target)
         # Reliability-aware robust KD: do not blindly imitate a wrong robust
         # teacher. If the robust teacher is correct and confident on y, the KL
         # keeps nearly full weight; if it is wrong, the KL drops to a floor and
@@ -645,16 +707,10 @@ for epoch in range(begin_epoch,epochs+1):
         temp_nat = temp_nat - temp_learn_rate * torch.sign((nat_teacher_entropy.detach() / adv_teacher_entropy.detach() - 1)).item()
         temp_adv = max(min(temp_max, temp_adv), temp_min)
         temp_nat = max(min(temp_max, temp_nat), temp_min)
-        # Adaptive Temperature: Start with higher temperature (softer labels) and
-        # decay over training. This prevents early overfitting to noisy soft labels.
-        if USE_CIARDPP and CFG.get("use_adaptive_temp", False):
-            decay_epochs = CFG["temp_decay_epochs"]
-            init_scale = CFG["temp_init_scale"]
-            # Linearly decay from init_scale to 1.0 over decay_epochs
-            progress = min(1.0, epoch / decay_epochs)
-            temp_scale = init_scale - (init_scale - 1.0) * progress
-            temp_adv = max(1.0, temp_adv * temp_scale)
-            temp_nat = max(1.0, temp_nat * temp_scale)
+        # Adaptive Temperature: computed ONCE per epoch (not per batch).
+        # Previously this was inside the batch loop, causing temp_scale to
+        # multiply temp_adv ~391 times per epoch (1 batch = 1 multiply),
+        # which pushed temperature to temp_max within 5 batches.
         if init_loss_nat == None:
             init_loss_nat = kl_Loss2.item()
         if init_loss_adv == None:
@@ -793,12 +849,15 @@ for epoch in range(begin_epoch,epochs+1):
                                            allow_unused=True)[0]
                     if tm_grad_full is not None:
                         tm_grad_true = tm_grad_full.detach().gather(1, train_batch_labels.view(-1, 1)).squeeze(1)
-                        # robust KD wants to INCREASE z_y on adversarial inputs
-                        # (kd_grad_true > 0); the hinge wants to INCREASE z_y too
-                        # (tm_grad_true < 0, because d/dz_y of relu(target-margin)
-                        # is -1 when active). So they AGREE when
+                        # In gradient descent, the update is z_y -= lr * grad.
+                        # kd_grad_true > 0 means KD wants to DECREASE z_y.
+                        # tm_grad_true < 0 means margin hinge wants to INCREASE z_y.
+                        # These are OPPOSITE directions, so they CONFLICT when
                         # kd_grad_true > 0 AND tm_grad_true < 0.
-                        agree = ((kd_grad_true > 0) & (tm_grad_true < 0)).float()
+                        # They AGREE when both push z_y in the same direction:
+                        #   both decrease (kd_grad_true > 0 AND tm_grad_true > 0), or
+                        #   both increase (kd_grad_true < 0 AND tm_grad_true < 0).
+                        agree = ((kd_grad_true * tm_grad_true) > 0).float()
                         teacher_margin_per_sample_scale = (CFG["teacher_margin_per_sample_floor"]
                                                            + (1.0 - CFG["teacher_margin_per_sample_floor"]) * agree)
                 # also keep the batch-level scalar for logging / the original gate
@@ -832,6 +891,10 @@ for epoch in range(begin_epoch,epochs+1):
             # with the original robust KD direction.
             tm_per_sample = teacher_margin_per_sample_scale * teacher_margin_gate * F.relu(teacher_margin_target - student_adv_margin)
             teacher_margin_loss_scaled = torch.mean(tm_per_sample)
+            # Apply batch-level conflict scale when the per-sample gate is not
+            # active but the batch-level gate is enabled.
+            if not CFG["teacher_margin_per_sample_conflict"] and CFG["teacher_margin_conflict_gate"]:
+                teacher_margin_loss_scaled = teacher_margin_loss_scaled * teacher_margin_conflict_scale
             total_loss = (total_loss
                           + ce_ramp * CFG["clean_ce_weight"] * clean_ce
                           + ce_ramp * CFG["adv_ce_weight"] * adv_ce
@@ -960,8 +1023,8 @@ for epoch in range(begin_epoch,epochs+1):
                 t_fgsm_logits = teacher(x_fgsm)
             s_fgsm_logits = student(x_fgsm)
             fgsm_anchor_loss = kl_loss(
-                F.log_softmax(s_fgsm_logits, dim=1),
-                F.softmax(t_fgsm_logits.detach() / temp_adv, dim=1)).mean()
+                F.log_softmax(s_fgsm_logits / max(temp_adv, 1e-6), dim=1),
+                F.softmax(t_fgsm_logits.detach() / max(temp_adv, 1e-6), dim=1)).mean()
             total_loss = total_loss + CFG["fgsm_anchor_weight"] * fgsm_anchor_loss
 
         student.train()
@@ -970,15 +1033,16 @@ for epoch in range(begin_epoch,epochs+1):
         if USE_CIARDPP and CFG["student_ema"] and ema_student is not None:
             ema_update_teacher(ema_student, student, decay=CFG["student_ema_decay"])
         ADV_teacher_loss = ADV_teacher_loss_CE(teacher_adv_logits,train_batch_labels)
-        if(epoch>50):
+        teacher_update_epoch = int(epochs * (50.0/300.0))  # proportional to total epochs
+        if(epoch > teacher_update_epoch and teacher_lr > 0):
             ADV_teacher_loss.backward()
             ADV_teacher_optimizer.step()
-            # (D) EMA-stabilised ITT: after the fast `teacher` takes its AT step,
-            # blend it into the slow `ema_teacher` that supplies the robust soft
-            # labels. The EMA filters high-variance updates from the hardest
-            # student-generated attacks, preventing robust-teacher degradation.
             if USE_CIARDPP and CFG["ema_itt"]:
                 ema_update_teacher(ema_teacher, teacher, decay=CFG["ema_decay"])
+        else:
+            # When teacher is not being updated, keep it in eval mode so
+            # BatchNorm running statistics are NOT corrupted by adversarial inputs.
+            teacher.eval()
         if step%100 == 0:
             text = 'lr:' + str(lr) 
             text += ' weight_nat: {}, nat_loss: {}, weight_adv: {}, adv_loss: {}'.format(weight["nat_loss"], kl_Loss2.item(), weight["adv_loss"], kl_Loss1.item()) 
@@ -1020,7 +1084,7 @@ for epoch in range(begin_epoch,epochs+1):
         nat_teacher_test_accs_naturals = []
 
 
-        for step,(test_batch_data,test_batch_labels) in enumerate(testloader):
+        for step,(test_batch_data,test_batch_labels) in enumerate(valloader):
             test_batch_data = test_batch_data.float().cuda()
             test_batch_labels = test_batch_labels.cuda()
             test_ifgsm_data = attack_pgd(eval_student,test_batch_data,test_batch_labels,attack_iters=20,step_size=0.003,epsilon=8.0/255.0)
@@ -1055,7 +1119,7 @@ for epoch in range(begin_epoch,epochs+1):
         text = f'student robust acc {np.sum(test_accs==0)/len(test_accs):.4f}, teacher robust acc {np.sum(teacher_test_accs==0)/len(teacher_test_accs):.4f}, nat teacher robust acc {np.sum(nat_teacher_test_accs==0)/len(nat_teacher_test_accs):.4f}'
         logger.info(text)
 
-        for step,(test_batch_data,test_batch_labels) in enumerate(testloader): 
+        for step,(test_batch_data,test_batch_labels) in enumerate(valloader):
             test_batch_data = test_batch_data.float().cuda()
             test_batch_labels = test_batch_labels.cuda()
             with torch.no_grad():
@@ -1107,6 +1171,7 @@ for epoch in range(begin_epoch,epochs+1):
             # Skip latest teacher save (772MB for WRN-34-20)
         if (test_nat + test_adv) / 2 > best_accuracy:
             best_accuracy = (test_nat + test_adv)/2
+            logger.info(f"New best (val set): clean={test_nat:.4f} robust={test_adv:.4f} combined={best_accuracy:.4f}")
             save_student = ema_student if (USE_CIARDPP and CFG["save_ema_as_student"] and ema_student is not None) else student
             state = { 'model': save_student.state_dict(),
                 'optimizer': optimizer.state_dict(), 'epoch': epoch}

@@ -1,6 +1,9 @@
-"""Quick WRN-34-10 teacher training for CIARD experiments.
+"""Quick WRN-34-20 teacher training for CIARD experiments.
 Trains with standard CE first, then switches to PGD adversarial training
 to get a basic robust teacher checkpoint.
+
+Note: For best results, use convert_rb_teacher.py to download the
+pre-trained Rice2020 WRN-34-20 model from RobustBench instead.
 """
 import os
 import torch
@@ -39,7 +42,7 @@ trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuff
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(testset, batch_size=256, shuffle=False, num_workers=4)
 
-model = wideresnet().cuda()
+model = wideresnet(widen_factor=20, normalize=True).cuda()
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4, nesterov=True)
 scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs_standard + epochs_adv)
 ce = nn.CrossEntropyLoss()

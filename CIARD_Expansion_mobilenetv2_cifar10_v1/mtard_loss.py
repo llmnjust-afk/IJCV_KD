@@ -299,14 +299,14 @@ def teacher_reliability_score(teacher_logits, labels, temperature=1.0,
     """Teacher Reliability Score (TRS) for SARD Module 2 (RCD).
 
     Computes a per-sample reliability weight for the robust teacher's
-    predictions on adversarial inputs. The weight combines:
-      (1) Teacher correctness: 1 if argmax(teacher) == label, else 0
-      (2) Margin gate: sigmoid(margin / tau_m), where margin = true_logit - max_other
-      (3) Confidence: softmax probability on the true class
+    predictions on adversarial inputs. The weight is in [floor, 1.0]:
+      - When teacher is CORRECT: full weight = floor + (1-floor) * confidence * margin_gate
+      - When teacher is WRONG: floor only (minimum distillation signal preserved)
 
-    The final weight is: correct * margin_gate * (floor + (1-floor) * confidence)
-    which is in [0, 1]. The floor ensures that even low-reliability samples
-    contribute a minimum distillation signal (preventing complete signal loss).
+    The floor ensures that even when the teacher predicts incorrectly, a
+    minimum distillation signal passes through (preventing complete signal loss).
+    Previously, the formula was correct * margin_gate * (floor + ...) which
+    zeroed out the entire weight when correct=0, making floor useless.
 
     Args:
         teacher_logits: [B, C] raw logits from the robust teacher on x_adv
@@ -316,7 +316,7 @@ def teacher_reliability_score(teacher_logits, labels, temperature=1.0,
         floor: minimum reliability weight (prevents zeroing out distillation)
 
     Returns:
-        trs: [B] tensor in [0, 1], per-sample reliability weight (detached)
+        trs: [B] tensor in [floor, 1.0], per-sample reliability weight (detached)
     """
     with torch.no_grad():
         p = F.softmax(teacher_logits.detach() / max(temperature, 1e-6), dim=1)
@@ -334,7 +334,10 @@ def teacher_reliability_score(teacher_logits, labels, temperature=1.0,
 
         margin_gate = torch.sigmoid(margin / max(tau_m, 1e-6))
 
-        trs = correct * margin_gate * (floor + (1.0 - floor) * p_true)
+        # When correct: floor + (1-floor) * confidence * margin_gate
+        # When wrong: floor (minimum signal preserved)
+        full_weight = floor + (1.0 - floor) * p_true * margin_gate
+        trs = floor + (correct * (full_weight - floor))
 
     return trs
 

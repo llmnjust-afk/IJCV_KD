@@ -3,7 +3,7 @@ import torch
 import sys
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
+os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("CIARD_GPU", "0")
 sys.path.insert(0, '.')
 
 from cifar10_models.wideresnet import wideresnet
@@ -15,12 +15,10 @@ rb_state = rb_model.state_dict()
 
 print(f"RB keys: {len(rb_state)}")
 
-# Create code's WRN-34-20 with normalization
 model = wideresnet(widen_factor=20, normalize=True)
 code_state = model.state_dict()
 print(f"Code keys: {len(code_state)}")
 
-# Build filtered state dict
 filtered = {}
 skipped_rb = []
 for k, v in rb_state.items():
@@ -39,20 +37,20 @@ print(f"  Other missing: {len(other_missing)}")
 if other_missing:
     print(f"  Other missing keys: {other_missing}")
 
-# Load with strict=False (sub_block1 will be randomly initialized, which is fine)
-model.load_state_dict(filtered, strict=False)
+result = model.load_state_dict(filtered, strict=False)
+print(f"  load_state_dict missing: {result.missing_keys[:5]}...")
+print(f"  load_state_dict unexpected: {result.unexpected_keys[:5]}...")
+
 model = model.eval()
 
-# Save
 os.makedirs('models', exist_ok=True)
 torch.save(model.state_dict(), 'models/model_cifar_wrn.pt')
 print(f"\nSaved to models/model_cifar_wrn.pt ({os.path.getsize('models/model_cifar_wrn.pt') / 1024 / 1024:.1f} MB)")
 
-# Quick eval
 import torchvision
 from torchvision import transforms
 transform = transforms.Compose([transforms.ToTensor()])
-testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=False, transform=transform)
+testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
 testloader = torch.utils.data.DataLoader(testset, batch_size=256, shuffle=False, num_workers=4)
 
 model = model.cuda()
@@ -64,4 +62,9 @@ with torch.no_grad():
         out = model(x)
         correct += (out.argmax(1) == y).sum().item()
         total += y.size(0)
-print(f"Clean accuracy: {correct/total:.4f} ({correct}/{total})")
+clean_acc = correct / total
+print(f"Clean accuracy: {clean_acc:.4f} ({correct}/{total})")
+if clean_acc < 0.80:
+    print("WARNING: Clean accuracy below 80%! Check teacher conversion.")
+    sys.exit(1)
+print("Teacher conversion verified successfully.")

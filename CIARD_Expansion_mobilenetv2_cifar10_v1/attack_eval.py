@@ -29,6 +29,12 @@ def eval_autoattack(model, testloader, epsilon=8/255.0, norm='Linf', attacks_to_
     with torch.no_grad():
         adv_complete = adversary.run_standard_evaluation(x_test, y_test, bs=128)
 
+def safe_torch_load(path, map_location=torch.device('cpu'), weights_only=False):
+    try:
+        return torch.load(path, map_location=map_location, weights_only=weights_only)
+    except TypeError:
+        return torch.load(path, map_location=map_location)
+
 path = "model/Cifar10_MobileNetV2_tm010_repeat0620/student_best.pth"
 student = mobilenet_v2()# cifar10_resnet56()# wideresnet()##resnet18()#
 
@@ -44,7 +50,7 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=128, shuffle=False,
 logger.info("CIARD resolved eval config: checkpoint={}, dataset={} (test_samples={}), student={} (num_classes={}), blackbox_teacher_checkpoint={}, cw_num_classes={}".format(
     path, testset.__class__.__name__, len(testset), student.__class__.__name__,
     student.linear.out_features, teacher1_path, student.linear.out_features))
-state_dict = torch.load(path,map_location=torch.device('cpu'))["model"]
+state_dict = safe_torch_load(path,map_location=torch.device('cpu'))["model"]
 new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 student.load_state_dict(new_state_dict)
 student = student.cuda()
@@ -192,7 +198,7 @@ logger.info(text)
 
 
 
-state_dict = torch.load(teacher1_path,map_location=torch.device('cpu'))
+state_dict = safe_torch_load(teacher1_path,map_location=torch.device('cpu'))
 new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 teacher.load_state_dict(new_state_dict)
 teacher = teacher.cuda()

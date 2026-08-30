@@ -13,7 +13,7 @@ SARD introduces two modules on top of CIARD:
 git clone https://github.com/llmnjust-afk/IJCV_KD.git
 cd IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10_v1
 
-# 2. Install dependencies
+# 2. Install dependencies (requires PyTorch >= 2.0)
 pip install torch torchvision loguru torchattacks autoattack robustbench
 
 # 3. Download teacher models (CIFAR-10 + WRN-34-20 robust + ResNet-56 natural)
@@ -22,8 +22,8 @@ bash setup_models.sh
 # 4. Train SARD (200 epochs)
 python CIARD.py --sard_saa 1 --sard_rcd 1 --epochs 200 --prefix sard_200ep
 
-# 5. Train CIARD baseline (200 epochs, run in parallel on another GPU)
-python CIARD.py --sard_saa 0 --sard_rcd 0 --epochs 200 --prefix baseline_200ep
+# 5. Train CIARD baseline (original CIARD, single-variable control)
+python CIARD.py --sard_saa 0 --sard_rcd 0 --original_ciard --epochs 200 --prefix baseline_200ep
 
 # 6. Evaluate
 python fast_eval.py --checkpoint model/sard_200ep/student_best.pth --prefix sard_200ep
@@ -35,7 +35,7 @@ Set the `CIARD_GPU` environment variable before running:
 
 ```bash
 CIARD_GPU=0 python CIARD.py --sard_saa 1 --sard_rcd 1 --epochs 200 --prefix sard_200ep
-CIARD_GPU=1 python CIARD.py --sard_saa 0 --sard_rcd 0 --epochs 200 --prefix baseline_200ep
+CIARD_GPU=1 python CIARD.py --sard_saa 0 --sard_rcd 0 --original_ciard --epochs 200 --prefix baseline_200ep
 ```
 
 ## Ablation Study
@@ -44,10 +44,12 @@ Run all four configurations to isolate SAA and RCD contributions:
 
 | Config | SAA | RCD | Command |
 |--------|-----|-----|---------|
-| Baseline (CIARD) | 0 | 0 | `python CIARD.py --sard_saa 0 --sard_rcd 0 --epochs 60 --prefix ablation_baseline` |
-| SAA only | 1 | 0 | `python CIARD.py --sard_saa 1 --sard_rcd 0 --epochs 60 --prefix ablation_saa_only` |
-| RCD only | 0 | 1 | `python CIARD.py --sard_saa 0 --sard_rcd 1 --epochs 60 --prefix ablation_rcd_only` |
-| SARD (SAA+RCD) | 1 | 1 | `python CIARD.py --sard_saa 1 --sard_rcd 1 --epochs 60 --prefix ablation_sard_full` |
+| CIARD baseline | 0 | 0 | `python CIARD.py --sard_saa 0 --sard_rcd 0 --original_ciard --epochs 60 --prefix ablation_baseline` |
+| SAA only | 1 | 0 | `python CIARD.py --sard_saa 1 --sard_rcd 0 --original_ciard --epochs 60 --prefix ablation_saa_only` |
+| RCD only | 0 | 1 | `python CIARD.py --sard_saa 0 --sard_rcd 1 --original_ciard --epochs 60 --prefix ablation_rcd_only` |
+| SARD (SAA+RCD) | 1 | 1 | `python CIARD.py --sard_saa 1 --sard_rcd 1 --original_ciard --epochs 60 --prefix ablation_sard_full` |
+
+> **Important**: Always use `--original_ciard` for ablation experiments. Without it, the "baseline" includes engineering changes (label smoothing, adaptive temperature, FGSM anchor, etc.) that make it not a true single-variable comparison.
 
 ## Evaluation
 
@@ -57,7 +59,8 @@ Run all four configurations to isolate SAA and RCD contributions:
 python fast_eval.py --checkpoint model/sard_200ep/student_best.pth --prefix sard_200ep
 ```
 
-Runs: Clean Accuracy, WB PGD-TRADES (20-step), WB PGD-SAT (20-step), WB FGSM, WB CW L-inf, BB PGD-TRADES, BB CW L-inf.
+Runs: Clean Accuracy, WB PGD-20 (two step sizes), WB FGSM, WB CW L-inf, BB PGD-20, BB CW L-inf.
+Outputs structured JSON to `eval_<prefix>.json` with an `EVAL_COMPLETE` marker.
 
 ### Full Evaluation (includes AutoAttack, ~30 min)
 
@@ -67,35 +70,14 @@ Edit `attack_eval.py` to set the checkpoint path, then:
 python attack_eval.py
 ```
 
-Runs: Clean, PGD-20, FGSM, CW, AutoAttack (APGD-CE, APGD-DLR, FAB, Square).
-
 ## Teacher Models
-
-SARD uses two teacher models:
 
 | Teacher | Architecture | Source | Clean Acc | Role |
 |---------|-------------|--------|-----------|------|
 | Robust teacher | WRN-34-20 | RobustBench Rice2020Overfitting | ~85% | Adversarial distillation |
 | Natural teacher | ResNet-56 | chenyaofo/pytorch-cifar-models | ~94% | Clean distillation |
 
-`setup_models.sh` downloads and converts both automatically:
-
-```bash
-bash setup_models.sh
-```
-
-Manual setup (if `setup_models.sh` fails):
-
-```bash
-# Robust teacher: convert from RobustBench
-python convert_rb_teacher.py
-# → outputs models/model_cifar_wrn.pt (~736MB)
-
-# Natural teacher: download from chenyaofo
-wget -O models/nat_teacher_checkpoint/cifar10_resnet56_chenyaofo.pt \
-  https://github.com/chenyaofo/pytorch-cifar-models/releases/download/v1.0/cifar10-resnet56-951c35a1.pth
-# Then load with cifar10_resnet56(normalize=True) and re-save as cifar10_resnnet56.pth
-```
+`setup_models.sh` downloads and converts both automatically, with accuracy verification.
 
 ## CLI Arguments
 
@@ -105,6 +87,7 @@ wget -O models/nat_teacher_checkpoint/cifar10_resnet56_chenyaofo.pt \
 | `--sard_rcd` | int | 1 | Enable RCD module (0=off, 1=on) |
 | `--epochs` | int | 300 | Total training epochs |
 | `--prefix` | str | `Cifar10_MobileNetV2_tm010_repeat0620` | Model save directory name |
+| `--original_ciard` | flag | off | Disable ALL non-original-CIARD modifications for true single-variable ablation |
 
 ## Checkpoint Output
 
@@ -114,117 +97,73 @@ Training saves checkpoints to `model/<prefix>/`:
 |------|----------------|---------|
 | `student_<epoch>.pth` | Every `epochs//6` epochs | Student model + optimizer + epoch |
 | `student_latest.pth` | Last 17% of epochs (every epoch) | Student model + optimizer + epoch |
-| `student_best.pth` | When (clean+robust)/2 improves | Best student model |
+| `student_best.pth` | When (clean+robust)/2 improves on **validation set** | Best student model |
 
-Each checkpoint is a dict with keys: `model`, `optimizer`, `epoch`, and optionally `raw_student`, `ema_student`.
+> Checkpoint selection uses a 5k validation split from the training set, NOT the test set, to avoid test set leakage.
 
-## Key Code Modifications vs Original CIARD
+## Key Bug Fixes (vs previous version)
 
-### 1. SARD SAA Module (`mtard_loss.py`)
-- `sample_epsilon_curriculum(epoch, total_epochs)`: Samples perturbation epsilon from a Beta distribution with a curriculum that increases strength over training. Starts at small epsilon (~1/255) and grows to 8/255.
+### Critical Fixes
 
-### 2. SARD RCD Module (`mtard_loss.py`)
-- `teacher_reliability_score(teacher_logits, labels)`: Computes per-sample TRS based on teacher prediction confidence and margin. Down-weights KL distillation when the teacher is unreliable on adversarial inputs.
+1. **Adaptive Temperature per-batch multiply (FIXED)**
+   - `temp_scale` was computed inside the batch loop, multiplying `temp_adv` ~391 times per epoch
+   - Temperature exploded to `temp_max=10` within 5 batches, destroying KD signal
+   - Fix: compute `temp_scale` once per epoch, before the batch loop
 
-### 3. Teacher Model Fixes (`cifar10_models/wideresnet.py`)
-- Added `widen_factor` parameter (default=10, set to 20 for Rice2020 WRN-34-20)
-- Added `normalize` parameter with built-in CIFAR-10 mean/std normalization
-- This fixes a critical bug: the RobustBench Rice2020 model internally normalizes inputs, but the original CIARD code fed raw [0,1] images
+2. **KL temperature asymmetry (FIXED)**
+   - Only teacher logits were divided by temperature; student logits were not
+   - Fix: both teacher and student logits now divided by the same temperature T
 
-### 4. Natural Teacher Fix (`cifar10_nat_teacher_models/resnet.py`)
-- Added `normalize` parameter to `CifarResNet.__init__` and `forward`
-- Without normalization: 52% accuracy; with normalization: 94% accuracy
+3. **RCD floor ineffective on wrong samples (FIXED)**
+   - Formula was `correct * margin_gate * (floor + ...)` — when `correct=0`, TRS=0 regardless of floor
+   - Fix: restructured to `floor + correct * (full_weight - floor)`, so wrong predictions get `floor` minimum
 
-### 5. Training Hyperparameter Fixes (`CIARD.py`)
-- `clean_ce_weight`: 0.05 → **0.3** (stronger CE learning signal)
-- `student_ema_decay`: 0.999 → **0.995** (faster EMA convergence)
-- `clean_ce_gate_floor`: 0.0 → **0.5** (minimum 50% CE signal through gate)
-- Loss start epochs: changed from absolute epoch numbers to **fraction-of-training** scaling (so short experiments still get CE/margin/anchor losses early enough)
-- Teacher checkpoint saves **disabled** (772MB each for WRN-34-20)
+4. **Baseline not single-variable (FIXED)**
+   - `--sard_saa 0 --sard_rcd 0` still had label smoothing, adaptive temp, FGSM anchor, etc.
+   - Fix: `--original_ciard` flag disables all non-original modifications
 
-## Directory Structure
+5. **Teacher epoch>50 hardcoded (FIXED)**
+   - Hardcoded `if epoch > 50` meant 60-epoch experiments only updated teacher in last 10 epochs
+   - Fix: proportional scaling `teacher_update_epoch = int(epochs * 50/300)`
 
-```
-IJCV_KD/
-├── CIARD_Expansion_mobilenetv2_cifar10_v1/   ← Main experiment (MobileNetV2 student)
-│   ├── CIARD.py                ← Main training script (SARD integrated)
-│   ├── mtard_loss.py           ← Loss functions + SARD modules (SAA, RCD)
-│   ├── fast_eval.py            ← Quick evaluation (WB + BB attacks)
-│   ├── attack_eval.py          ← Full evaluation (includes AutoAttack)
-│   ├── convert_rb_teacher.py   ← Convert RobustBench WRN-34-20 to code format
-│   ├── setup_models.sh         ← One-click teacher model download & conversion
-│   ├── train_teacher.py        ← Train custom teacher (optional)
-│   ├── validate_ciardpp.py     ← CIARD++ validation utilities
-│   ├── requirements.txt        ← Python dependencies
-│   ├── cifar10_models/         ← Student + robust teacher architectures
-│   │   ├── wideresnet.py       ← WRN with widen_factor + normalize params
-│   │   ├── mobilenet_v2.py     ← MobileNetV2 student
-│   │   └── resnet.py           ← ResNet variants
-│   ├── cifar10_nat_teacher_models/  ← Natural teacher architectures
-│   │   ├── resnet.py           ← ResNet-56 with normalize param
-│   │   └── ...
-│   ├── models/                 ← Teacher checkpoints (gitignored, use setup_models.sh)
-│   │   ├── model_cifar_wrn.pt              ← WRN-34-20 robust teacher (~736MB)
-│   │   └── nat_teacher_checkpoint/         ← Natural teacher
-│   ├── model/                  ← Training output checkpoints (gitignored)
-│   │   └── <prefix>/
-│   │       ├── student_best.pth
-│   │       ├── student_latest.pth
-│   │       └── student_<epoch>.pth
-│   └── data/                   ← CIFAR-10 dataset (gitignored, auto-downloaded)
-├── CIARD_Expansion_resnet18_cifar10_v1/      ← ResNet18 variant (original CIARD)
-├── scripts/                    ← Experiment runner scripts
-│   ├── run_ablation.sh
-│   ├── run_full_experiments.sh
-│   ├── eval_all.sh
-│   ├── analyze_results.py
-│   └── auto_sync_results.sh
-├── configs/                    ← Experiment configurations
-├── checkpoints/                ← Checkpoint documentation
-├── results/                    ← Experiment results
-├── .gitattributes              ← Git LFS for .pth/.pt/.ckpt files
-└── .gitignore
-```
+### Moderate Fixes
 
-## Ablation Results (60 epochs, preliminary)
+6. **Teacher BN not frozen (FIXED)** — teacher stayed in `train()` mode even when `teacher_lr=0`, corrupting BatchNorm statistics. Now switched to `eval()` when not updating.
 
-| Metric | Baseline (CIARD) | SARD (SAA+RCD) | Delta |
-|--------|-----------------|-----------------|-------|
-| Final Clean Acc | 89.63% | **92.42%** | +2.79% |
-| Final Robust Acc | 1.95% | **3.14%** | +1.19% |
-| Best Clean Acc | 87.41% (ep24) | **92.82%** (ep52) | +5.41% |
-| Best Robust Acc | 11.65% (ep24) | **13.85%** (ep44) | +2.20% |
-| Best Combined | 49.53% | **52.34%** | +2.81% |
+7. **Extra forward pass removed (FIXED)** — `adv_teacher_nat = teacher(train_batch_data)` was computed but never used in any loss.
 
-> Note: 60-epoch training has limited adversarial training time. The final 200-epoch experiment is expected to show significantly higher robust accuracy for both methods.
+8. **SAA step_size confound (FIXED)** — SAA changed both epsilon distribution AND step size (`2*eps/10`). Now uses fixed `2/255` step size, isolating the epsilon curriculum effect.
 
-## Environment
+9. **teacher-margin conflict dead code (FIXED)** — `teacher_margin_conflict_scale` was computed but never applied to loss. Now applied when batch-level gate is active.
 
-- Python 3.8+
-- PyTorch 2.0+ with CUDA
-- Key packages: `torch`, `torchvision`, `loguru`, `torchattacks`, `autoattack`, `robustbench`
+10. **Gradient sign error (FIXED)** — Per-sample conflict check used `kd_grad_true > 0 AND tm_grad_true < 0` as "agree", but in gradient descent these are opposite directions. Fixed to use `(kd_grad_true * tm_grad_true) > 0`.
 
-```bash
-pip install torch torchvision loguru torchattacks autoattack robustbench
-```
+11. **Test set leakage (FIXED)** — Checkpoint selection now uses 5k validation split from training set instead of test set.
+
+12. **PyTorch version compatibility (FIXED)** — Added `safe_torch_load()` wrapper for `weights_only` parameter compatibility across PyTorch versions. Updated `requirements.txt` to `torch>=2.0.0`.
+
+13. **Script bugs (FIXED)**:
+    - `convert_rb_teacher.py`: removed `CUDA_VISIBLE_DEVICES=""` that conflicted with `.cuda()` call
+    - `train_teacher.py`: changed from WRN-34-10 to WRN-34-20 to match main training
+    - `setup_models.sh`: added strict key verification and accuracy threshold checks
+
+14. **Eval bugs (FIXED)**:
+    - CW attack: clamp `input + perturbation` to [0,1] inside loop, not just at end
+    - PGD/FGSM: call `model.zero_grad()` to prevent parameter gradient accumulation
+    - `parse_known_args` → `parse_args` to catch typos
+    - Structured JSON output with `EVAL_COMPLETE` marker
 
 ## SARD Method Details
 
 ### SAA: Strength-Adaptive Attack
 
-Instead of using a fixed perturbation budget epsilon=8/255 for all adversarial example generation, SAA samples epsilon from a Beta(2, 5) distribution scaled to [1/255, 8/255]. The distribution shifts toward larger epsilon as training progresses (curriculum), allowing the student to gradually adapt to stronger adversarial perturbations.
-
-**Implementation**: `sample_epsilon_curriculum(epoch, total_epochs, eps_max=8/255, eps_min=1/255)` in `mtard_loss.py`.
+Instead of a fixed epsilon=8/255, SAA samples epsilon from a Beta distribution with a curriculum that shifts the distribution mean from ~0.29*eps_max (early) to ~0.71*eps_max (late). The step size is kept fixed at 2/255 to isolate the epsilon curriculum effect.
 
 ### RCD: Reliability-Calibrated Distillation
 
-The robust teacher (WRN-34-20) achieves only ~58% robust accuracy under PGD-20, meaning ~42% of its adversarial predictions are wrong. RCD computes a per-sample Teacher Reliability Score (TRS) that measures how confident and correct the teacher is on each adversarial example. Samples where the teacher is unreliable receive lower weight in the KL distillation loss.
+The robust teacher (~58% robust accuracy) produces wrong predictions on ~42% of adversarial examples. RCD computes a per-sample TRS:
 
-**Implementation**: `teacher_reliability_score(teacher_logits, labels, temperature, floor)` in `mtard_loss.py`.
+- When teacher is **correct**: `TRS = floor + (1-floor) * confidence * margin_gate` (full weight)
+- When teacher is **wrong**: `TRS = floor` (minimum signal preserved, floor=0.1)
 
-The TRS is computed as:
-1. Teacher prediction confidence (softmax probability of predicted class)
-2. Margin between top-1 and top-2 logits
-3. Normalized and clamped to [floor, 1.0] (floor=0.1 ensures minimum signal)
-
-The TRS weight is applied to the KL divergence loss between teacher and student on adversarial examples.
+This ensures the floor always protects against complete signal loss, even on misclassified samples.

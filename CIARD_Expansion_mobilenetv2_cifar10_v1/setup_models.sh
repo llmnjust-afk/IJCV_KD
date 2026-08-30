@@ -53,6 +53,13 @@ for k, v in rb_state.items():
         filtered[k] = v
 
 model.load_state_dict(filtered, strict=False)
+if missing := (set(model.state_dict().keys()) - set(filtered.keys())):
+    non_subblock = [k for k in missing if 'sub_block1' not in k]
+    if non_subblock:
+        print(f'WARNING: Critical missing keys: {non_subblock[:5]}...')
+        sys.exit(1)
+    else:
+        print(f'sub_block1 keys randomly initialized (expected, unused in forward)')
 os.makedirs('models', exist_ok=True)
 torch.save(model.state_dict(), 'models/model_cifar_wrn.pt')
 print(f'Saved robust teacher to models/model_cifar_wrn.pt ({os.path.getsize(\"models/model_cifar_wrn.pt\")/1024/1024:.1f} MB)')
@@ -101,13 +108,23 @@ except Exception as e:
 # Load and re-save in the code's expected format
 from cifar10_nat_teacher_models import cifar10_resnet56
 model = cifar10_resnet56(normalize=True)
-sd = torch.load(dest, map_location='cpu', weights_only=False)
 
-# The chenyaofo checkpoint has a 'state_dict' key or direct state_dict
+def safe_load(path, map_location='cpu', weights_only=False):
+    try:
+        return torch.load(path, map_location=map_location, weights_only=weights_only)
+    except TypeError:
+        return torch.load(path, map_location=map_location)
+
+sd = safe_load(dest, map_location='cpu', weights_only=False)
+
 if isinstance(sd, dict) and 'state_dict' in sd:
     sd = sd['state_dict']
 sd = {k.replace('module.', ''): v for k, v in sd.items()}
-model.load_state_dict(sd, strict=False)
+result = model.load_state_dict(sd, strict=False)
+if result.missing_keys:
+    print(f'Missing keys: {result.missing_keys[:5]}...')
+if result.unexpected_keys:
+    print(f'Unexpected keys: {result.unexpected_keys[:5]}...')
 torch.save(model.state_dict(), 'models/nat_teacher_checkpoint/cifar10_resnnet56.pth')
 print(f'Saved natural teacher to models/nat_teacher_checkpoint/cifar10_resnnet56.pth')
 
@@ -126,7 +143,12 @@ with torch.no_grad():
         out = model(x)
         correct += (out.argmax(1) == y).sum().item()
         total += y.size(0)
-print(f'Natural teacher clean accuracy: {correct/total:.4f}')
+nat_acc = correct / total
+print(f'Natural teacher clean accuracy: {nat_acc:.4f}')
+if nat_acc < 0.90:
+    print('WARNING: Natural teacher accuracy below 90%! Check checkpoint loading.')
+    sys.exit(1)
+print('Natural teacher verified successfully.')
 "
 
 echo ""
