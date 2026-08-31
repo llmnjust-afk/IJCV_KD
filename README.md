@@ -12,12 +12,14 @@ fixes. In accordance with the CIARD paper, both use the existing raw
 WRN-34-10 robust teacher and raw ResNet-56 natural teacher on CIFAR-10. The
 student architectures remain different.
 
-The latest local hardening also converts the epoch-51 teacher-update predicate
-to a native Python `bool`, fixes formal stochastic evaluation to explicit seed
-0, verifies the robust-teacher hash before attacks, and adds fail-closed
-CUDA/data/teacher preflight plus `TRAIN_COMPLETE` checkpoint proof to the
-bundled training templates. These changes do not alter model parameters,
-losses, schedules, or attack budgets.
+The latest local training hardening converts the epoch-51 teacher-update
+predicate to a native Python `bool` and adds fail-closed CUDA/data/teacher
+preflight plus `TRAIN_COMPLETE` checkpoint proof to the bundled training
+templates. For direct comparison with earlier CIARD results, both full
+`attack_eval.py` files are restored exactly from the corresponding
+`best_backup` evaluator. They retain the historical attack behavior and clear
+AutoAttack / white-box / black-box logging, including clean accuracy; they do
+not fix stochastic attack seeds or write structured JSON / `EVAL_COMPLETE`.
 
 The verified local runtime is the existing `ciard` environment (Python 3.8,
 PyTorch 1.10.0+cu113, torchvision 0.11.1+cu113). Teacher weights and CIFAR-10

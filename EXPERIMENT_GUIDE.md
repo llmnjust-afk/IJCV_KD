@@ -54,9 +54,13 @@ Edit `attack_eval.py` to set the checkpoint path, then:
 python attack_eval.py
 ```
 
-Formal stochastic evaluation explicitly fixes seed 0 for AutoAttack, Square,
-and each random-start PGD metric, records the seed in structured JSON, and
-checks the robust-teacher SHA256 before any attack runs.
+This is the historical CIARD full-evaluation protocol restored from
+`best_backup`. It prints the original AutoAttack, white-box, and black-box
+sections, including clean accuracy. It intentionally retains the historical
+stochastic behavior and attack implementation: no evaluation seed is fixed,
+and the script does not write structured JSON or `EVAL_COMPLETE`. Treat a run
+as complete only after the Slurm job succeeds and the log contains AutoAttack
+plus clean, all four white-box metrics, and all three black-box metrics.
 
 ## Teacher Models
 
@@ -96,9 +100,11 @@ CUDA GPU is visible and usable, CIFAR-10 is present with 50,000/10,000
 train/test samples, and both teacher hashes match. Successful preflight prints
 `PRECHECK_OK`. Training completion requires a zero process exit and a non-empty
 `student_best.pth`, then prints `TRAIN_COMPLETE` with its path and SHA256.
-Formal evaluation requires a non-empty checkpoint and prints `EVAL_COMPLETE`
-only after writing complete structured results. An empty Slurm `.err` alone is
-not completion proof when stderr is merged through `2>&1 | tee`.
+The bundled full-evaluation template requires a non-empty checkpoint before
+starting the historical evaluator. That evaluator does not write structured
+JSON or `EVAL_COMPLETE`; completion therefore requires a successful Slurm job
+and all nine planned metrics in the combined log. An empty Slurm `.err` alone
+is not completion proof when stderr is merged through `2>&1 | tee`.
 
 ## Key Bug Fixes (vs previous version)
 
@@ -146,22 +152,25 @@ not completion proof when stderr is merged through `2>&1 | tee`.
     - The incompatible WRN-34-20 converter and generic teacher-training entrypoint are disabled.
     - `setup_models.sh` is verification-only and cannot overwrite shared weights.
 
-14. **Eval bugs (FIXED)**:
-    - CW attack: clamp `input + perturbation` to [0,1] inside loop, not just at end
-    - PGD/FGSM: call `model.zero_grad()` to prevent parameter gradient accumulation
-    - `parse_known_args` → `parse_args` to catch typos
-    - Structured JSON output with `EVAL_COMPLETE` marker
+14. **Historical evaluation compatibility (RESTORED)**:
+    - Full `attack_eval.py` is copied from the corresponding `best_backup`
+      evaluator so new results use the same attack code and printing style as
+      earlier CIARD results.
+    - The historical CW trajectory, PGD/FGSM gradient handling, and stochastic
+      attacks without explicit seeds are intentionally retained.
+    - Full evaluation produces a combined text log rather than structured JSON
+      or an `EVAL_COMPLETE` marker.
 
 15. **Epoch-51 teacher mode type failure (FIXED)** — NumPy learning-rate
     schedules can make `teacher_lr > 0` return `numpy.bool_`, which PyTorch 1.10
     rejects in `Module.train()`. The resolved predicate is now explicitly
     converted to native `bool`.
 
-16. **Runtime and evaluation reproducibility (FIXED)** — Formal stochastic
-    attacks receive/reset explicit seed 0; structured results record it; teacher
-    integrity is checked before attacks; training templates perform fail-closed
-    preflight and print a hash-bearing `TRAIN_COMPLETE` marker only after a
-    non-empty best checkpoint exists.
+16. **Training runtime integrity (FIXED)** — Training templates perform
+    fail-closed CUDA/data/teacher preflight and print a hash-bearing
+    `TRAIN_COMPLETE` marker only after a non-empty best checkpoint exists. The
+    historical full evaluator is deliberately excluded from the deterministic
+    evaluation claims described by the superseded hardened evaluator.
 
 ## SARD Method Details
 
