@@ -10,11 +10,27 @@
 
 它是当前“8 项全部高于论文 CIARD baseline”的稳妥主线。`v1.4 repaired_gentle` 的等权综合均值更高，但 Clean、Square 和黑盒 CW 低于 baseline，因此没有替换本目录。
 
-| Clean | FGSM | PGDsat | PGDtrades | CW | 黑盒 PGDtrades | Square | 黑盒 CW |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 89.58 | 60.12 | 49.56 | 52.28 | 48.50 | 67.32 | 80.78 | 66.18 |
+## 与论文 CIARD baseline 对比
 
-7 项鲁棒均值为 60.68，8 项综合均值为 64.29。结果来自 seed 0 的 `student_best.pth` 单次完整评测。
+白盒基线取自 [CIARD 补充材料](https://openaccess.thecvf.com/content/ICCV2025/supplemental/Lu_CIARD_Cyclic_Iterative_ICCV_2025_supplemental.pdf) Table 2 的 MobileNet-V2 / CIFAR-10 / CIARD 行，黑盒基线取自 [CIARD 主论文](https://openaccess.thecvf.com/content/ICCV2025/papers/Lu_CIARD_Cyclic_Iterative_Adversarial_Robustness_Distillation_ICCV_2025_paper.pdf) Table 6 的对应行。所有数值单位均为百分比，括号内为当前主线相对论文 baseline 的百分点（pp）变化。
+
+| 参数设置 | Clean | 白盒 FGSM | 白盒 PGDsat | 白盒 PGDtrades | 白盒 CW∞ | 黑盒 PGDtrades | 黑盒 Square | 黑盒 CW∞ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 论文 CIARD baseline | 89.51 | 59.10 | 47.67 | 50.71 | 46.88 | 66.66 | 80.01 | 66.12 |
+| 当前主线（训练 seed 0） | 89.58 (+0.07 pp) | 60.12 (+1.02 pp) | 49.56 (+1.89 pp) | 52.28 (+1.57 pp) | 48.50 (+1.62 pp) | 67.32 (+0.66 pp) | 80.78 (+0.77 pp) | 66.18 (+0.06 pp) |
+
+### 辅助均值比较
+
+| 参数设置 | 白盒均值 | 黑盒均值 | 7 项鲁棒均值 | 8 项综合均值 |
+| --- | ---: | ---: | ---: | ---: |
+| 论文 CIARD baseline | 51.09 | 70.93 | 59.59 | 63.33 |
+| 当前主线（训练 seed 0） | 52.62 (+1.53 pp) | 71.43 (+0.50 pp) | 60.68 (+1.08 pp) | 64.29 (+0.96 pp) |
+
+白盒均值是 4 项白盒攻击的等权平均，黑盒均值是 3 项黑盒攻击的等权平均；7 项鲁棒均值汇总全部攻击，8 项综合均值再加入 Clean。均值及其差值均直接由各组成项计算，最后分别四舍五入到两位小数，因此个别“已显示均值相减”可能有 0.01 pp 的舍入差；它们是项目内部的辅助比较指标，不是论文的 W-R 指标。
+
+当前主线八个单项均高于论文 baseline，其中 PGDsat 提升最大（+1.89 pp），黑盒 CW∞ 提升最小（+0.06 pp）；7 项鲁棒均值和 8 项综合均值分别提高 1.08 pp 和 0.96 pp。结果来自训练 seed 0 的 `student_best.pth` 单次完整评测，微小差异不代表多次训练下的稳定收益。
+
+可比性说明：本项目历史 evaluator 的 PGDtrades step size 为 `0.003`，而论文写明为 `2/255`，且历史随机起点 PGD、Square 等随机攻击未显式固定评测 seed。因此上述论文差值用于沿用项目历史口径的参考比较，不应表述为严格同协议复现。
 
 ## 使用说明
 
