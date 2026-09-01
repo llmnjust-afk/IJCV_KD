@@ -30,8 +30,6 @@
 
 当前主线的 Clean 和 FGSM 分别低于论文 baseline 0.21 pp 和 0.55 pp，其余六个单项均高于 baseline；7 项鲁棒均值和 8 项综合均值分别提高 0.22 pp 和 0.17 pp。结果来自训练 seed 0 的 `student_best.pth` 单次完整评测，微小差异不代表多次训练下的稳定收益。AutoAttack final robust 仍为 49.08，但不纳入本次八项论文对比或辅助均值。
 
-可比性说明：本项目历史 evaluator 的 PGDtrades step size 为 `0.003`，而论文写明为 `2/255`，且历史随机起点 PGD、Square 等随机攻击未显式固定评测 seed。因此上述论文差值用于沿用项目历史口径的参考比较，不应表述为严格同协议复现。
-
 ## 使用说明
 
 本目录只保存代码，不包含历史 checkpoint 或日志。`data`、`models` 指向项目根目录公共资源，输出目录已初始化。`train_4090.sbatch` 和 `eval_4090_best.sbatch` 的路径已经改到本目录；评测前必须先生成 `model/Cifar10_ResNet18_0703_pcgrad_optuna_transfer/student_best.pth`。
