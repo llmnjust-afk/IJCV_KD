@@ -1,35 +1,55 @@
-# CIFAR-10 / MobileNet-V2 source
+# CIFAR-10 / MobileNet-V2 0903 candidate
 
-Fixed identity:
+## Candidate identity
 
-- student: MobileNet-V2
+- source baseline: 0624 `cifar10_mobilenetv2_tm010_repeat`
+- variant: `mobilenetv2_push0075`
+- prefix: `Cifar10_MobileNetV2_0903v1_push0075`
 - robust teacher: raw WRN-34-10
 - natural teacher: raw ResNet-56
-- shared checkpoints: `models/model_cifar_wrn.pt` and
-  `models/nat_teacher_checkpoint/cifar10_resnnet56.pth`
 
-`CIARD.py` exposes `--sard_saa`, `--sard_rcd`, `--epochs`, `--prefix`, and
-`--original_ciard`. It strict-loads both teachers, uses a fixed 45k/5k
-train/validation split for checkpoint selection, and refuses to reuse a
-non-empty output prefix. The resolved configuration and checkpoint identities
-are printed before training. The bundled training template verifies one visible
-CUDA GPU, CIFAR-10 integrity, and the exact hashes of both teachers before
-starting Python; it prints `TRAIN_COMPLETE` with the best-checkpoint hash only
-after a successful zero-exit training process and a non-empty checkpoint.
+This candidate changes only `push_lambda` from `0.05` to `0.075`. The midpoint
+was selected to target the remaining black-box CW margin without making the
+weak reliable-push term as aggressive as `0.10`.
 
-`attack_eval.py` is the historical full evaluation restored exactly from
-`best_backup/mobilenetv2_cifar10/attack_eval.py`. It prints AutoAttack, clean
-accuracy, four white-box attacks, and three black-box attacks in the original
-sectioned style. For compatibility with earlier CIARD results it intentionally
-keeps the old stochastic behavior and attack implementation: it has no
-explicit evaluation seed, structured JSON, checkpoint hash, or
-`EVAL_COMPLETE` marker. Downstream experiment copies should change only the
-fixed checkpoint path.
+This is an unvalidated candidate, not a new best result. The matching 0903
+training attempts were cancelled and cleaned, so there is no completed
+checkpoint or evaluation result. The known best evidence still belongs to the
+0624 source configuration.
 
-`setup_models.sh` only verifies existing shared checkpoints. The old
-WRN-34-20 converter and generic teacher trainer are deliberately disabled to
-prevent accidental replacement of public project weights.
+## Protocol and limitations
 
-This is a repaired source snapshot, not a prepared experiment directory. Its
-bundled Slurm templates contain the integrity guards above, but retain
-historical local paths/resources and are not direct submission commands.
+The source is the exact training snapshot prepared in
+`run/0903v1/mobilenetv2_push0075`. It intentionally does not retain the 0830
+SAA/RCD, label-smoothing, adaptive-temperature, late-clean-CE, or FGSM-anchor
+training path because the completed 0830 matrix did not improve the mainline.
+
+The inherited 0624 code trains on all 50,000 CIFAR-10 training samples and uses
+the test loader for checkpoint selection. That historical selection bias must
+be retained in any result description. `attack_eval.py` is the frozen
+historical evaluator; its stochastic attacks do not all receive an explicit
+seed.
+
+## Local preparation and manual execution
+
+The Git repository does not contain datasets, teacher checkpoints, logs, model
+outputs, or machine-local symlinks. Before running, create `data` and `models`
+links to the project-wide resources and create empty `logs/slurm` and `model`
+directories.
+
+The bundled wrappers target `aias-compute-01` and request one typed 3090 GPU.
+They perform CUDA/data/teacher preflight and emit hash-bearing completion
+markers. From the CIARD project root, the user may submit them manually:
+
+```bash
+sbatch origin_code/0903v1/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10_v1/train_3090.sbatch
+```
+
+Only after training is successful, the checkpoint is non-empty, and the log
+contains `TRAIN_COMPLETE`:
+
+```bash
+sbatch origin_code/0903v1/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10_v1/eval_3090_best.sbatch
+```
+
+Codex must not submit either job.

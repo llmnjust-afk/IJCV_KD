@@ -1,33 +1,27 @@
-# IJCV_KD 0830v1 source
+# IJCV_KD 0903 candidate source
 
-This snapshot contains the SARD extension of CIARD for CIFAR-10 with two
-independent student lines:
+This snapshot presents one selected CIFAR-10 candidate for each student model:
 
-- `CIARD_Expansion_mobilenetv2_cifar10_v1`: MobileNet-V2 student.
-- `CIARD_Expansion_resnet18_cifar10_v1`: ResNet-18 student, retaining its
-  architecture-specific PCGrad and weight-averaging implementation.
+- `CIARD_Expansion_mobilenetv2_cifar10_v1`: the 0624 MobileNet-V2 mainline
+  with only `push_lambda` changed from `0.05` to `0.075`.
+- `CIARD_Expansion_resnet18_cifar10_v1`: the 0703 ResNet-18 PCGrad mainline
+  with conservative projected clean/FGSM auxiliary gradients.
 
-Both lines now share the same SAA/RCD implementation and common correctness
-fixes. In accordance with the CIARD paper, both use the existing raw
-WRN-34-10 robust teacher and raw ResNet-56 natural teacher on CIFAR-10. The
-student architectures remain different.
+Both candidates use the existing raw WRN-34-10 robust teacher and raw ResNet-56
+natural teacher. They are code-review candidates only: the 0903 jobs were
+cancelled and cleaned, so no completed training, evaluation result, or new-best
+claim exists.
 
-The latest local training hardening converts the epoch-51 teacher-update
-predicate to a native Python `bool` and adds fail-closed CUDA/data/teacher
-preflight plus `TRAIN_COMPLETE` checkpoint proof to the bundled training
-templates. For direct comparison with earlier CIARD results, both full
-`attack_eval.py` files are restored exactly from the corresponding
-`best_backup` evaluator. They retain the historical attack behavior and clear
-AutoAttack / white-box / black-box logging, including clean accuracy; they do
-not fix stochastic attack seeds or write structured JSON / `EVAL_COMPLETE`.
+The prior 0830 SARD/SAA/RCD implementation is no longer the active source. Its
+eight-run evaluation showed no replacement for the 0624 MobileNet-V2 or 0703
+ResNet-18 mainline, so the SARD-oriented guides, configs, scripts, and example
+results are retained only as historical material. They must not be treated as
+the current execution interface.
 
-The verified local runtime is the existing `ciard` environment (Python 3.8,
-PyTorch 1.10.0+cu113, torchvision 0.11.1+cu113). Teacher weights and CIFAR-10
-data are shared from the project root through links in downstream run
-directories; this source snapshot does not download or overwrite them.
+Each active model directory contains a fixed training candidate, its frozen
+historical evaluator, and matching 3090 Slurm wrappers. The repository excludes
+datasets, teacher checkpoints, logs, model outputs, and machine-local symlinks.
+All Slurm jobs must be submitted manually by the user.
 
-This repository remains a source snapshot and contains no formal run outputs or
-post-hardening performance results. Experiment-specific parameter matrices,
-prefixes, resources, logs, and checkpoints are maintained in downstream
-independent run directories rather than copied back here. See
-`EXPERIMENT_GUIDE.md` for the implementation and evaluation interfaces.
+The `best_backup/` directory remains a separate frozen record of the previously
+verified best code and is not modified by this 0903 synchronization.

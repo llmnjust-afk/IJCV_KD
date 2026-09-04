@@ -1,5 +1,12 @@
 # SARD: Strength-Adaptive Reliability-Calibrated Distillation
 
+> **Historical 0830 document.** The completed 0830 matrix did not replace the
+> 0624 MobileNet-V2 or 0703 ResNet-18 mainline. SARD is no longer the active
+> implementation in the two top-level model directories; see `README.md` and
+> the model-specific READMEs for the selected 0903 candidates. The commands and
+> interfaces below are retained only for design history and must not be used as
+> the current execution interface.
+
 IJCV journal extension of the ICCV 2025 paper **CIARD** (Cyclic Iterative Adversarial Robustness Distillation).
 
 SARD introduces two modules on top of CIARD:

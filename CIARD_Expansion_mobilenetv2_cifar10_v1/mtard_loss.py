@@ -191,17 +191,16 @@ def attack_pgd(model,train_batch_data,train_batch_labels,attack_iters=10,step_si
     train_ifgsm_data = torch.clamp(train_ifgsm_data,0,1)
     for i in range(attack_iters):
         train_ifgsm_data.requires_grad_()
-        model.zero_grad()
         logits = model(train_ifgsm_data)
         loss = ce_loss(logits,train_batch_labels.to(device))
-        train_grad = torch.autograd.grad(loss, train_ifgsm_data)[0].detach()
+        loss.backward()
+        train_grad = train_ifgsm_data.grad.detach()
         train_ifgsm_data = train_ifgsm_data + step_size*torch.sign(train_grad)
         train_ifgsm_data = torch.clamp(train_ifgsm_data.detach(),0,1)
         train_ifgsm_pert = train_ifgsm_data - train_batch_data
         train_ifgsm_pert = torch.clamp(train_ifgsm_pert,-epsilon,epsilon)
         train_ifgsm_data = train_batch_data + train_ifgsm_pert
         train_ifgsm_data = train_ifgsm_data.detach()
-    model.zero_grad()
     return train_ifgsm_data
 
 def robust_inner_loss_push(model,
@@ -215,8 +214,7 @@ def robust_inner_loss_push(model,
                 epsilon=0.031,
                 perturb_steps=10,
                 beta=6.0,
-                attack_teacher_alpha=0.0,
-                teacher_train_mode=True):
+                attack_teacher_alpha=0.0):
 
     criterion_ce_loss = torch.nn.CrossEntropyLoss().cuda()
     model.eval()
@@ -240,9 +238,7 @@ def robust_inner_loss_push(model,
         x_adv = torch.clamp(x_adv, 0.0, 1.0)
 
     model.train()
-    # Keep the robust teacher BatchNorm frozen during its warm-up period.  The
-    # caller enables train mode only once iterative teacher updates start.
-    teacher_adv_model.train(teacher_train_mode)
+    teacher_adv_model.train()
     teacher_nat.eval()
     x_adv = Variable(torch.clamp(x_adv, 0.0, 1.0), requires_grad=False)
     optimizer.zero_grad()
@@ -292,93 +288,3 @@ def CIARD_inner_loss(model,
         teacher_logits = teacher_adv_model(x_adv)
         nat_logits = teacher_nat(x_adv)
     return student_logits, teacher_logits, nat_logits, x_adv
-
-
-# =============================================================================
-# SARD (Strength-Adaptive Reliability-Calibrated Distillation) components
-# =============================================================================
-
-def teacher_reliability_score(teacher_logits, labels, temperature=1.0,
-                               tau_m=2.0, floor=0.1):
-    """Teacher Reliability Score (TRS) for SARD Module 2 (RCD).
-
-    Computes a per-sample reliability weight for the robust teacher's
-    predictions on adversarial inputs. The weight is in [floor, 1.0]:
-      - When teacher is CORRECT: full weight = floor + (1-floor) * confidence * margin_gate
-      - When teacher is WRONG: floor only (minimum distillation signal preserved)
-
-    The floor ensures that even when the teacher predicts incorrectly, a
-    minimum distillation signal passes through (preventing complete signal loss).
-    Previously, the formula was correct * margin_gate * (floor + ...) which
-    zeroed out the entire weight when correct=0, making floor useless.
-
-    Args:
-        teacher_logits: [B, C] raw logits from the robust teacher on x_adv
-        labels: [B] ground-truth labels
-        temperature: temperature used for the teacher's softmax
-        tau_m: margin normalization temperature
-        floor: minimum reliability weight (prevents zeroing out distillation)
-
-    Returns:
-        trs: [B] tensor in [floor, 1.0], per-sample reliability weight (detached)
-    """
-    with torch.no_grad():
-        p = F.softmax(teacher_logits.detach() / max(temperature, 1e-6), dim=1)
-        p_true = p.gather(1, labels.view(-1, 1)).squeeze(1)
-
-        teacher_pred = torch.argmax(teacher_logits.detach(), dim=1)
-        correct = (teacher_pred == labels).float()
-
-        true_logit = teacher_logits.detach().gather(
-            1, labels.view(-1, 1)).squeeze(1)
-        other_logits = teacher_logits.detach().clone()
-        other_logits.scatter_(1, labels.view(-1, 1), -1e9)
-        max_other = torch.max(other_logits, dim=1)[0]
-        margin = true_logit - max_other
-
-        margin_gate = torch.sigmoid(margin / max(tau_m, 1e-6))
-
-        # When correct: floor + (1-floor) * confidence * margin_gate
-        # When wrong: floor (minimum signal preserved)
-        full_weight = floor + (1.0 - floor) * p_true * margin_gate
-        trs = floor + (correct * (full_weight - floor))
-
-    return trs
-
-
-def sample_epsilon_curriculum(epoch, total_epochs, eps_max=8.0/255.0,
-                               eps_min=1.0/255.0):
-    """Sample epsilon from a Beta distribution with curriculum scheduling.
-
-    Three-phase curriculum:
-      Phase 1 (0-33%): Weak attacks (Beta(2,5) -> mean ~0.29 * eps_max)
-      Phase 2 (33-67%): Transition to uniform (Beta(2,2) -> mean ~0.5 * eps_max)
-      Phase 3 (67-100%): Strong attacks (Beta(5,2) -> mean ~0.71 * eps_max)
-
-    The sampled epsilon is clamped to [eps_min, eps_max].
-
-    Args:
-        epoch: current epoch (1-indexed)
-        total_epochs: total number of training epochs
-        eps_max: maximum perturbation budget
-        eps_min: minimum perturbation budget
-
-    Returns:
-        eps_sample: sampled epsilon value (float)
-    """
-    progress = float(epoch) / float(max(total_epochs, 1))
-
-    if progress < 0.33:
-        alpha, beta = 2.0, 5.0
-    elif progress < 0.67:
-        t = (progress - 0.33) / 0.34
-        alpha = 2.0 + t * 0.0  # stays at 2
-        beta = 5.0 + t * (2.0 - 5.0)  # 5 -> 2
-    else:
-        t = (progress - 0.67) / 0.33
-        alpha = 2.0 + t * (5.0 - 2.0)  # 2 -> 5
-        beta = 2.0 + t * (2.0 - 2.0)  # stays at 2
-
-    sample = float(torch.distributions.Beta(alpha, beta).sample().item())
-    eps_sample = eps_min + sample * (eps_max - eps_min)
-    return min(max(eps_sample, eps_min), eps_max)
