@@ -158,9 +158,9 @@ echo ""
 echo "[Step 4] Staging files..."
 
 # Add code changes
-git add -A CIARD_Expansion_mobilenetv2_cifar10_v1/CIARD.py 2>/dev/null || true
-git add -A CIARD_Expansion_mobilenetv2_cifar10_v1/mtard_loss.py 2>/dev/null || true
-git add -A CIARD_Expansion_mobilenetv2_cifar10_v1/fast_eval.py 2>/dev/null || true
+git add -A CIARD_Expansion_mobilenetv2_cifar10/CIARD.py 2>/dev/null || true
+git add -A CIARD_Expansion_mobilenetv2_cifar10/mtard_loss.py 2>/dev/null || true
+git add -A CIARD_Expansion_mobilenetv2_cifar10/fast_eval.py 2>/dev/null || true
 
 # Add experiment infrastructure
 git add -A scripts/ 2>/dev/null || true

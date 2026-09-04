@@ -5,7 +5,7 @@ This directory contains model checkpoints for the IJCV KD project. Due to GitHub
 ## Teacher Models
 
 ### Robust Teacher: WideResNet-34-10
-- **File**: `CIARD_Expansion_mobilenetv2_cifar10_v1/models/model_cifar_wrn.pt`
+- **File**: `CIARD_Expansion_mobilenetv2_cifar10/models/model_cifar_wrn.pt`
 - **Architecture**: WideResNet-34-10 (depth=34, widen_factor=10)
 - **Training**: Standard CE (60 epochs) + PGD adversarial training (30 epochs)
 - **Epsilon**: 8/255 Linf
@@ -13,7 +13,7 @@ This directory contains model checkpoints for the IJCV KD project. Due to GitHub
 - **Usage**: `teacher = wideresnet(); teacher.load_state_dict(torch.load('models/model_cifar_wrn.pt'))`
 
 ### Natural Teacher: ResNet-56
-- **File**: `CIARD_Expansion_mobilenetv2_cifar10_v1/models/nat_teacher_checkpoint/cifar10_resnnet56.pth`
+- **File**: `CIARD_Expansion_mobilenetv2_cifar10/models/nat_teacher_checkpoint/cifar10_resnnet56.pth`
 - **Source**: [chenyaofo/pytorch-cifar-models](https://github.com/chenyaofo/pytorch-cifar-models)
 - **Architecture**: CifarResNet-56 (BasicBlock, [9,9,9])
 - **Clean Accuracy**: ~93.18% on CIFAR-10
@@ -59,7 +59,7 @@ pip install torch torchvision loguru torchattacks autoattack
 # 3. Download teacher models (see above)
 
 # 4. Train SARD
-cd CIARD_Expansion_mobilenetv2_cifar10_v1
+cd CIARD_Expansion_mobilenetv2_cifar10
 python CIARD.py --sard_saa 1 --sard_rcd 1 --epochs 200 --prefix sard_final
 
 # 5. Evaluate

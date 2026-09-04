@@ -10,8 +10,8 @@
 
 CIARD (Cyclic Iterative Adversarial Robustness Distillation) 已被 ICCV 2025 接收。为了投稿 IJCV 期刊，需要对其进行扩展改进。本仓库包含两个独立的实验版本：
 
-- `CIARD_Expansion_mobilenetv2_cifar10_v1/` — MobileNet-V2 学生模型
-- `CIARD_Expansion_resnet18_cifar10_v1/` — ResNet-18 学生模型
+- `CIARD_Expansion_mobilenetv2_cifar10/` — MobileNet-V2 学生模型
+- `CIARD_Expansion_resnet18_cifar10/` — ResNet-18 学生模型
 
 ## 当前实验结果
 
@@ -80,7 +80,7 @@ temp_adv = max(1.0, temp_adv * temp_scale)
 ## 修改代码的具体位置
 
 ### MobileNet 版本
-文件：`CIARD_Expansion_mobilenetv2_cifar10_v1/CIARD.py`
+文件：`CIARD_Expansion_mobilenetv2_cifar10/CIARD.py`
 
 **位置 1**（配置区，第 92 行后）：
 - 添加 Label Smoothing 和 Adaptive Temperature 的配置项
@@ -92,7 +92,7 @@ temp_adv = max(1.0, temp_adv * temp_scale)
 - 在温度裁剪后，插入 Adaptive Temperature 缩放
 
 ### ResNet 版本
-文件：`CIARD_Expansion_resnet18_cifar10_v1/CIARD.py`
+文件：`CIARD_Expansion_resnet18_cifar10/CIARD.py`
 
 同样的三个位置，应用相同的改动。
 
@@ -117,11 +117,11 @@ temp_adv = max(1.0, temp_adv * temp_scale)
 
 ```bash
 # MobileNet 版本
-cd CIARD_Expansion_mobilenetv2_cifar10_v1
+cd CIARD_Expansion_mobilenetv2_cifar10
 python CIARD.py
 
 # ResNet 版本
-cd CIARD_Expansion_resnet18_cifar10_v1
+cd CIARD_Expansion_resnet18_cifar10
 python CIARD.py
 ```
 

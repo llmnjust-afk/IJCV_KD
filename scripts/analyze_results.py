@@ -5,7 +5,7 @@ import re
 import json
 import sys
 
-LOG_DIR = "/data/lab/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10_v1/logs"
+LOG_DIR = "/data/lab/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10/logs"
 RESULTS_DIR = "/data/lab/IJCV_KD/results"
 os.makedirs(RESULTS_DIR, exist_ok=True)
 

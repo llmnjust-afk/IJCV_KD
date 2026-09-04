@@ -49,14 +49,14 @@ They perform CUDA/data/teacher preflight and emit hash-bearing completion
 markers. From the CIARD project root, the user may submit them manually:
 
 ```bash
-sbatch origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10_v1/train_3090.sbatch
+sbatch origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10/train_3090.sbatch
 ```
 
 Only after training is successful, the checkpoint is non-empty, and the log
 contains `TRAIN_COMPLETE`:
 
 ```bash
-sbatch origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10_v1/eval_3090_best.sbatch
+sbatch origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10/eval_3090_best.sbatch
 ```
 
 Codex must not submit either job.

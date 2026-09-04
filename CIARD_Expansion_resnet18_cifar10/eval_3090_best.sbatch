@@ -2,14 +2,14 @@
 #SBATCH --partition=rtx
 #SBATCH --nodelist=aias-compute-01
 #SBATCH --gres=gpu:3090:1
-#SBATCH --job-name=ev93m75
-#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0903v1/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10_v1/logs/slurm/eval_best_%j.out
-#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0903v1/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10_v1/logs/slurm/eval_best_%j.err
+#SBATCH --job-name=ev93r11
+#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10/logs/slurm/eval_best_%j.out
+#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10/logs/slurm/eval_best_%j.err
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 
 set -euo pipefail
-cd /home/lixidong25/mycode/CIARD_Expansion/origin_code/0903v1/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10_v1
+cd /home/lixidong25/mycode/CIARD_Expansion/origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10
 module load cuda/11.8
 source /apps/miniconda3/etc/profile.d/conda.sh
 conda activate ciard
@@ -20,8 +20,8 @@ unset CIARD_GPU CIARD_STUDENT CIARD_PREFIX CIARD_TM_WEIGHT CIARD_TM_START CIARD_
 unset CIARD_TM_CLEAN_GATE CIARD_TM_ADV_GATE CIARD_TM_CONFLICT_FLOOR CIARD_TM_PS_CONFLICT CIARD_TM_PS_FLOOR CIARD_TM_RELATIVE
 unset CIARD_TM_RELATIVE_ETA CIARD_TM_CLEAN_TAU CIARD_TM_ADV_TAU CIARD_TM_TWO_STAGE CIARD_TM_FINETUNE_START CIARD_TM_DETACHED
 
-VARIANT='mobilenetv2_push0075'
-CKPT='model/Cifar10_MobileNetV2_0903v1_push0075/student_best.pth'
+VARIANT='resnet18_paux_c015_f025_cap05'
+CKPT='model/Cifar10_ResNet18_0903v1_paux_c015_f025_cap05/student_best.pth'
 ROBUST_TEACHER='models/model_cifar_wrn.pt'
 EXPECTED_ROBUST_SHA256='2ede52bd042bbdf40a0c27e8008034afd9cbb0b256b9077a255e555d25f957f4'
 

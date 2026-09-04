@@ -6,7 +6,7 @@
 
 set -euo pipefail
 
-CODE_DIR="/data/lab/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10_v1"
+CODE_DIR="/data/lab/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10"
 RESULTS_DIR="/data/lab/IJCV_KD/results"
 mkdir -p "$RESULTS_DIR"
 

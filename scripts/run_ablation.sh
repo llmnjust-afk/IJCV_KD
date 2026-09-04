@@ -10,7 +10,7 @@
 set -euo pipefail
 
 EPOCHS=${1:-60}
-CODE_DIR="/data/lab/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10_v1"
+CODE_DIR="/data/lab/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10"
 LOG_DIR="${CODE_DIR}/logs"
 mkdir -p "$LOG_DIR"
 

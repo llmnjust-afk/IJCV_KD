@@ -2,9 +2,9 @@
 
 This snapshot presents one selected CIFAR-10 candidate for each student model:
 
-- `CIARD_Expansion_mobilenetv2_cifar10_v1`: the 0624 MobileNet-V2 mainline
+- `CIARD_Expansion_mobilenetv2_cifar10`: the 0624 MobileNet-V2 mainline
   with only `push_lambda` changed from `0.05` to `0.075`.
-- `CIARD_Expansion_resnet18_cifar10_v1`: the 0703 ResNet-18 PCGrad mainline
+- `CIARD_Expansion_resnet18_cifar10`: the 0703 ResNet-18 PCGrad mainline
   with conservative projected clean/FGSM auxiliary gradients.
 
 Both candidates use the existing raw WRN-34-10 robust teacher and raw ResNet-56

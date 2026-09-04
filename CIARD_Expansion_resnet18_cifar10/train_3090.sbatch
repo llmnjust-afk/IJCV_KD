@@ -3,13 +3,13 @@
 #SBATCH --nodelist=aias-compute-01
 #SBATCH --gres=gpu:3090:1
 #SBATCH --job-name=tr93r11
-#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10_v1/logs/slurm/train_%j.out
-#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10_v1/logs/slurm/train_%j.err
+#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10/logs/slurm/train_%j.out
+#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10/logs/slurm/train_%j.err
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 
 set -euo pipefail
-cd /home/lixidong25/mycode/CIARD_Expansion/origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10_v1
+cd /home/lixidong25/mycode/CIARD_Expansion/origin_code/0903v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10
 module load cuda/11.8
 source /apps/miniconda3/etc/profile.d/conda.sh
 conda activate ciard
