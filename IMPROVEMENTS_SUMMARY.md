@@ -2,8 +2,8 @@
 
 > **历史 0830 设计说明。** 完整 0830 矩阵没有替代 0624 MobileNet-V2
 > 或 0703 ResNet-18 主线，本文提出的 SARD/Label Smoothing/Adaptive
-> Temperature 已退出两个顶层模型目录的活动实现。当前 0903 候选身份、
-> 参数和未评测状态以仓库 `README.md` 及两个模型 README 为准；本文其余
+> Temperature 已退出两个顶层模型目录的活动实现。当前 0906 ResNet 与保留的
+> 0903 MobileNet 候选身份、参数和评测状态以仓库 `README.md` 及两个模型 README 为准；本文其余
 > 内容只保留用于追溯当时的设计判断。
 
 ## 背景

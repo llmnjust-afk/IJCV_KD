@@ -25,12 +25,12 @@ for _legacy_runtime_env in ("CIARD_GPU", "CIARD_STUDENT", "CIARD_PREFIX"):
     os.environ.pop(_legacy_runtime_env, None)
 
 # Fixed output prefix for this independent variant.
-VARIANT_NAME = 'resnet18_paux_c015_f025_cap05'
-prefix = 'Cifar10_ResNet18_0903v1_paux_c015_f025_cap05'
+VARIANT_NAME = 'resnet18_tmix_a020_s120_w40_p081740'
+prefix = 'Cifar10_ResNet18_0906v1_tmix_a020_s120_w40_p081740'
 draw_file = prefix
 model_dir = './model/' + prefix
-if not os.path.exists(model_dir):
-    os.makedirs(model_dir)
+# Refuse reuse of a training trajectory, including a concurrent duplicate job.
+os.makedirs(model_dir, exist_ok=False)
 
 with open('./model/' + prefix+ '/'+ draw_file,'w') as f:
     text = "epoch student_robust_acc student_natural_acc adv_teacher_robust_acc adv_teacher_natural_acc nat_teacher_robust_acc nat_teacher_natural_acc\n"
@@ -53,6 +53,11 @@ epsilon = 8/255.0
 USE_CIARDPP = True
 CIARD_SAFE_PLUS = True
 CFG = {
+    # Reliable clean-input predictions of the live robust teacher may correct
+    # only the adversarial KD target. Zero alpha preserves the original path.
+    "target_mix_alpha": 0.2,
+    "target_mix_start": 120,
+    "target_mix_warmup": 40,
     # -------------------------------------------------------------------------
     # (A) soft-weighted feature-level contrastive push loss
     # -------------------------------------------------------------------------
@@ -236,18 +241,6 @@ CFG = {
     # that would increase the base loss.
     "pcgrad_teacher_margin": True,
     "pcgrad_start": 120,
-    # Protected auxiliary-gradient repair. The original 0903 update (including
-    # its clean CE and teacher-margin PCGrad) remains the reference gradient.
-    # Extra clean/FGSM gradients are projected only when they oppose that
-    # reference, then their combined norm is capped before being added.
-    "projected_aux": True,
-    "projected_clean_weight": 0.015,
-    "projected_fgsm_weight": 0.025,
-    "projected_aux_grad_cap": 0.05,
-    "projected_fgsm_start": 170,
-    "projected_fgsm_warmup": 60,
-    "projected_fgsm_kl_weight": 0.5,
-    "projected_fgsm_epsilon": 8.0 / 255.0,
 }
 
 class AverageMeter(object):
@@ -307,7 +300,7 @@ for _legacy_tm_env in ("CIARD_TM_WEIGHT", "CIARD_TM_START", "CIARD_TM_WARMUP",
 
 # Legacy teacher-margin environment overrides are intentionally ignored in independent variants.
 
-resume_student_path = None
+resume_student_path = None 
 if resume_student_path != None:
     state_dict = torch.load(resume_student_path,map_location=torch.device('cpu'))["model"]
     new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
@@ -366,7 +359,7 @@ def push_loss(teacher_logits, students_logits, labels,T = 5):#train_batch_labels
     diff_teacher_logits = teacher_logits[diff_indices]
     diff_student_logits = students_logits[diff_indices]
     #print(diff_student_logits)
-
+    
     return kl_loss(F.log_softmax(diff_student_logits/T,dim=1),F.softmax(diff_teacher_logits.detach(),dim=1))
 def pull_loss(teacher_logits, students_logits, labels,T=1):#train_batch_labels
     '''print(teacher_logits.shape)
@@ -477,6 +470,11 @@ batch_size: {}
 epsilon: {}
 train_pgd_steps: 10
 train_pgd_step_size: 2/255
+training_seed: 0
+selection_protocol: historical_50k_train_test_loader_selection
+target_mix_teacher: live_robust_teacher_clean_logits_existing_forward
+target_mix_temperature: current_batch_temp_adv_before_update
+target_mix_reduction: original_mean_over_batch_and_classes
 robust_teacher_checkpoint: {}
 natural_teacher_checkpoint: {}
 USE_CIARDPP: {}
@@ -491,15 +489,15 @@ CFG:
     "\n".join("  {}: {}".format(k, CFG[k]) for k in sorted(CFG))))
 
 for epoch in range(begin_epoch,epochs+1):
-    logger.info('the {}th epoch '.format(epoch))
-    for step,(train_batch_data,train_batch_labels) in enumerate(trainloader):
+    logger.info('the {}th epoch '.format(epoch)) 
+    for step,(train_batch_data,train_batch_labels) in enumerate(trainloader): 
         student.train()
         teacher.train()
         train_batch_data = train_batch_data.float().cuda()
         train_batch_labels = train_batch_labels.cuda()
         optimizer.zero_grad()
         ADV_teacher_optimizer.zero_grad()
-
+         
         student.train()
         student_nat_logits = student(train_batch_data)
         with torch.no_grad():
@@ -526,7 +524,34 @@ for epoch in range(begin_epoch,epochs+1):
         else:
             robust_soft_logits = teacher_adv_logits
 
-        kl_Loss1 = kl_loss(F.log_softmax(student_adv_logits,dim=1),F.softmax(robust_soft_logits.detach()/temp_adv,dim=1))
+        # BEGIN 0906 TARGET MIX: no extra forwards, BN updates, or teacher grads.
+        target_mix_ramp = min(1.0, max(0.0,
+            (epoch - CFG["target_mix_start"]) / float(max(1, CFG["target_mix_warmup"]))))
+        target_mix_alpha = CFG["target_mix_alpha"] * target_mix_ramp
+        if USE_CIARDPP and target_mix_alpha > 0.0:
+            with torch.no_grad():
+                target_mix_adv = F.softmax(robust_soft_logits.detach()/temp_adv, dim=1)
+                target_mix_clean = F.softmax(adv_teacher_nat.detach()/temp_adv, dim=1)
+                target_mix_correct = (adv_teacher_nat.detach().argmax(dim=1)
+                                      == train_batch_labels).to(target_mix_adv.dtype)
+                target_mix_weight = target_mix_alpha * target_mix_correct.unsqueeze(1)
+                target_mix_probs = ((1.0 - target_mix_weight) * target_mix_adv
+                                    + target_mix_weight * target_mix_clean)
+            kl_Loss1 = kl_loss(F.log_softmax(student_adv_logits, dim=1), target_mix_probs)
+        else:
+            kl_Loss1 = kl_loss(F.log_softmax(student_adv_logits,dim=1),F.softmax(robust_soft_logits.detach()/temp_adv,dim=1))
+        # Diagnostics are detached and do not feed the temperature/gate updates.
+        if step % 100 == 0:
+            with torch.no_grad():
+                tmix_correct_fraction = (adv_teacher_nat.detach().argmax(dim=1)
+                                         == train_batch_labels).float().mean().item()
+                tmix_mean_weight = 0.0
+                tmix_target_l1 = 0.0
+                if USE_CIARDPP and target_mix_alpha > 0.0:
+                    tmix_mean_weight = target_mix_weight.mean().item()
+                    tmix_target_l1 = (target_mix_probs - target_mix_adv).abs().sum(dim=1).mean().item()
+                tmix_temperature = float(temp_adv)
+        # END 0906 TARGET MIX
         kl_Loss2 = kl_loss(F.log_softmax(student_nat_logits,dim=1),F.softmax(teacher_nat_logits.detach()/temp_nat,dim=1))
         # Reliability-aware robust KD: do not blindly imitate a wrong robust
         # teacher. If the robust teacher is correct and confident on y, the KL
@@ -821,7 +846,7 @@ for epoch in range(begin_epoch,epochs+1):
                 loss3_weight = scale_to_magnitude(float(kl_Loss1.item()), float(kl_Loss2.item()), float(kl_Loss3.item())) #This is fit the loss3 into the same scale with others,this is not lambda,lambda here is 1
                 total_loss -= loss3_weight*kl_Loss3
         '''
-        kl_Loss4 = push_loss(adv_teacher_nat,student_nat_logits,train_batch_labels)
+        kl_Loss4 = push_loss(adv_teacher_nat,student_nat_logits,train_batch_labels) 
         if(torch.isnan(kl_Loss4).any() or kl_Loss4.numel() == 0):
             kl_Loss4 = torch.tensor(0.0)
         else:
@@ -839,7 +864,7 @@ for epoch in range(begin_epoch,epochs+1):
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
-
+        
         if epoch < 50:
             teacher_lr = 0
         else:
@@ -848,88 +873,16 @@ for epoch in range(begin_epoch,epochs+1):
             cosine_term = 0.5 + 0.5 * np.cos(np.pi * (epoch - 50) / (300 - 50))
             exponential_decay = np.exp(-0.01 * (epoch - 50) ** 2 / (300 - 50) ** 2)
             teacher_lr = min_lr + (base_lr - min_lr) * cosine_term*exponential_decay
-
+            
         for param_group in ADV_teacher_optimizer.param_groups:
             param_group['lr'] = teacher_lr
         if epoch in [215,260,285]:
             weight_learn_rate *= 0.1
             temp_learn_rate *= 0.1
-
-        # Extra repair objectives are deliberately kept outside total_loss.
-        # Their gradients are added only after the unmodified 0903 update has
-        # been computed and protected below.
-        projected_clean_term = torch.tensor(0.0).cuda()
-        projected_fgsm_loss = torch.tensor(0.0).cuda()
-        projected_fgsm_term = torch.tensor(0.0).cuda()
-        projected_fgsm_ramp = 0.0
-        if USE_CIARDPP and CFG.get("projected_aux", False):
-            projected_clean_term = (ce_ramp
-                                    * CFG["projected_clean_weight"]
-                                    * clean_ce)
-            projected_fgsm_ramp = min(
-                1.0,
-                max(0.0, (epoch - CFG["projected_fgsm_start"])
-                    / float(max(1, CFG["projected_fgsm_warmup"]))))
-            if (CFG["projected_fgsm_weight"] > 0.0
-                    and projected_fgsm_ramp > 0.0):
-                # The historical FGSM anchor ran these forwards in train mode,
-                # which also changed student/teacher BatchNorm state. Use eval
-                # mode for this auxiliary branch and restore both modes before
-                # optimization; gradients through the student remain enabled.
-                student_was_training = student.training
-                teacher_was_training = teacher.training
-                student.eval()
-                teacher.eval()
-                x_fgsm = train_batch_data.detach().clone().requires_grad_(True)
-                fgsm_gen_logits = student(x_fgsm)
-                fgsm_gen_loss = ce_loss(fgsm_gen_logits, train_batch_labels)
-                fgsm_grad = torch.autograd.grad(
-                    fgsm_gen_loss, x_fgsm, create_graph=False)[0]
-                x_fgsm_adv = torch.clamp(
-                    train_batch_data
-                    + CFG["projected_fgsm_epsilon"]
-                    * torch.sign(fgsm_grad.detach()),
-                    0.0, 1.0).detach()
-                fgsm_logits = student(x_fgsm_adv)
-                fgsm_ce = ce_loss(fgsm_logits, train_batch_labels)
-                with torch.no_grad():
-                    fgsm_teacher_logits = teacher(x_fgsm_adv)
-                fgsm_kl = torch.mean(kl_loss(
-                    F.log_softmax(fgsm_logits, dim=1),
-                    F.softmax(fgsm_teacher_logits.detach() / temp_adv, dim=1)))
-                projected_fgsm_loss = (
-                    (1.0 - CFG["projected_fgsm_kl_weight"]) * fgsm_ce
-                    + CFG["projected_fgsm_kl_weight"] * fgsm_kl)
-                projected_fgsm_term = (
-                    projected_fgsm_ramp
-                    * CFG["projected_fgsm_weight"]
-                    * projected_fgsm_loss)
-                student.train(student_was_training)
-                teacher.train(teacher_was_training)
-
+                    
         student.train()
         pcgrad_conflict_count = 0
         pcgrad_param_count = 0
-        projected_aux_terms = []
-        if (projected_clean_term.requires_grad
-                and float(projected_clean_term.detach().item()) != 0.0):
-            projected_aux_terms.append(("clean", projected_clean_term))
-        if (projected_fgsm_term.requires_grad
-                and float(projected_fgsm_term.detach().item()) != 0.0):
-            projected_aux_terms.append(("fgsm", projected_fgsm_term))
-        opt_params = []
-        for group in optimizer.param_groups:
-            opt_params.extend([p for p in group['params'] if p.requires_grad])
-
-        projected_clean_cos = 0.0
-        projected_fgsm_cos = 0.0
-        projected_clean_raw_norm = 0.0
-        projected_fgsm_raw_norm = 0.0
-        projected_aux_ref_norm = 0.0
-        projected_aux_ratio = 0.0
-        projected_aux_cap_scale = 1.0
-        projected_clean_conflict = 0
-        projected_fgsm_conflict = 0
         if (USE_CIARDPP and CFG.get("pcgrad_teacher_margin", False)
                 and epoch >= CFG.get("pcgrad_start", 0)
                 and teacher_margin_term.requires_grad
@@ -940,6 +893,10 @@ for epoch in range(begin_epoch,epochs+1):
             # If margin_loss has a conflicting gradient on a parameter, project
             # the conflicting component away before adding it to the base grad.
             base_loss = total_loss - teacher_margin_term
+            opt_params = []
+            for group in optimizer.param_groups:
+                opt_params.extend([p for p in group['params'] if p.requires_grad])
+
             optimizer.zero_grad()
             base_loss.backward(retain_graph=True)
             base_grads = []
@@ -970,96 +927,7 @@ for epoch in range(begin_epoch,epochs+1):
                     pcgrad_conflict_count += 1
                 p.grad = bg + mg
         else:
-            total_loss.backward(retain_graph=bool(projected_aux_terms))
-
-        if projected_aux_terms:
-            # At this point p.grad is exactly the update produced by the
-            # original 0903 objective and teacher-margin PCGrad. Freeze it as
-            # the reference; each extra objective may contribute only a
-            # non-conflicting, globally bounded increment.
-            reference_grads = [
-                None if p.grad is None else p.grad.detach().clone()
-                for p in opt_params]
-            reference_norm_sq = torch.tensor(0.0, device=train_batch_data.device)
-            for rg in reference_grads:
-                if rg is not None:
-                    reference_norm_sq = reference_norm_sq + torch.sum(rg * rg)
-            projected_aux_ref_norm = torch.sqrt(reference_norm_sq).item()
-
-            all_projected_grads = []
-            for term_name, aux_term in projected_aux_terms:
-                optimizer.zero_grad()
-                # Clean and FGSM terms come from independent forward graphs;
-                # release each graph immediately to keep peak memory bounded.
-                aux_term.backward()
-                aux_grads = [
-                    None if p.grad is None else p.grad.detach().clone()
-                    for p in opt_params]
-                aux_dot = torch.tensor(0.0, device=train_batch_data.device)
-                aux_norm_sq = torch.tensor(0.0, device=train_batch_data.device)
-                for rg, ag in zip(reference_grads, aux_grads):
-                    if ag is not None:
-                        aux_norm_sq = aux_norm_sq + torch.sum(ag * ag)
-                    if rg is not None and ag is not None:
-                        aux_dot = aux_dot + torch.sum(rg * ag)
-                aux_norm = torch.sqrt(aux_norm_sq).item()
-                aux_cos = (aux_dot / (
-                    torch.sqrt(reference_norm_sq * aux_norm_sq) + 1e-12)).item()
-                aux_conflict = int(aux_dot.item() < 0.0)
-                if aux_conflict and reference_norm_sq.item() > 0.0:
-                    projection_coef = aux_dot / (reference_norm_sq + 1e-12)
-                    aux_grads = [
-                        (ag if rg is None else rg * (-projection_coef))
-                        if ag is None else
-                        (ag if rg is None else ag - projection_coef * rg)
-                        for rg, ag in zip(reference_grads, aux_grads)]
-                all_projected_grads.append(aux_grads)
-                if term_name == "clean":
-                    projected_clean_cos = aux_cos
-                    projected_clean_raw_norm = aux_norm
-                    projected_clean_conflict = aux_conflict
-                else:
-                    projected_fgsm_cos = aux_cos
-                    projected_fgsm_raw_norm = aux_norm
-                    projected_fgsm_conflict = aux_conflict
-
-            combined_aux_grads = []
-            combined_aux_norm_sq = torch.tensor(
-                0.0, device=train_batch_data.device)
-            for param_index in range(len(opt_params)):
-                combined_grad = None
-                for aux_grads in all_projected_grads:
-                    ag = aux_grads[param_index]
-                    if ag is not None:
-                        combined_grad = (ag.clone() if combined_grad is None
-                                         else combined_grad + ag)
-                combined_aux_grads.append(combined_grad)
-                if combined_grad is not None:
-                    combined_aux_norm_sq = (
-                        combined_aux_norm_sq + torch.sum(combined_grad * combined_grad))
-
-            combined_aux_norm = torch.sqrt(combined_aux_norm_sq)
-            if combined_aux_norm.item() > 0.0 and projected_aux_ref_norm > 0.0:
-                cap_norm = CFG["projected_aux_grad_cap"] * projected_aux_ref_norm
-                projected_aux_cap_scale = min(
-                    1.0, cap_norm / (combined_aux_norm.item() + 1e-12))
-                projected_aux_ratio = (
-                    projected_aux_cap_scale * combined_aux_norm.item()
-                    / (projected_aux_ref_norm + 1e-12))
-            else:
-                projected_aux_cap_scale = 0.0
-                projected_aux_ratio = 0.0
-
-            optimizer.zero_grad()
-            for p, rg, ag in zip(opt_params, reference_grads, combined_aux_grads):
-                if rg is None and ag is None:
-                    p.grad = None
-                elif rg is None:
-                    p.grad = projected_aux_cap_scale * ag
-                elif ag is None:
-                    p.grad = rg
-                else:
-                    p.grad = rg + projected_aux_cap_scale * ag
+            total_loss.backward()
         optimizer.step()
         if USE_CIARDPP and CFG["student_ema"] and ema_student is not None:
             ema_update_teacher(ema_student, student, decay=CFG["student_ema_decay"])
@@ -1074,26 +942,22 @@ for epoch in range(begin_epoch,epochs+1):
             if USE_CIARDPP and CFG["ema_itt"]:
                 ema_update_teacher(ema_teacher, teacher, decay=CFG["ema_decay"])
         if step%100 == 0:
-            text = 'lr:' + str(lr)
-            text += ' weight_nat: {}, nat_loss: {}, weight_adv: {}, adv_loss: {}'.format(weight["nat_loss"], kl_Loss2.item(), weight["adv_loss"], kl_Loss1.item())
-            text += " weight-klloss3 " + str(loss3_weight) + " Loss3: " + str(kl_Loss3.item())
+            text = 'lr:' + str(lr) 
+            text += ' weight_nat: {}, nat_loss: {}, weight_adv: {}, adv_loss: {}'.format(weight["nat_loss"], kl_Loss2.item(), weight["adv_loss"], kl_Loss1.item()) 
+            text += " weight-klloss3 " + str(loss3_weight) + " Loss3: " + str(kl_Loss3.item()) 
             text += " clean_ce: {}, adv_ce: {}, adv_margin: {}, clean_gate: {}, teacher_margin: {}, teacher_margin_gate: {}, teacher_clean_gate: {}, teacher_adv_gate: {}, tm_grad_cos: {}, tm_scale: {}, tm_ps_scale: {}, pcgrad_conflicts: {}/{}".format(
                 clean_ce.item(), adv_ce.item(), adv_margin.item(), torch.mean(clean_gate).item(),
                 teacher_margin_loss.item(), torch.mean(teacher_margin_gate).item(), torch.mean(clean_margin_gate).item(),
                 torch.mean(adv_margin_gate).item(),
                 teacher_margin_conflict_score.item(), teacher_margin_conflict_scale,
                 torch.mean(teacher_margin_per_sample_scale).item(), pcgrad_conflict_count, pcgrad_param_count)
-            text += " paux_clean: loss={} cos={} raw_norm={} conflict={}; paux_fgsm: loss={} ramp={} cos={} raw_norm={} conflict={}; paux_total: ref_norm={} ratio={} cap_scale={}".format(
-                clean_ce.item(), projected_clean_cos, projected_clean_raw_norm,
-                projected_clean_conflict, projected_fgsm_loss.item(),
-                projected_fgsm_ramp, projected_fgsm_cos,
-                projected_fgsm_raw_norm, projected_fgsm_conflict,
-                projected_aux_ref_norm, projected_aux_ratio,
-                projected_aux_cap_scale)
-            logger.info(text)
+            text += " tmix: alpha={} ramp={} clean_correct_fraction={} mean_weight={} target_l1={} temperature={}".format(
+                target_mix_alpha, target_mix_ramp, tmix_correct_fraction,
+                tmix_mean_weight, tmix_target_l1, tmix_temperature)
+            logger.info(text) 
+        
 
-
-    if epoch == 1 or epoch%10==  0 or epoch >= 250:
+    if epoch == 1 or epoch%10==  0 or epoch >= 250: 
         loss_nat_test = AverageMeter()
         loss_adv_test = AverageMeter()
 
@@ -1123,7 +987,7 @@ for epoch in range(begin_epoch,epochs+1):
                 loss = ce_loss(logits, test_batch_labels)
             loss = loss.float()
             loss_adv_test.update(loss.item(), test_batch_data.size(0))
-
+            
             predictions = np.argmax(logits.cpu().detach().numpy(),axis=1)
             predictions = predictions - test_batch_labels.cpu().detach().numpy()
             test_accs = test_accs + predictions.tolist()
@@ -1145,11 +1009,11 @@ for epoch in range(begin_epoch,epochs+1):
 
         nat_teacher_test_accs = np.array(nat_teacher_test_accs)
         nat_teacher_test_acc = np.sum(nat_teacher_test_accs==0)/len(nat_teacher_test_accs)
-
+        
         text = f'student robust acc {np.sum(test_accs==0)/len(test_accs):.4f}, teacher robust acc {np.sum(teacher_test_accs==0)/len(teacher_test_accs):.4f}, nat teacher robust acc {np.sum(nat_teacher_test_accs==0)/len(nat_teacher_test_accs):.4f}'
         logger.info(text)
 
-        for step,(test_batch_data,test_batch_labels) in enumerate(testloader):
+        for step,(test_batch_data,test_batch_labels) in enumerate(testloader): 
             test_batch_data = test_batch_data.float().cuda()
             test_batch_labels = test_batch_labels.cuda()
             with torch.no_grad():
@@ -1232,10 +1096,10 @@ for epoch in range(begin_epoch,epochs+1):
                 'optimizer': ADV_teacher_optimizer.state_dict(), 'epoch': epoch}
             torch.save(state,'./model/' + prefix + "/teacher_best"+ '.pth')
             logger.info("best accuracy:"+str(best_accuracy))
-
+            
         text = f'student natural acc {np.sum(test_accs_naturals==0)/len(test_accs_naturals):.4f}, adv teacher natural acc {np.sum(teacher_test_accs_naturals==0)/len(teacher_test_accs_naturals):.4f}, nat teacher natural acc {np.sum(nat_teacher_test_accs_naturals==0)/len(nat_teacher_test_accs_naturals):.4f}'
         logger.info(text)
-
+        
         test_acc = np.sum(test_accs==0)/len(test_accs)
         test_accs_natural = np.sum(test_accs_naturals==0)/len(test_accs_naturals)
         with open('./model/' + prefix+ '/'+ draw_file,'a') as f:

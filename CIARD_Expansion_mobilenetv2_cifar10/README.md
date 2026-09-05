@@ -12,10 +12,11 @@ This candidate changes only `push_lambda` from `0.05` to `0.075`. The midpoint
 was selected to target the remaining black-box CW margin without making the
 weak reliable-push term as aggressive as `0.10`.
 
-This is an unvalidated candidate, not a new best result. The matching 0903
-training attempts were cancelled and cleaned, so there is no completed
-checkpoint or evaluation result. The known best evidence still belongs to the
-0624 source configuration.
+The 0903 batch subsequently completed training and evaluation. This candidate
+improved white-box metrics but missed the CIARD baseline on Clean (89.07 versus
+89.51) and black-box CW (65.29 versus 66.12), so it is not a new best result.
+The verified best evidence still belongs to the 0624 source configuration.
+The 0906 synchronization leaves this MobileNet source and its wrappers unchanged.
 
 ## Protocol and limitations
 

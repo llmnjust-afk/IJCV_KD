@@ -1,10 +1,8 @@
-# Minimal runtime dependencies. The project is verified in the existing
-# `ciard` environment (Python 3.8, torch 1.10.0+cu113,
-# torchvision 0.11.1+cu113). safe_torch_load keeps newer torch compatible.
-torch>=1.10
-torchvision>=0.11
-numpy>=1.22
-loguru>=0.7
-torchattacks>=3.5
-# AutoAttack is imported as `autoattack`; use the installation already present
-# in the project environment or the official fra31/auto-attack package.
+# Verified existing ciard environment: Python 3.8.20; do not reinstall before running.
+# torch/torchvision CUDA wheels: https://download.pytorch.org/whl/cu113
+torch==1.10.0+cu113
+torchvision==0.11.1+cu113
+numpy==1.22.4
+loguru==0.7.2
+torchattacks==3.5.1
+autoattack @ git+https://github.com/fra31/auto-attack.git@a39220048b3c9f2cca9a4d3a54604793c68eca7e
