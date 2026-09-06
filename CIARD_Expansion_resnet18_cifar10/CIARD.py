@@ -15,6 +15,7 @@ import torchvision
 from torchvision import transforms
 from loguru import logger
 import math
+from split_target_mix import split_target_mix_loss
 # we fix the random seed to 0, this method can keep the results consistent in the same conputer.
 torch.manual_seed(0)
 torch.cuda.manual_seed_all(0)
@@ -25,8 +26,8 @@ for _legacy_runtime_env in ("CIARD_GPU", "CIARD_STUDENT", "CIARD_PREFIX"):
     os.environ.pop(_legacy_runtime_env, None)
 
 # Fixed output prefix for this independent variant.
-VARIANT_NAME = 'resnet18_tmix_a020_s120_w40_p081740'
-prefix = 'Cifar10_ResNet18_0906v1_tmix_a020_s120_w40_p081740'
+VARIANT_NAME = 'resnet18_split_t025_n020_s120_w40_p081740'
+prefix = 'Cifar10_ResNet18_0906v2_split_t025_n020_s120_w40_p081740'
 draw_file = prefix
 model_dir = './model/' + prefix
 # Refuse reuse of a training trajectory, including a concurrent duplicate job.
@@ -58,6 +59,9 @@ CFG = {
     "target_mix_alpha": 0.2,
     "target_mix_start": 120,
     "target_mix_warmup": 40,
+    "split_target_mix": True,
+    "split_target_alpha": 0.25,
+    "split_nontarget_alpha": 0.2,
     # -------------------------------------------------------------------------
     # (A) soft-weighted feature-level contrastive push loss
     # -------------------------------------------------------------------------
@@ -475,6 +479,8 @@ selection_protocol: historical_50k_train_test_loader_selection
 target_mix_teacher: live_robust_teacher_clean_logits_existing_forward
 target_mix_temperature: current_batch_temp_adv_before_update
 target_mix_reduction: original_mean_over_batch_and_classes
+split_mix_reference: G3_q020_non_target_mass_when_enabled
+split_mix_loss: source_KL_plus_binary_and_conditional_KL_correction
 robust_teacher_checkpoint: {}
 natural_teacher_checkpoint: {}
 USE_CIARDPP: {}
@@ -552,6 +558,16 @@ for epoch in range(begin_epoch,epochs+1):
                     tmix_target_l1 = (target_mix_probs - target_mix_adv).abs().sum(dim=1).mean().item()
                 tmix_temperature = float(temp_adv)
         # END 0906 TARGET MIX
+        # BEGIN 0906V2 SPLIT MIX
+        split_target_alpha = CFG["split_target_alpha"] * target_mix_ramp
+        split_nontarget_alpha = CFG["split_nontarget_alpha"] * target_mix_ramp
+        split_mix_stats = None
+        if USE_CIARDPP and CFG["split_target_mix"] and target_mix_alpha > 0.0:
+            kl_Loss1, split_mix_stats = split_target_mix_loss(
+                kl_Loss1, student_adv_logits, robust_soft_logits, adv_teacher_nat,
+                train_batch_labels, target_mix_probs, temp_adv, target_mix_alpha,
+                split_target_alpha, split_nontarget_alpha)
+        # END 0906V2 SPLIT MIX
         kl_Loss2 = kl_loss(F.log_softmax(student_nat_logits,dim=1),F.softmax(teacher_nat_logits.detach()/temp_nat,dim=1))
         # Reliability-aware robust KD: do not blindly imitate a wrong robust
         # teacher. If the robust teacher is correct and confident on y, the KL
@@ -954,6 +970,12 @@ for epoch in range(begin_epoch,epochs+1):
             text += " tmix: alpha={} ramp={} clean_correct_fraction={} mean_weight={} target_l1={} temperature={}".format(
                 target_mix_alpha, target_mix_ramp, tmix_correct_fraction,
                 tmix_mean_weight, tmix_target_l1, tmix_temperature)
+            # BEGIN 0906V2 SPLIT LOG
+            if split_mix_stats is not None:
+                text += " splitmix: target_alpha={} nontarget_alpha={} ".format(
+                    split_target_alpha, split_nontarget_alpha)
+                text += " ".join("{}={}".format(k, v.item()) for k, v in sorted(split_mix_stats.items()))
+            # END 0906V2 SPLIT LOG
             logger.info(text) 
         
 

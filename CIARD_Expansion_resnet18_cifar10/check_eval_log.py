@@ -52,7 +52,7 @@ def main():
         'metrics_percent': metrics,
         'note': 'Wrapper-parsed complete metrics; stochastic attacks are not explicitly seeded.',
     }
-    destination = Path(checkpoint).parent / ('eval_best_0906v1_' + job + '.json')
+    destination = Path(checkpoint).parent / ('eval_best_0906v2_' + job + '.json')
     with destination.open('x') as stream:
         json.dump(result, stream, indent=2, allow_nan=False)
         stream.write('\n')

@@ -2,14 +2,14 @@
 #SBATCH --partition=rtx4090
 #SBATCH --nodelist=aias-compute-2
 #SBATCH --gres=gpu:4090:1
-#SBATCH --job-name=tr96git
-#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0906v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10/logs/slurm/train_%j.out
-#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0906v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10/logs/slurm/train_%j.err
+#SBATCH --job-name=tr962git
+#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0906v2/IJCV_KD/CIARD_Expansion_resnet18_cifar10/logs/slurm/train_%j.out
+#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0906v2/IJCV_KD/CIARD_Expansion_resnet18_cifar10/logs/slurm/train_%j.err
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 
 set -euo pipefail
-cd /home/lixidong25/mycode/CIARD_Expansion/origin_code/0906v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10
+cd /home/lixidong25/mycode/CIARD_Expansion/origin_code/0906v2/IJCV_KD/CIARD_Expansion_resnet18_cifar10
 module load cuda/11.8
 source /apps/miniconda3/etc/profile.d/conda.sh
 conda activate ciard
@@ -20,8 +20,8 @@ unset CIARD_GPU CIARD_STUDENT CIARD_PREFIX CIARD_TM_WEIGHT CIARD_TM_START CIARD_
 unset CIARD_TM_CLEAN_GATE CIARD_TM_ADV_GATE CIARD_TM_CONFLICT_FLOOR CIARD_TM_PS_CONFLICT CIARD_TM_PS_FLOOR CIARD_TM_RELATIVE
 unset CIARD_TM_RELATIVE_ETA CIARD_TM_CLEAN_TAU CIARD_TM_ADV_TAU CIARD_TM_TWO_STAGE CIARD_TM_FINETUNE_START CIARD_TM_DETACHED
 
-VARIANT='resnet18_tmix_a020_s120_w40_p081740'
-TRAIN_CKPT='model/Cifar10_ResNet18_0906v1_tmix_a020_s120_w40_p081740/student_best.pth'
+VARIANT='resnet18_split_t025_n020_s120_w40_p081740'
+TRAIN_CKPT='model/Cifar10_ResNet18_0906v2_split_t025_n020_s120_w40_p081740/student_best.pth'
 ROBUST_TEACHER='models/model_cifar_wrn.pt'
 NATURAL_TEACHER='models/nat_teacher_checkpoint/cifar10_resnnet56.pth'
 EXPECTED_ROBUST_SHA256='2ede52bd042bbdf40a0c27e8008034afd9cbb0b256b9077a255e555d25f957f4'
@@ -30,8 +30,10 @@ EXPECTED_NATURAL_SHA256='9e1d3395f0a8c34296ca8cd4875b9b5177d53f79e89af9b88e1a672
 test ! -e "${TRAIN_CKPT%/*}" || { echo "Refusing existing training prefix: ${TRAIN_CKPT%/*}" >&2; exit 1; }
 TRAIN_LOG="logs/train_stdout_${SLURM_JOB_ID}.log"
 {
-echo "========== 0906v1 TRAIN: $VARIANT =========="
+echo "========== 0906v2 TRAIN: $VARIANT =========="
 echo "source_ciard_sha256=$(sha256sum CIARD.py | awk '{print $1}')"
+echo "split_target_mix_sha256=$(sha256sum split_target_mix.py | awk '{print $1}')"
+echo "loss_sha256=$(sha256sum mtard_loss.py | awk '{print $1}')"
 echo "data_path=$(readlink -f data)"
 echo "models_path=$(readlink -f models)"
 echo "requested_node=aias-compute-2"
