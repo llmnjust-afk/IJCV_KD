@@ -1,119 +1,39 @@
-# CIFAR-10 / ResNet-18 0906v2 split-mixing candidate
+# CIFAR-10 / ResNet-18 0906v2 G7 默认入口
 
-Selected from `run/0906v2/resnet18_split_t025_n020_s120_w40_p081740`.
-This candidate is based on 0906v1 G3, whose aggregate result slightly exceeded
-the previous best ResNet; see the [completed comparison](../README.md#completed-0906v1-resnet-result-versus-the-previous-best).
-No completed 0906v2 evaluation was available at publication. Selection reflects
-a conservative method configuration, not a performance ranking.
+## 身份与来源
 
-## Fixed configuration
+- 配置：0906v2 G7 `resnet18_split_t025_n000_s120_w40_p081740`
+- prefix：`Cifar10_ResNet18_0906v2_split_t025_n000_s120_w40_p081740`
+- 参数：split_target_mix=True，参考 alpha=0.20，target alpha=0.25，nontarget alpha=0，start=120，warmup=40，push_lambda=0.081740；300 epochs、batch128、训练 seed 0。
+- 源码来源：`best_backup/resnet18_cifar10_0906v2`，对应原实验 `run/0906v2/resnet18_split_t025_n000_s120_w40_p081740`
+- 证据：`结果分析/0906v2_结果分析.md`；训练作业132043、评测作业132061，均为 COMPLETED / 0:0。
 
-| Setting | Value |
-| --- | --- |
-| split_target_mix | True |
-| target_mix_alpha (G3 reference) | 0.20 |
-| split_target_alpha | 0.25 |
-| split_nontarget_alpha | 0.20 |
-| target_mix_start / target_mix_warmup | 120 / 40 |
-| push_lambda | 0.081740 |
-| epochs / batch / training seed | 300 / 128 / 0 |
-| prefix | `Cifar10_ResNet18_0906v2_split_t025_n020_s120_w40_p081740` |
-| checkpoint | `model/Cifar10_ResNet18_0906v2_split_t025_n020_s120_w40_p081740/student_best.pth` |
-| Slurm resources | `rtx4090`, `aias-compute-2`, `gpu:4090:1` |
+本目录已按用户要求切换为G7，作为仓库默认ResNet入口；独立G7备份和历史参考继续保留。该配置有七项超过论文baseline。非目标系数为0表示保留鲁棒教师的对抗预测条件分布，不是关闭非目标蒸馏。
 
-Train from scratch; no 0906v1 student weights are loaded. Configuration is fixed
-in the initial CFG and printed at startup. Do not edit source after submitting;
-new runs require their own directory/prefix. Existing prefixes are refused.
+## 与论文 CIARD baseline 对比
 
-## Method
+白盒基线取自 [CIARD 补充材料](https://openaccess.thecvf.com/content/ICCV2025/supplemental/Lu_CIARD_Cyclic_Iterative_ICCV_2025_supplemental.pdf) Table 1 的 ResNet-18 / CIFAR-10 / CIARD 行，黑盒基线取自 [CIARD 主论文](https://openaccess.thecvf.com/content/ICCV2025/papers/Lu_CIARD_Cyclic_Iterative_Adversarial_Robustness_Distillation_ICCV_2025_paper.pdf) Table 5 的对应行。所有数值单位均为百分比，括号内为G7相对论文 baseline 的百分点（pp）变化。
 
-Let q(a) be the original mixture of robust-teacher adversarial and clean targets,
-using the clean-top1-correct mask and ramp clamp((epoch-120)/40,0,1). Both
-teacher distributions are detached and use the current batch's temp_adv before
-its update; the student's log-softmax retains temperature 1.
+| 参数设置 | Clean | 白盒 FGSM | 白盒 PGDsat | 白盒 PGDtrades | 白盒 CW∞ | 黑盒 PGDtrades | 黑盒 Square | 黑盒 CW∞ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 论文 CIARD baseline | 88.87 | 61.88 | 51.70 | 54.46 | 50.61 | 66.28 | 80.03 | 64.79 |
+| 0906v2 G7（训练 seed 0） | 88.91 (+0.04 pp) | 61.30 (-0.58 pp) | 51.91 (+0.21 pp) | 54.54 (+0.08 pp) | 51.53 (+0.92 pp) | 66.55 (+0.27 pp) | 80.20 (+0.17 pp) | 65.14 (+0.35 pp) |
 
-B(a) is KL on the true-class versus all-other-classes binary distribution.
-N(a) is KL on the normalized non-target distribution. w is the total non-target
-probability in the G3 reference q(0.20). Per sample, this candidate uses:
+### 辅助均值比较
 
-```text
-L_new = L_G3 + [B(0.25) - B(0.20) + w * (N(0.20) - N(0.20))] / 10
-```
+| 参数设置 | 白盒均值 | 黑盒均值 | 7 项鲁棒均值 | 8 项综合均值 |
+| --- | ---: | ---: | ---: | ---: |
+| 论文 CIARD baseline | 54.66 | 70.37 | 61.39 | 64.83 |
+| 0906v2 G7（训练 seed 0） | 54.82 (+0.16 pp) | 70.63 (+0.26 pp) | 61.60 (+0.20 pp) | 65.01 (+0.18 pp) |
 
-The N correction is zero for this chosen variant: it retains G3's conditional
-non-target distribution and its mass weight while changing binary supervision.
-The shared helper also supports the independent non-target coefficients used
-in the other prepared experiments. This follows the target/non-target separation
-idea of [DKD](https://openaccess.thecvf.com/content/CVPR2022/html/Zhao_Decoupled_Knowledge_Distillation_CVPR_2022_paper.html),
-with a G3 reference weight and loss correction specific to this experiment.
+白盒均值是4项白盒攻击的等权平均，黑盒均值是3项黑盒攻击的等权平均；7项鲁棒均值汇总全部攻击，8项综合均值再加入Clean。均值及差值从原始组成项分别计算后四舍五入，显示均值相减可能有0.01 pp的舍入差；它们是项目内部辅助指标，不是论文的W-R指标，也不是联合最坏情况鲁棒准确率。
 
-The original log(q+1e-5) convention and batch-by-class mean are preserved.
-Log-space mixtures handle saturated targets; incorrect-clean-teacher samples
-retain their original terms. Mixing starts at epoch 121 and is full at 160.
-There are no extra model forwards, teacher gradients, BN updates, or random
-samples. Natural KD, teacher updates, push, teacher-margin PCGrad, EMA,
-checkpoint selection and WA keep G3 behavior. The historical
-teacher_margin_conflict_scale remains logged but unapplied.
+**G7只有FGSM低于论文baseline 0.58 pp，其余七项均超过，但尚未实现全面提升。** 本批G1八项均值65.11%，高于G7的65.01%；G7相对G1仅Clean和Square提高，其余六项下降。结果来自seed 0的同一个EMA `student_best.pth`，微小差异不代表多次训练下的稳定收益。AutoAttack为49.25%，不纳入八项主表及辅助均值。沿用test-loader选模和未全部固定攻击seed的历史协议；PGDtrades步长为0.003，与论文2/255有差异。
 
-Actual CFG is printed as a multiline block; every 100 steps, splitmix records
-both effective alphas, binary/conditional KLs, reference_other_mass and the loss
-correction. The full eight-run matrix remains in the local run/0906v2 directory.
+## 使用说明
 
-## Protocol and preparation
+本目录只保存代码和说明，不包含checkpoint、日志、数据、教师权重或软链接。18个Python文件及requirements.txt与原G7逐字一致，两份Slurm脚本只适配本目录路径和作业名称。备份及已归档0906v1/0906v2的资源链接已移除，公共data/models保留；未来复跑需复制到新独立实验目录，准备资源、logs/slurm与model，并适配脚本路径和唯一prefix。
 
-Keep the historical 50k train/test-loader selection protocol and frozen evaluator.
-Only this run's EMA student_best is the primary target; WA/sweep outputs are
-auxiliary. Attack seeds are not fully fixed and JSON records attack_seed=null.
-check_eval_log.py requires all nine metrics and unchanged checkpoint/evaluator
-hashes before writing eval_best_0906v2_<jobid>.json and EVAL_COMPLETE.
-Eight-metric all-improvement remains the goal, not an achieved result.
+原评测权重路径：`/home/lixidong25/mycode/CIARD_Expansion/run/0906v2/resnet18_split_t025_n000_s120_w40_p081740/model/Cifar10_ResNet18_0906v2_split_t025_n000_s120_w40_p081740/student_best.pth`，SHA256为`93bf44010f6b7bd3919012e899d047ad35a9f74725acf2c3d8b28e774866719b`。同目录保留`eval_best_0906v2_132061.json`；原实验logs目录保留`train_stdout_132043.log`和`eval_best_stdout_132061.log`，完整源码哈希与清理追溯见本地版本台账。
 
-Use the existing `ciard` environment: Python 3.8.20, PyTorch 1.10.0+cu113,
-torchvision 0.11.1+cu113; direct dependencies are in `requirements.txt`.
-The wrappers load the site's CUDA 11.8 module; PyTorch's build uses CUDA 11.3.
-Teachers use raw inputs without normalization:
-
-| Teacher path | SHA256 |
-| --- | --- |
-| `models/model_cifar_wrn.pt` (WRN-34-10) | `2ede52bd042bbdf40a0c27e8008034afd9cbb0b256b9077a255e555d25f957f4` |
-| `models/nat_teacher_checkpoint/cifar10_resnnet56.pth` (ResNet-56) | `9e1d3395f0a8c34296ca8cd4875b9b5177d53f79e89af9b88e1a6724c6d6c860` |
-
-Local resources and outputs are not published. Before manual use on the original
-cluster, prepare these from this directory (create links only if absent):
-
-```bash
-mkdir -p logs/slurm model
-ln -s /home/lixidong25/mycode/CIARD_Expansion/data data
-ln -s /home/lixidong25/mycode/CIARD_Expansion/models models
-```
-
-The wrappers' working and Slurm output paths point to
-`/home/lixidong25/mycode/CIARD_Expansion/origin_code/0906v2/IJCV_KD/CIARD_Expansion_resnet18_cifar10`.
-Adapt those site paths if cloning elsewhere. `train_4090.sbatch` and
-`eval_4090_best.sbatch` are user-submitted only. Evaluation requires successful
-training status, `TRAIN_COMPLETE`, and a nonempty best checkpoint.
-`check_train_complete.py` additionally requires the exact variant, checkpoint
-hash, and current CIARD/helper/loss source hashes to match the training log; completion
-requires successful evaluation status, all nine metrics, JSON, and `EVAL_COMPLETE`.
-These wrappers use this copy's output directory, never the running experiment's
-outputs. No training or evaluation is launched as part of publication.
-
-## Provenance and checks
-
-All 18 Python files plus requirements.txt are byte-identical to the selected
-experiment. Only the two wrappers' working/output paths and Slurm job names
-are adapted to this publication copy. Data, weights, links and outputs are not
-copied. The experiment directory and previous publication copy are untouched.
-
-Publication checks passed: source-byte comparisons, Python and shell syntax,
-CPU loss/gradient equivalence and gating checks, the actual training loss
-fragment, and completion/hash checks with historical evaluation logs and
-negative fixtures. These checks do not establish model performance.
-
-| File | SHA256 |
-| --- | --- |
-| CIARD.py | `cae552713ddeb924302698296886f0971a5cb24270b214abcdd35683f9930778` |
-| split_target_mix.py | `ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4` |
-| attack_eval.py | `6a17008d5aa69609bac39a8a7bd2b9483477e415e41ab97470a4e891a8dae90c` |
-| mtard_loss.py | `07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d` |
-| check_train_complete.py | `c8fecb28b3edc261245f6dffeda846c7345656c05ed587c59f2bc1939841d837` |
+本源码副本不含已训练权重，不能直接提交评测；评测前必须有对应运行的成功训练记录和非空student_best，完成检查要求variant、checkpoint路径/hash及训练源码hash与日志一致。所有训练和评测作业只能由用户手动提交，Codex不得执行sbatch。

@@ -29,9 +29,9 @@ def eval_autoattack(model, testloader, epsilon=8/255.0, norm='Linf', attacks_to_
     with torch.no_grad():
         adv_complete = adversary.run_standard_evaluation(x_test, y_test, bs=128)
 
-variant_name = 'resnet18_split_t025_n020_s120_w40_p081740'
+variant_name = 'resnet18_split_t025_n000_s120_w40_p081740'
 eval_target = 'student_best'
-path = "model/Cifar10_ResNet18_0906v2_split_t025_n020_s120_w40_p081740/student_best.pth"
+path = "model/Cifar10_ResNet18_0906v2_split_t025_n000_s120_w40_p081740/student_best.pth"
 student = resnet18()
 
 teacher1_path =  'models/model_cifar_wrn.pt' #for blackbox attack

@@ -26,8 +26,8 @@ for _legacy_runtime_env in ("CIARD_GPU", "CIARD_STUDENT", "CIARD_PREFIX"):
     os.environ.pop(_legacy_runtime_env, None)
 
 # Fixed output prefix for this independent variant.
-VARIANT_NAME = 'resnet18_split_t025_n020_s120_w40_p081740'
-prefix = 'Cifar10_ResNet18_0906v2_split_t025_n020_s120_w40_p081740'
+VARIANT_NAME = 'resnet18_split_t025_n000_s120_w40_p081740'
+prefix = 'Cifar10_ResNet18_0906v2_split_t025_n000_s120_w40_p081740'
 draw_file = prefix
 model_dir = './model/' + prefix
 # Refuse reuse of a training trajectory, including a concurrent duplicate job.
@@ -61,7 +61,7 @@ CFG = {
     "target_mix_warmup": 40,
     "split_target_mix": True,
     "split_target_alpha": 0.25,
-    "split_nontarget_alpha": 0.2,
+    "split_nontarget_alpha": 0.0,
     # -------------------------------------------------------------------------
     # (A) soft-weighted feature-level contrastive push loss
     # -------------------------------------------------------------------------

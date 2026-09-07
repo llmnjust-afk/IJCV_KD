@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --partition=rtx4090
-#SBATCH --nodelist=aias-compute-2
+#SBATCH --nodelist=aias-compute-4
 #SBATCH --gres=gpu:4090:1
-#SBATCH --job-name=ev962git
+#SBATCH --job-name=ev97g7a
 #SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0906v2/IJCV_KD/CIARD_Expansion_resnet18_cifar10/logs/slurm/eval_best_%j.out
 #SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0906v2/IJCV_KD/CIARD_Expansion_resnet18_cifar10/logs/slurm/eval_best_%j.err
 #SBATCH --cpus-per-task=4
@@ -20,8 +20,8 @@ unset CIARD_GPU CIARD_STUDENT CIARD_PREFIX CIARD_TM_WEIGHT CIARD_TM_START CIARD_
 unset CIARD_TM_CLEAN_GATE CIARD_TM_ADV_GATE CIARD_TM_CONFLICT_FLOOR CIARD_TM_PS_CONFLICT CIARD_TM_PS_FLOOR CIARD_TM_RELATIVE
 unset CIARD_TM_RELATIVE_ETA CIARD_TM_CLEAN_TAU CIARD_TM_ADV_TAU CIARD_TM_TWO_STAGE CIARD_TM_FINETUNE_START CIARD_TM_DETACHED
 
-VARIANT='resnet18_split_t025_n020_s120_w40_p081740'
-CKPT='model/Cifar10_ResNet18_0906v2_split_t025_n020_s120_w40_p081740/student_best.pth'
+VARIANT='resnet18_split_t025_n000_s120_w40_p081740'
+CKPT='model/Cifar10_ResNet18_0906v2_split_t025_n000_s120_w40_p081740/student_best.pth'
 ROBUST_TEACHER='models/model_cifar_wrn.pt'
 EXPECTED_ROBUST_SHA256='2ede52bd042bbdf40a0c27e8008034afd9cbb0b256b9077a255e555d25f957f4'
 
@@ -41,7 +41,7 @@ echo "checkpoint_sha256=$CKPT_SHA256"
 echo "evaluator_sha256=$EVALUATOR_SHA256"
 echo "robust_teacher_sha256=$ROBUST_SHA256"
 echo 'evaluator_protocol=frozen_best_backup_historical; stochastic attack seeds are not explicitly fixed'
-echo "requested_node=aias-compute-2"
+echo "requested_node=aias-compute-4"
 echo "running_node=${SLURMD_NODENAME:-unset}"
 echo 'requested_gpu=1x4090'
 echo "allocated_cuda_visible_devices=${CUDA_VISIBLE_DEVICES:-unset}"
