@@ -23,57 +23,52 @@ The existing independent experiments remain the training/evaluation locations. T
 
 After user-submitted training succeeds, evaluate the fixed EMA `student_best.pth` in the corresponding run directory. Preserve the original eight metrics plus AutoAttack, and report M2−M1 separately. ResNet's target remains all eight metrics strictly above the CIARD reference and AA at least 48.88%. No complete R5/M2 test result exists at synchronization time. Full comparison and commands remain in the local batch README. Only the user submits GPU jobs.
 
-## Historical results retained as references
+## Completed results versus the paper CIARD baseline
 
-The following completed results belong to earlier configurations, **not to R5 or M2**. The active ResNet entry previously used G7 alone; the active MobileNet entry previously used the 0903 push=.075 candidate. Old SARD scripts/configs and design documents remain historical material, not the current execution interface.
+All results below are historical, completed **CIFAR-10** evaluations. **R5 and M2 remain pending and have no results in these tables.** Each configuration uses one selected `student_best.pth`; values are not combined across checkpoints.
 
-## Completed 0906v2 G7 result and backup
+Accuracies are percentages. Parentheses show **this result minus the paper CIARD baseline**, in percentage points (pp): `61.30 (-0.58)` means 0.58 pp below the baseline. The baseline is the published CIARD result for the **same student model**, not an earlier version of this repository. Seven-attack and eight-metric means are computed from the corresponding metric values; AutoAttack is separate. Means and differences are computed before rounding, so subtracting two displayed means can differ by 0.01 pp. These means are descriptive summaries, not joint worst-case accuracy or the paper's W-Robust metric.
 
-[ResNet-18 / CIFAR-10 0906v2 G7](best_backup/resnet18_cifar10_0906v2/README.md)
-is now available as a separate lightweight backup, using target mixing 0.25,
-non-target mixing 0.00 and reference mixing 0.20. **Seven of eight primary
-metrics exceed the published CIARD baseline. FGSM is 61.30 versus 61.88,
-leaving a 0.58 percentage-point gap.** AutoAttack is 49.25%.
+Baseline sources: [CIARD supplementary material](https://openaccess.thecvf.com/content/ICCV2025/supplemental/Lu_CIARD_Cyclic_Iterative_ICCV_2025_supplemental.pdf), Tables 1/2 for Clean and white-box ResNet/MobileNet results, and Table 5 for ResNet AutoAttack; [CIARD paper](https://openaccess.thecvf.com/content/ICCV2025/papers/Lu_CIARD_Cyclic_Iterative_Adversarial_Robustness_Distillation_ICCV_2025_paper.pdf), Tables 5/6, **Robust** columns, for black-box ResNet/MobileNet results. The local copies of these PDFs were used for verification.
 
-The eight-metric mean is 65.01%, below this batch's G1 mean of 65.11%.
-Selection reflects baseline coverage, not the highest mean or an improvement
-on every metric. The linked Chinese README includes all eight comparisons,
-configuration, source/checkpoint hashes and original evidence paths.
-Only source, wrappers and documentation are archived; no weights or outputs
-are uploaded. The active ResNet entry now adds the R5 mechanisms to G7; the
-independent G7 backup and earlier backups are preserved. G7 uses the same
-historical protocol limitations described below.
+### ResNet-18 / CIFAR-10
 
-## Completed 0906v1 ResNet result versus the previous best
-
-**0906v1 G3 slightly outperformed the previous best ResNet (0703 PCGrad
-Optuna-transfer) on aggregate in this completed single-run evaluation.**
-The eight-metric mean increased from **64.99 to 65.11** (+0.12 percentage
-points), the seven-attack mean from **61.61 to 61.73** (+0.12), and AutoAttack
-from **49.08 to 49.36** (+0.28).
-
-Accuracies are percentages; changes are percentage points. The means exclude
-AutoAttack and are arithmetic summaries, not joint worst-case robust accuracy.
-
-| Metric | Previous best (0703) | 0906v1 G3 | Change |
+| Metric | Paper CIARD baseline | 0906v1 G3 (Δ vs baseline) | 0906v2 G7 (Δ vs baseline) |
 | --- | ---: | ---: | ---: |
-| Clean | 88.66 | 88.76 | +0.10 |
-| White-box FGSM | 61.33 | 61.39 | +0.06 |
-| White-box PGDsat | 52.21 | 52.03 | -0.18 |
-| White-box PGDtrades | 54.76 | 54.66 | -0.10 |
-| White-box CW | 51.27 | 51.60 | +0.33 |
-| Black-box PGDtrades | 66.60 | 66.91 | +0.31 |
-| Square | 80.09 | 80.10 | +0.01 |
-| Black-box CW | 65.02 | 65.42 | +0.40 |
-| AutoAttack (separate) | 49.08 | 49.36 | +0.28 |
-| Seven-attack mean | 61.61 | 61.73 | +0.12 |
-| Eight-metric mean | 64.99 | 65.11 | +0.12 |
+| Clean | 88.87 | 88.76 (-0.11) | 88.91 (+0.04) |
+| White-box FGSM | 61.88 | 61.39 (-0.49) | 61.30 (-0.58) |
+| White-box PGDsat | 51.70 | 52.03 (+0.33) | 51.91 (+0.21) |
+| White-box PGDtrades | 54.46 | 54.66 (+0.20) | 54.54 (+0.08) |
+| White-box CW | 50.61 | 51.60 (+0.99) | 51.53 (+0.92) |
+| Black-box PGDtrades | 66.28 | 66.91 (+0.63) | 66.55 (+0.27) |
+| Square (query-based) | 80.03 | 80.10 (+0.07) | 80.20 (+0.17) |
+| Black-box CW | 64.79 | 65.42 (+0.63) | 65.14 (+0.35) |
+| AutoAttack (separate) | 48.88 | 49.36 (+0.48) | 49.25 (+0.37) |
+| Seven-attack mean | 61.39 | 61.73 (+0.34) | 61.60 (+0.20) |
+| Eight-metric mean | 64.83 | 65.11 (+0.28) | 65.01 (+0.18) |
 
-Six of eight primary metrics improved, but PGDsat and PGDtrades decreased by
-0.18 and 0.10 points. Against the published CIARD baseline, Clean 88.76 is
-still below 88.87 and FGSM 61.39 below 61.88. Thus this is a small aggregate
-improvement, **not an improvement on every metric**, and not a demonstrated
-multi-seed gain. The frozen best-backup reference remains unchanged.
+**G3 exceeds the baseline on six of eight primary metrics:** Clean is lower by 0.11 pp and FGSM by 0.49 pp. **G7 exceeds it on seven of eight:** FGSM remains lower by 0.58 pp. Neither achieves the all-eight-metric target; higher means or AutoAttack do not replace that requirement. G7 is the frozen base recipe of the pending R5 candidate, while G3 is retained as an earlier aggregate-performance reference.
+
+The [G7 backup README](best_backup/resnet18_cifar10_0906v2/README.md) records its configuration, checkpoint hash, training job 132043 and evaluation job 132061. G7 used target mixing 0.25, non-target mixing 0.00 and reference mixing 0.20; its completed result belongs to G7 alone, not to R5. The backup remains unchanged.
+
+### MobileNet-V2 / CIFAR-10
+
+| Metric | Paper CIARD baseline | 0624 tm010-repeat (Δ vs baseline) |
+| --- | ---: | ---: |
+| Clean | 89.51 | 89.58 (+0.07) |
+| White-box FGSM | 59.10 | 60.12 (+1.02) |
+| White-box PGDsat | 47.67 | 49.56 (+1.89) |
+| White-box PGDtrades | 50.71 | 52.28 (+1.57) |
+| White-box CW | 46.88 | 48.50 (+1.62) |
+| Black-box PGDtrades | 66.66 | 67.32 (+0.66) |
+| Square (query-based) | 80.01 | 80.78 (+0.77) |
+| Black-box CW | 66.12 | 66.18 (+0.06) |
+| Seven-attack mean | 59.59 | 60.68 (+1.08) |
+| Eight-metric mean | 63.33 | 64.29 (+0.96) |
+
+The completed **0624 tm010-repeat** reference exceeds its paper baseline on all eight primary metrics. This is the base recipe used by the pending M2 candidate, not evidence that M2 improves on it. The [MobileNet backup README](best_backup/mobilenetv2_cifar10/README.md) preserves the configuration and baseline comparison; the local source report is `结果分析/CIARD_Expansion0624_teacher_margin_gate_variants_结果分析.md`. That historical summary does not report AutoAttack, so no MobileNet AutoAttack result is inferred here.
+
+### Historical evidence and comparability
 
 Evidence: 0906v1 variant `resnet18_tmix_a020_s120_w40_p081740`, training job
 132014, evaluation job 132030, EMA `student_best.pth` checkpoint SHA256
@@ -86,7 +81,7 @@ reports/weights are not bundled here. The preceding
 preserves the evaluated candidate's source. These results belong to 0906v1,
 not to G7 or the active 0909v1 R5/M2 candidates.
 
-Both versions use the historical 50,000-image training protocol and test-loader
+The historical runs use the 50,000-image training protocol and test-loader
 checkpoint selection, which introduces selection bias. Stochastic attack seeds
 are not all explicitly fixed. PGDtrades uses step size 0.003 in the frozen
 evaluator; the paper describes 2/255, so comparison to its published numbers
