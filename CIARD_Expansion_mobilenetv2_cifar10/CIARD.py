@@ -7,6 +7,8 @@ Lr stage decay
 '''
 import os
 import copy
+import time
+from awp_consistency import EpochViews, MethodRunner, method_enabled, method_ramp
 import torch
 from mtard_loss import *
 from cifar10_models import *
@@ -21,16 +23,15 @@ torch.cuda.manual_seed_all(0)
 torch.backends.cudnn.deterministic = True
 
 # Allow GPU selection via env var (shell scripts set this per-experiment).
-if os.environ.get("CIARD_GPU"):
-    os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["CIARD_GPU"]
+for _legacy_runtime_env in ("CIARD_GPU", "CIARD_STUDENT", "CIARD_PREFIX"):
+    os.environ.pop(_legacy_runtime_env, None)
 
 # Fixed output prefix for this independent variant.
-VARIANT_NAME = 'mobilenetv2_push0075'
-prefix = 'Cifar10_MobileNetV2_0903v1_push0075'
+VARIANT_NAME = 'mobilenetv2_best_v2_awp0p002_cr0p50'
+prefix = 'Cifar10_MobileNetV2_0909v1_best_v2_awp0p002_cr0p50'
 draw_file = prefix
 model_dir = './model/' + prefix
-if not os.path.exists(model_dir):
-    os.makedirs(model_dir)
+os.makedirs(model_dir, exist_ok=False)
 
 with open('./model/' + prefix+ '/'+ draw_file,'w') as f:
     text = "epoch student_robust_acc student_natural_acc adv_teacher_robust_acc adv_teacher_natural_acc nat_teacher_robust_acc nat_teacher_natural_acc\n"
@@ -53,6 +54,13 @@ epsilon = 8/255.0
 USE_CIARDPP = True
 CIARD_SAFE_PLUS = True
 CFG = {
+    # 0909v1 fixed method configuration.
+    'training_views': 2,
+    'awp_gamma': 0.002,
+    'consistency_weight': 0.5,
+    'method_start': 120,
+    'method_warmup': 40,
+    'consistency_temperature': 0.5,
     # -------------------------------------------------------------------------
     # (A) soft-weighted feature-level contrastive push loss
     # -------------------------------------------------------------------------
@@ -67,7 +75,7 @@ CFG = {
     # subtracted (which collapsed clean accuracy). lambda is the final push
     # weight; it is ramped from 0 over `push_warmup` epochs and capped so the
     # push can never dominate the two distillation losses.
-    "push_lambda": 0.075,     # midpoint aimed at the remaining black-box CW margin
+    "push_lambda": 0.05,      # best observed weak-push region: 0.02-0.10
     "push_warmup": 80,        # slow warm-up avoids early clean-accuracy damage
     # Push is now reliability-gated: apply it only if the clean teacher is wrong
     # but the robust teacher is correct on the same x_adv. This prevents the
@@ -220,7 +228,8 @@ transform_test = transforms.Compose([
 ])
 
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=0)
+training_data = EpochViews(trainset)
+trainloader = torch.utils.data.DataLoader(training_data, batch_size=batch_size, shuffle=True, num_workers=0)
 
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=0)
@@ -283,7 +292,7 @@ if os.environ.get("CIARD_TM_ADV_TAU") is not None:
     CFG["teacher_margin_adv_tau"] = float(os.environ["CIARD_TM_ADV_TAU"])
     logger.info("Override: teacher_margin_adv_tau={}".format(CFG["teacher_margin_adv_tau"]))
 
-resume_student_path = None
+resume_student_path = None 
 if resume_student_path != None:
     state_dict = torch.load(resume_student_path,map_location=torch.device('cpu'))["model"]
     new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
@@ -342,7 +351,7 @@ def push_loss(teacher_logits, students_logits, labels,T = 5):#train_batch_labels
     diff_teacher_logits = teacher_logits[diff_indices]
     diff_student_logits = students_logits[diff_indices]
     #print(diff_student_logits)
-
+    
     return kl_loss(F.log_softmax(diff_student_logits/T,dim=1),F.softmax(diff_teacher_logits.detach(),dim=1))
 def pull_loss(teacher_logits, students_logits, labels,T=1):#train_batch_labels
     '''print(teacher_logits.shape)
@@ -442,28 +451,54 @@ variant: {}
 prefix: {}
 dataset: {} train_samples={} test_samples={}
 student: {} num_classes={}
+epochs: {}
+batch_size: {}
+train_epsilon: {}
+train_pgd_steps: 10
+train_pgd_step_size: 2/255
+training_seed: 0
+selection_protocol: historical_50k_train_test_loader_selection
 robust_teacher_checkpoint: {}
 natural_teacher_checkpoint: {}
 USE_CIARDPP: {}
 CIARD_SAFE_PLUS: {}
 CFG:
 {}
-""".format(
-    VARIANT_NAME, prefix, trainset.__class__.__name__, len(trainset), len(testset),
-    student.__class__.__name__, student.linear.out_features, teacher1_path,
-    teacher2_path, USE_CIARDPP, CIARD_SAFE_PLUS,
+""".format(VARIANT_NAME, prefix, trainset.__class__.__name__, len(trainset), len(testset),
+    student.__class__.__name__, student.linear.out_features, epochs, batch_size, epsilon,
+    teacher1_path, teacher2_path, USE_CIARDPP, CIARD_SAFE_PLUS,
     "\n".join("  {}: {}".format(k, CFG[k]) for k in sorted(CFG))))
 
+method_runner = None
 for epoch in range(begin_epoch,epochs+1):
-    logger.info('the {}th epoch '.format(epoch))
-    for step,(train_batch_data,train_batch_labels) in enumerate(trainloader):
+    epoch_started = time.perf_counter()
+    training_data.views = CFG["training_views"] if epoch > CFG["method_start"] else 1
+    torch.cuda.reset_peak_memory_stats()
+    logger.info("METHOD epoch={} views={} awp_gamma={} consistency_weight={}".format(
+        epoch, training_data.views, CFG["awp_gamma"] * method_ramp(CFG, epoch),
+        CFG["consistency_weight"] * method_ramp(CFG, epoch)))
+    logger.info('the {}th epoch '.format(epoch)) 
+    for step,(train_batch_data,train_batch_labels) in enumerate(trainloader): 
+
+        if method_enabled(CFG, epoch):
+            if method_runner is None:
+                method_runner = MethodRunner(student, teacher, teacher_nat, CFG)
+            method_state, method_metrics = method_runner.step(
+                train_batch_data, train_batch_labels, optimizer, ADV_teacher_optimizer,
+                ema_student, epoch, epsilon,
+                (temp_adv, temp_nat, init_loss_adv, init_loss_nat, weight_learn_rate, temp_learn_rate), weight)
+            temp_adv, temp_nat, init_loss_adv, init_loss_nat, weight_learn_rate, temp_learn_rate = method_state
+            if step % 100 == 0:
+                logger.info("METHOD_BATCH epoch={} step={} ".format(epoch, step) +
+                    " ".join("{}={}".format(k, v) for k, v in sorted(method_metrics.items())))
+            continue
         student.train()
         teacher.train()
         train_batch_data = train_batch_data.float().cuda()
         train_batch_labels = train_batch_labels.cuda()
         optimizer.zero_grad()
         ADV_teacher_optimizer.zero_grad()
-
+         
         student.train()
         student_nat_logits = student(train_batch_data)
         with torch.no_grad():
@@ -770,7 +805,7 @@ for epoch in range(begin_epoch,epochs+1):
                 loss3_weight = scale_to_magnitude(float(kl_Loss1.item()), float(kl_Loss2.item()), float(kl_Loss3.item())) #This is fit the loss3 into the same scale with others,this is not lambda,lambda here is 1
                 total_loss -= loss3_weight*kl_Loss3
         '''
-        kl_Loss4 = push_loss(adv_teacher_nat,student_nat_logits,train_batch_labels)
+        kl_Loss4 = push_loss(adv_teacher_nat,student_nat_logits,train_batch_labels) 
         if(torch.isnan(kl_Loss4).any() or kl_Loss4.numel() == 0):
             kl_Loss4 = torch.tensor(0.0)
         else:
@@ -788,7 +823,7 @@ for epoch in range(begin_epoch,epochs+1):
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
-
+        
         if epoch < 50:
             teacher_lr = 0
         else:
@@ -797,13 +832,13 @@ for epoch in range(begin_epoch,epochs+1):
             cosine_term = 0.5 + 0.5 * np.cos(np.pi * (epoch - 50) / (300 - 50))
             exponential_decay = np.exp(-0.01 * (epoch - 50) ** 2 / (300 - 50) ** 2)
             teacher_lr = min_lr + (base_lr - min_lr) * cosine_term*exponential_decay
-
+            
         for param_group in ADV_teacher_optimizer.param_groups:
             param_group['lr'] = teacher_lr
         if epoch in [215,260,285]:
             weight_learn_rate *= 0.1
             temp_learn_rate *= 0.1
-
+                    
         student.train()
         total_loss.backward()
         optimizer.step()
@@ -820,19 +855,22 @@ for epoch in range(begin_epoch,epochs+1):
             if USE_CIARDPP and CFG["ema_itt"]:
                 ema_update_teacher(ema_teacher, teacher, decay=CFG["ema_decay"])
         if step%100 == 0:
-            text = 'lr:' + str(lr)
-            text += ' weight_nat: {}, nat_loss: {}, weight_adv: {}, adv_loss: {}'.format(weight["nat_loss"], kl_Loss2.item(), weight["adv_loss"], kl_Loss1.item())
-            text += " weight-klloss3 " + str(loss3_weight) + " Loss3: " + str(kl_Loss3.item())
+            text = 'lr:' + str(lr) 
+            text += ' weight_nat: {}, nat_loss: {}, weight_adv: {}, adv_loss: {}'.format(weight["nat_loss"], kl_Loss2.item(), weight["adv_loss"], kl_Loss1.item()) 
+            text += " weight-klloss3 " + str(loss3_weight) + " Loss3: " + str(kl_Loss3.item()) 
             text += " clean_ce: {}, adv_ce: {}, adv_margin: {}, clean_gate: {}, teacher_margin: {}, teacher_margin_gate: {}, teacher_clean_gate: {}, teacher_adv_gate: {}, tm_grad_cos: {}, tm_scale: {}, tm_ps_scale: {}".format(
                 clean_ce.item(), adv_ce.item(), adv_margin.item(), torch.mean(clean_gate).item(),
                 teacher_margin_loss.item(), torch.mean(teacher_margin_gate).item(), torch.mean(clean_margin_gate).item(),
                 torch.mean(adv_margin_gate).item(),
                 teacher_margin_conflict_score.item(), teacher_margin_conflict_scale,
                 torch.mean(teacher_margin_per_sample_scale).item())
-            logger.info(text)
+            logger.info(text) 
+        
 
+    logger.info("TRAIN_EPOCH_RESOURCE epoch={} seconds={} peak_allocated_bytes={}".format(
+        epoch, time.perf_counter() - epoch_started, torch.cuda.max_memory_allocated()))
 
-    if epoch == 1 or epoch%10==  0 or epoch >= 250:
+    if epoch == 1 or epoch%10==  0 or epoch >= 250: 
         loss_nat_test = AverageMeter()
         loss_adv_test = AverageMeter()
 
@@ -862,7 +900,7 @@ for epoch in range(begin_epoch,epochs+1):
                 loss = ce_loss(logits, test_batch_labels)
             loss = loss.float()
             loss_adv_test.update(loss.item(), test_batch_data.size(0))
-
+            
             predictions = np.argmax(logits.cpu().detach().numpy(),axis=1)
             predictions = predictions - test_batch_labels.cpu().detach().numpy()
             test_accs = test_accs + predictions.tolist()
@@ -884,11 +922,11 @@ for epoch in range(begin_epoch,epochs+1):
 
         nat_teacher_test_accs = np.array(nat_teacher_test_accs)
         nat_teacher_test_acc = np.sum(nat_teacher_test_accs==0)/len(nat_teacher_test_accs)
-
+        
         text = f'student robust acc {np.sum(test_accs==0)/len(test_accs):.4f}, teacher robust acc {np.sum(teacher_test_accs==0)/len(teacher_test_accs):.4f}, nat teacher robust acc {np.sum(nat_teacher_test_accs==0)/len(nat_teacher_test_accs):.4f}'
         logger.info(text)
 
-        for step,(test_batch_data,test_batch_labels) in enumerate(testloader):
+        for step,(test_batch_data,test_batch_labels) in enumerate(testloader): 
             test_batch_data = test_batch_data.float().cuda()
             test_batch_labels = test_batch_labels.cuda()
             with torch.no_grad():
@@ -958,10 +996,10 @@ for epoch in range(begin_epoch,epochs+1):
                 'optimizer': ADV_teacher_optimizer.state_dict(), 'epoch': epoch}
             torch.save(state,'./model/' + prefix + "/teacher_best"+ '.pth')
             logger.info("best accuracy:"+str(best_accuracy))
-
+            
         text = f'student natural acc {np.sum(test_accs_naturals==0)/len(test_accs_naturals):.4f}, adv teacher natural acc {np.sum(teacher_test_accs_naturals==0)/len(teacher_test_accs_naturals):.4f}, nat teacher natural acc {np.sum(nat_teacher_test_accs_naturals==0)/len(nat_teacher_test_accs_naturals):.4f}'
         logger.info(text)
-
+        
         test_acc = np.sum(test_accs==0)/len(test_accs)
         test_accs_natural = np.sum(test_accs_naturals==0)/len(test_accs_naturals)
         with open('./model/' + prefix+ '/'+ draw_file,'a') as f:

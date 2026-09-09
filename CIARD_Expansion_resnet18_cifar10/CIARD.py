@@ -7,6 +7,8 @@ Lr stage decay
 '''
 import os
 import copy
+import time
+from awp_consistency import EpochViews, MethodRunner, method_enabled, method_ramp
 import torch
 from mtard_loss import *
 from cifar10_models import *
@@ -26,8 +28,8 @@ for _legacy_runtime_env in ("CIARD_GPU", "CIARD_STUDENT", "CIARD_PREFIX"):
     os.environ.pop(_legacy_runtime_env, None)
 
 # Fixed output prefix for this independent variant.
-VARIANT_NAME = 'resnet18_split_t025_n000_s120_w40_p081740'
-prefix = 'Cifar10_ResNet18_0906v2_split_t025_n000_s120_w40_p081740'
+VARIANT_NAME = 'resnet18_g7_v2_awp0p002_cr0p50'
+prefix = 'Cifar10_ResNet18_0909v1_g7_v2_awp0p002_cr0p50'
 draw_file = prefix
 model_dir = './model/' + prefix
 # Refuse reuse of a training trajectory, including a concurrent duplicate job.
@@ -54,6 +56,13 @@ epsilon = 8/255.0
 USE_CIARDPP = True
 CIARD_SAFE_PLUS = True
 CFG = {
+    # 0909v1 fixed method configuration.
+    'training_views': 2,
+    'awp_gamma': 0.002,
+    'consistency_weight': 0.5,
+    'method_start': 120,
+    'method_warmup': 40,
+    'consistency_temperature': 0.5,
     # Reliable clean-input predictions of the live robust teacher may correct
     # only the adversarial KD target. Zero alpha preserves the original path.
     "target_mix_alpha": 0.2,
@@ -273,7 +282,8 @@ transform_test = transforms.Compose([
 ])
 
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=0)
+training_data = EpochViews(trainset)
+trainloader = torch.utils.data.DataLoader(training_data, batch_size=batch_size, shuffle=True, num_workers=0)
 
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=0)
@@ -494,9 +504,29 @@ CFG:
     teacher1_path, teacher2_path, USE_CIARDPP, CIARD_SAFE_PLUS, model_dir,
     "\n".join("  {}: {}".format(k, CFG[k]) for k in sorted(CFG))))
 
+method_runner = None
 for epoch in range(begin_epoch,epochs+1):
+    epoch_started = time.perf_counter()
+    training_data.views = CFG["training_views"] if epoch > CFG["method_start"] else 1
+    torch.cuda.reset_peak_memory_stats()
+    logger.info("METHOD epoch={} views={} awp_gamma={} consistency_weight={}".format(
+        epoch, training_data.views, CFG["awp_gamma"] * method_ramp(CFG, epoch),
+        CFG["consistency_weight"] * method_ramp(CFG, epoch)))
     logger.info('the {}th epoch '.format(epoch)) 
     for step,(train_batch_data,train_batch_labels) in enumerate(trainloader): 
+
+        if method_enabled(CFG, epoch):
+            if method_runner is None:
+                method_runner = MethodRunner(student, teacher, teacher_nat, CFG)
+            method_state, method_metrics = method_runner.step(
+                train_batch_data, train_batch_labels, optimizer, ADV_teacher_optimizer,
+                ema_student, epoch, epsilon,
+                (temp_adv, temp_nat, init_loss_adv, init_loss_nat, weight_learn_rate, temp_learn_rate), weight)
+            temp_adv, temp_nat, init_loss_adv, init_loss_nat, weight_learn_rate, temp_learn_rate = method_state
+            if step % 100 == 0:
+                logger.info("METHOD_BATCH epoch={} step={} ".format(epoch, step) +
+                    " ".join("{}={}".format(k, v) for k, v in sorted(method_metrics.items())))
+            continue
         student.train()
         teacher.train()
         train_batch_data = train_batch_data.float().cuda()
@@ -978,6 +1008,9 @@ for epoch in range(begin_epoch,epochs+1):
             # END 0906V2 SPLIT LOG
             logger.info(text) 
         
+
+    logger.info("TRAIN_EPOCH_RESOURCE epoch={} seconds={} peak_allocated_bytes={}".format(
+        epoch, time.perf_counter() - epoch_started, torch.cuda.max_memory_allocated()))
 
     if epoch == 1 or epoch%10==  0 or epoch >= 250: 
         loss_nat_test = AverageMeter()

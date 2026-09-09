@@ -1,16 +1,31 @@
-# IJCV_KD candidate source
+# IJCV_KD — 0909v1 candidate sources
 
-The active ResNet-18 source is now **0906v2 G7**,
-`resnet18_split_t025_n000_s120_w40_p081740`, synchronized from the evaluated
-G7 backup. It uses target-class mixing `0.25`, non-target mixing `0.00`,
-and G3 reference mixing/mass weight `0.20`; start `120`, warmup `40`,
-push `0.081740`. Non-target mixing zero retains the robust teacher's
-adversarial conditional distribution; it does not disable non-target KD.
-**Seven of eight primary metrics exceed the published CIARD baseline;
-FGSM remains 0.58 percentage points below it.**
+2026-09-09: the two active model entries now contain **ResNet R5** and **MobileNet M2**, copied from the independent 0909v1 experiments selected by the user. Both use two adversarial views, KD-AWP gamma **0.002**, and consistency weight **0.5**, with start120/warmup40 and JS temperature0.5. **Full evaluation is pending; these are candidate sources, not newly verified best models.**
 
-See [the ResNet README](CIARD_Expansion_resnet18_cifar10/README.md) for the method,
-fixed configuration, source provenance, and manual preparation.
+| Entry | Source under `run/0909v1` | Preserved base recipe |
+| --- | --- | --- |
+| [ResNet-18 R5](CIARD_Expansion_resnet18_cifar10/README.md) | `resnet18_g7_v2_awp0p002_cr0p50` | G7 target=.25/nontarget=0, push=.081740, PCGrad, EMA |
+| [MobileNet-V2 M2](CIARD_Expansion_mobilenetv2_cifar10/README.md) | `mobilenetv2_best_v2_awp0p002_cr0p50` | verified push=.05 tm010-repeat, original backpropagation, EMA |
+
+All 40 copied Python files match their respective experiments byte for byte, including CFG, prefix, model definitions, losses, evaluator and completion checks. No architecture, teacher, data or evaluation protocol change was introduced by synchronization. [SYNC_MANIFEST.json](SYNC_MANIFEST.json) records the source hashes, script adaptations and verification summary. **Every file under `best_backup/` remains unchanged.**
+
+## Candidate method and selection
+
+The first 120 epochs retain the original training path. From epoch 121, each image has two independent original crop/flip views, each with PGD-10 at 8/255 and step 2/255. The full original losses are averaged over views. At epoch 160 the added terms reach their configured strength, with `r=clip((epoch-120)/40,0,1)`.
+
+KD-AWP uses a proxy gradient of the original natural/adversarial distillation objective and applies `v=gamma*r*||w||*g/(||g||+1e-12)` to convolution/linear weights only. The actual full objective is differentiated at perturbed weights; weights are restored before SGD and EMA. Consistency adds `lambda*r*mean(JS(softmax(z_adv1/.5),softmax(z_adv2/.5)))/10`, without a temperature-squared multiplier. Teacher, student and dynamic-temperature updates still occur once per logical batch; ResNet retains its original margin PCGrad.
+
+R5 represents the full proposed combination at a lower perturbation strength than R6's 0.005. M2 tests the same combination on MobileNet's verified base recipe. This is a configuration-based selection, not a ranking supported by completed results. Attribution: [Adversarial Weight Perturbation, NeurIPS 2020](https://proceedings.neurips.cc/paper_files/paper/2020/hash/1ef91c212e30e14bf125e9374262401f-Abstract.html) and [Consistency Regularization for Adversarial Robustness, AAAI 2022](https://arxiv.org/pdf/2103.04623). These are CIARD adaptations, not reproductions of the full published recipes or proof of a new contribution. Two views require extra computation.
+
+## Execution and result status
+
+The existing independent experiments remain the training/evaluation locations. Their source and Slurm scripts are unchanged by this synchronization; no duplicate training is needed. Package wrappers are source templates adapted to the two package directories, with ResNet on compute-4 and MobileNet on compute-2, each requesting one 4090. The package intentionally has no resource symlinks, datasets, checkpoints, outputs or logs, and cannot be submitted directly without preparing an independent run. Both entries use the minimal dependency list for the already verified ciard environment.
+
+After user-submitted training succeeds, evaluate the fixed EMA `student_best.pth` in the corresponding run directory. Preserve the original eight metrics plus AutoAttack, and report M2−M1 separately. ResNet's target remains all eight metrics strictly above the CIARD reference and AA at least 48.88%. No complete R5/M2 test result exists at synchronization time. Full comparison and commands remain in the local batch README. Only the user submits GPU jobs.
+
+## Historical results retained as references
+
+The following completed results belong to earlier configurations, **not to R5 or M2**. The active ResNet entry previously used G7 alone; the active MobileNet entry previously used the 0903 push=.075 candidate. Old SARD scripts/configs and design documents remain historical material, not the current execution interface.
 
 ## Completed 0906v2 G7 result and backup
 
@@ -25,7 +40,7 @@ Selection reflects baseline coverage, not the highest mean or an improvement
 on every metric. The linked Chinese README includes all eight comparisons,
 configuration, source/checkpoint hashes and original evidence paths.
 Only source, wrappers and documentation are archived; no weights or outputs
-are uploaded. The active ResNet entry now uses this same G7 source; the
+are uploaded. The active ResNet entry now adds the R5 mechanisms to G7; the
 independent G7 backup and earlier backups are preserved. G7 uses the same
 historical protocol limitations described below.
 
@@ -69,7 +84,7 @@ The completed local result report is `结果分析/0906v1_结果分析.md`; the 
 reports/weights are not bundled here. The preceding
 [0906v1 source commit](https://github.com/llmnjust-afk/IJCV_KD/commit/b7c14e7d5ac87f2c66ca9c56aa95deb4dd222c1c)
 preserves the evaluated candidate's source. These results belong to 0906v1,
-not to the active 0906v2 G7 result reported above.
+not to G7 or the active 0909v1 R5/M2 candidates.
 
 Both versions use the historical 50,000-image training protocol and test-loader
 checkpoint selection, which introduces selection bias. Stochastic attack seeds
@@ -79,14 +94,6 @@ is not proof of an exactly matched reproduction.
 
 ## Other source and execution notes
 
-`CIARD_Expansion_mobilenetv2_cifar10` retains the 0903 push=0.075 candidate.
-Its completed evaluation missed the CIARD baseline on Clean (89.07 versus
-89.51) and black-box CW (65.29 versus 66.12); the verified MobileNet reference
-remains the 0624 source. MobileNet code and the earlier `best_backup/` entries are unchanged; G7 is an additional backup.
+The previous 0903 MobileNet push=.075 candidate missed the CIARD reference on Clean (89.07 versus 89.51) and black-box CW (65.29 versus 66.12). It has now been replaced in the active entry by M2, based on the verified 0624 push=.05 recipe. The verified reference and all earlier backups remain unchanged. Historical auxiliary MobileNet tools remain available, but the active path uses the copied 4090 wrappers and frozen full evaluator.
 
-Both models use raw-input WRN-34-10 robust and ResNet-56 natural teachers.
-ResNet has 4090 Slurm wrappers and completion/hash checks; MobileNet retains
-its historical 3090 wrappers. All training and evaluation jobs must be
-submitted manually by the user. Data, weights, outputs, logs and local resource
-links are excluded. Historical 0830 SARD material is not the current execution
-interface.
+Both models retain raw-input WRN-34-10 robust and ResNet-56 natural teachers. Training remains 50,000 images with test-loader checkpoint selection, which introduces selection bias. Stochastic attack seeds are not all explicitly fixed; frozen PGDtrades uses step 0.003 while the paper describes 2/255. Earlier numerical results and future candidate results must retain these qualifications.

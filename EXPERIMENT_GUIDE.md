@@ -3,8 +3,8 @@
 > **Historical 0830 document.** The completed 0830 matrix did not replace the
 > 0624 MobileNet-V2 or 0703 ResNet-18 mainline. SARD is no longer the active
 > implementation in the two top-level model directories; see `README.md` and
-> the model-specific READMEs for the current candidates (0906v2 ResNet split mixing
-> and retained 0903 MobileNet). The commands and
+> the model-specific READMEs for the current 0909v1 candidates (ResNet R5
+> and MobileNet M2: KD-AWP + adversarial-view consistency; full evaluation pending). The commands and
 > interfaces below are retained only for design history and must not be used as
 > the current execution interface.
 

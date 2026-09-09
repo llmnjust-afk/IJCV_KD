@@ -1,15 +1,15 @@
 #!/bin/bash
 #SBATCH --partition=rtx4090
-#SBATCH --nodelist=aias-compute-4
+#SBATCH --nodelist=aias-compute-2
 #SBATCH --gres=gpu:4090:1
-#SBATCH --job-name=ev99sr5
-#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0909v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10/logs/slurm/eval_best_%j.out
-#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0909v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10/logs/slurm/eval_best_%j.err
+#SBATCH --job-name=ev99sm2
+#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0909v1/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10/logs/slurm/eval_best_%j.out
+#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0909v1/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10/logs/slurm/eval_best_%j.err
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 
 set -euo pipefail
-cd /home/lixidong25/mycode/CIARD_Expansion/origin_code/0909v1/IJCV_KD/CIARD_Expansion_resnet18_cifar10
+cd /home/lixidong25/mycode/CIARD_Expansion/origin_code/0909v1/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10
 module load cuda/11.8
 source /apps/miniconda3/etc/profile.d/conda.sh
 conda activate ciard
@@ -22,7 +22,7 @@ flock -n 9 || { echo 'Another job for this experiment is running' >&2; exit 1; }
 LOG="logs/eval_best_stdout_${SLURM_JOB_ID}.log"
 test ! -e "$LOG" || { echo "Refusing existing log: $LOG" >&2; exit 1; }
 {
-echo 'requested_node=aias-compute-4 requested_gpu=1x4090'
+echo 'requested_node=aias-compute-2 requested_gpu=1x4090'
 echo "running_node=${SLURMD_NODENAME:-unset} allocated_cuda_visible_devices=${CUDA_VISIBLE_DEVICES:-unset}"
 python -u run_checks.py verify
 python -u run_checks.py preflight --cuda
