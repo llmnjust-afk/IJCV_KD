@@ -16,21 +16,21 @@ KD-AWP 使用原自然KD与对抗KD目标的代理梯度，对卷积/线性权�
 
 单位为百分比，括号为“R5减论文”的百分点差值；均值和差值先计算、再四舍五入。Clean和四项白盒取[补充材料 Table 1](https://openaccess.thecvf.com/content/ICCV2025/supplemental/Lu_CIARD_Cyclic_Iterative_ICCV_2025_supplemental.pdf)，黑盒取[主文 Table 5](https://openaccess.thecvf.com/content/ICCV2025/papers/Lu_CIARD_Cyclic_Iterative_Adversarial_Robustness_Distillation_ICCV_2025_paper.pdf)的Robust列，AA取补充Table 5；本次依据项目已有本地PDF核对。
 
-| Metric | Paper CIARD baseline | 0909v1 R5 (Δ vs baseline) |
-| --- | ---: | ---: |
-| Clean | 88.87 | 89.07 (+0.20) |
-| White-box FGSM | 61.88 | 61.76 (-0.12) |
-| White-box PGDsat | 51.70 | 52.34 (+0.64) |
-| White-box PGDtrades | 54.46 | 55.01 (+0.55) |
-| White-box CW | 50.61 | 51.77 (+1.16) |
-| Black-box PGDtrades | 66.28 | 67.16 (+0.88) |
-| Square (query-based) | 80.03 | 80.87 (+0.84) |
-| Black-box CW | 64.79 | 65.71 (+0.92) |
-| AutoAttack (separate) | 48.88 | 49.35 (+0.47) |
-| Seven-attack mean | 61.39 | 62.09 (+0.70) |
-| Eight-metric mean | 64.83 | 65.46 (+0.63) |
+| 参数设置 | Clean | 白盒 FGSM | 白盒 PGDsat | 白盒 PGDtrades | 白盒 CW∞ | 黑盒 PGDtrades | 黑盒 Square | 黑盒 CW∞ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 论文 CIARD baseline | 88.87 | 61.88 | 51.70 | 54.46 | 50.61 | 66.28 | 80.03 | 64.79 |
+| 0909v1 R5（训练 seed 0） | 89.07 (+0.20 pp) | 61.76 (-0.12 pp) | 52.34 (+0.64 pp) | 55.01 (+0.55 pp) | 51.77 (+1.16 pp) | 67.16 (+0.88 pp) | 80.87 (+0.84 pp) | 65.71 (+0.92 pp) |
 
-R5相对同期R1，按前八行顺序分别提高 +0.16 / +0.46 / +0.40 / +0.52 / +0.24 / +0.54 / +0.67 / +0.57 pp；该对照使用同批完整评测，R1的checkpoint与历史0906v2 G7相同。R5将FGSM论文差距从0.58缩至0.12pp。以上均值为描述性等权平均，不是联合最坏情况准确率，不替代逐项达标。
+### 辅助均值比较
+
+| 参数设置 | 白盒均值 | 黑盒均值 | 7 项鲁棒均值 | 8 项综合均值 |
+| --- | ---: | ---: | ---: | ---: |
+| 论文 CIARD baseline | 54.66 | 70.37 | 61.39 | 64.83 |
+| 0909v1 R5（训练 seed 0） | 55.22 (+0.56 pp) | 71.25 (+0.88 pp) | 62.09 (+0.70 pp) | 65.46 (+0.63 pp) |
+
+白盒均值为4项白盒攻击的等权平均，黑盒均值为3项黑盒攻击的等权平均；7项鲁棒均值不含Clean，8项综合均值包含Clean。均值及其论文差值先按原始指标计算，再分别四舍五入。AutoAttack为 **49.35%（+0.47 pp，相对论文48.88%）**，不纳入八项主表及辅助均值。
+
+R5相对同期R1，按主表八项指标顺序分别提高 +0.16 / +0.46 / +0.40 / +0.52 / +0.24 / +0.54 / +0.67 / +0.57 pp；该对照使用同批完整评测，R1的checkpoint与历史0906v2 G7相同。R5将FGSM论文差距从0.58缩至0.12pp。以上均值为描述性等权平均，不是联合最坏情况准确率，不替代逐项达标。
 
 ## 完成证据与使用
 

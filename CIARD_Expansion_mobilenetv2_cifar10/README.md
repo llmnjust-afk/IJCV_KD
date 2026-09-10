@@ -1,6 +1,6 @@
-# CIFAR-10 / MobileNetV2 — 0909v1 M2 候选入口
+# CIFAR-10 / MobileNetV2 — 0909v1 M2 已评测活动入口
 
-2026-09-10：活动源码与 `run/0909v1/mobilenetv2_best_v2_awp0p002_cr0p50` 的20份Python逐字一致。**M2是采用本批最新双视图/KD-AWP/一致性方法的候选入口，尚无完整测试结果。** 本源码目录没有权重或运行产物；不能将M1或历史最佳成绩标为M2结果。
+2026-09-11：活动源码与 `run/0909v1/mobilenetv2_best_v2_awp0p002_cr0p50` 的20份Python逐字一致。**M2已完成10k测试，相对同期M1七项提高、黑盒CW回落；对论文也仅七项提高，尚非全面改进。** 本目录不含权重或运行产物，完整对照见[总README](../README.md)。
 
 ## 来源、配置与改进
 
@@ -12,7 +12,7 @@
 
 KD-AWP 使用原自然KD与对抗KD目标的代理梯度扰动卷积/线性权重，BN和bias不扰动；在扰动权重计算完整训练目标并反向传播，恢复正常权重后SGD及EMA。双视图各自进行原裁剪/翻转与PGD-10（8/255、2/255）；完整原损失取均值，再加类别尺度归一化的对抗预测JS一致性。两个机制的详细公式、已有文献归因及实验对照见[包README](../README.md)。
 
-已验证 tm010-repeat 的八项优势属于原配方。同期M1是单视图/AWP0/一致性0的复跑控制，八项均值64.27%，checkpoint SHA256与归档best一致；它没有启用本次新增机制。**M2与ResNet R5仅共用新增方法及其参数，各自基础损失和优化配方保留。** M2相对M1的逐项比较及八项/AA成绩尚待完整评测。原顶层push=.075的0903候选已由本M2源码替换。
+已验证 tm010-repeat 的八项优势属于原配方。同期M1是单视图/AWP0/一致性0的复跑控制，八项均值64.27%，checkpoint SHA256与归档best一致；它没有启用本次新增机制。**M2与ResNet R5仅共用新增方法及其参数，各自基础损失和优化配方保留。** M2八项均值64.95%，比M1高0.68pp，AA47.15%比M1高0.91pp；但黑盒CW65.95%比M1低0.23pp、比论文低0.17pp，不能据此替换旧best的八项全胜结论。原顶层push=.075的0903候选已由本M2源码替换。
 
 ## 固定评测与证据边界
 
@@ -28,18 +28,12 @@ test-loader选模存在测试选择偏差，随机攻击未全部显式定seed�
 
 这些脚本是源码模板，本目录当前不是可直接提交的实验。未来复跑应复制到新的独立run目录，设置唯一prefix、评测路径、脚本工作目录和日志目录，并准备公共资源链接与空输出目录。依赖清单采用R5已核验的ciard环境版本，不需要为本次同步安装或升级依赖。
 
-现有批次继续使用下列独立实验；训练已由用户提交，不需要因本次同步重复训练：
+原实验已完成训练和评测，无需因本次发布重复运行：
 
 ```text
 /home/lixidong25/mycode/CIARD_Expansion/run/0909v1/mobilenetv2_best_v2_awp0p002_cr0p50
 ```
 
-仅在该组训练成功后，用户手动提交完整评测：
-
-```bash
-sbatch /home/lixidong25/mycode/CIARD_Expansion/run/0909v1/mobilenetv2_best_v2_awp0p002_cr0p50/eval_4090_best.sbatch
-```
-
-训练日志位于该run目录的 `logs/train_stdout_<job>.log`，评测日志为 `logs/eval_best_stdout_<job>.log`；汇总通过本地 `run/0909v1/summarize_results.py` 在测试完成后生成。本次源码发布不触发训练或评测任务。
+训练132654与评测132769均已核验Slurm COMPLETED/0:0，固定EMA best epoch=250；日志为`logs/train_stdout_132654.log`、`logs/eval_best_stdout_132769.log`。原model目录保留训练完成记录及`eval_best_0909v1_132769.json`。权重/evaluator哈希见总README和同步清单；本地完整报告为`结果分析/0909v1_结果分析.md`。本次仅更新结果文档，不触发GPU任务。
 
 本目录保留的 convert_rb_teacher.py、fast_eval.py、setup_models.sh 和 train_teacher.py 是历史辅助工具，不属于本次固定教师训练和完整评测入口；不需要执行它们。旧3090提交脚本已由4090脚本替代。

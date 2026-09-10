@@ -1,8 +1,8 @@
 {
   "version": "0909v1",
   "synced_at": "2026-09-09T17:05:52.001302+08:00",
-  "status": "r5_evaluated_and_backed_up_m2_candidate",
-  "selection": "User-selected evaluated ResNet R5 and latest-method MobileNet M2; both two views, AWP gamma=.002, consistency=.5, start120/warmup40. R5: seven of eight primary metrics above paper, FGSM -0.12 pp. M2: full evaluation pending.",
+  "status": "r5_and_m2_evaluated_results_documented",
+  "selection": "Active evaluated ResNet R5 and MobileNet M2; both two views, AWP gamma=.002, consistency=.5, start120/warmup40. R5 misses the paper FGSM baseline by 0.12 pp; M2 misses black-box CW by 0.17 pp and does not replace the old all-eight-above-paper MobileNet reference.",
   "entries": [
     {
       "id": "R5",
@@ -137,7 +137,7 @@
         "split_target_mix.py": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
         "train_teacher.py": "50d6b578936b61191afd4016cea625291a14b15ac9f30e244245ef99feac93c6",
         "awp_consistency.py": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
-        "README.md": "0c32fc38d37cbc1e6c8d60bdd786276adf1baa5291b48e27e05ece14ddd3a396",
+        "README.md": "e33c19a654d522f954bf4ac8c0c6d073a2c04c7414c39ecfd59be8408d47e049",
         "eval_4090_best.sbatch": "bb043c580ecb65dd59d56a976ace8b53f3a2bd0c28b5566bd8d384fd087ad4d7",
         "train_4090.sbatch": "55caa5134ede2696211f43a03bd59d9a2af1c154a761f64e2d871fcc06f3a756",
         "CIARD.py": "92a28211f617934216bfe9cb0cbd9ff8c7d2c790cfe33b8c0144c28093869b17",
@@ -155,7 +155,44 @@
         "cifar10_nat_teacher_models/shufflenetv2.py": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
         "cifar10_nat_teacher_models/resnet.py": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98"
       },
-      "status": "candidate_full_evaluation_pending"
+      "status": "evaluated_source_not_all_metrics_improved",
+      "evaluation": {
+        "training_job_id": "132654",
+        "job_id": "132769",
+        "epoch": 250,
+        "checkpoint_sha256": "59566ab81338581b8241db52cb91cceb240e6c437a40fdf84bcf747314629b2a",
+        "evaluator_sha256": "d3e07b10d6ce533b3c4dc746f8eff7bf13db76250771f4d469fa1bd063e43246",
+        "test_samples": 10000,
+        "attack_seed": null,
+        "selection_protocol": "historical_50k_train_test_loader_selection",
+        "protocol": "frozen_source_historical_attacks",
+        "correct_counts": {
+          "autoattack": 4715,
+          "clean": 8979,
+          "whitebox_fgsm": 6103,
+          "whitebox_pgdsat": 5106,
+          "whitebox_pgdtrades": 5353,
+          "whitebox_cw": 4914,
+          "blackbox_pgdtrades": 6771,
+          "blackbox_square": 8136,
+          "blackbox_cw": 6595
+        },
+        "metrics_percent": {
+          "autoattack": 47.15,
+          "clean": 89.79,
+          "whitebox_fgsm": 61.03,
+          "whitebox_pgdsat": 51.06,
+          "whitebox_pgdtrades": 53.53,
+          "whitebox_cw": 49.14,
+          "blackbox_pgdtrades": 67.71,
+          "blackbox_square": 81.36,
+          "blackbox_cw": 65.95
+        },
+        "source_result": "run/0909v1/mobilenetv2_best_v2_awp0p002_cr0p50/model/Cifar10_MobileNetV2_0909v1_best_v2_awp0p002_cr0p50/eval_best_0909v1_132769.json",
+        "source_log": "run/0909v1/mobilenetv2_best_v2_awp0p002_cr0p50/logs/eval_best_stdout_132769.log",
+        "training_and_evaluation_slurm": "COMPLETED / 0:0",
+        "comparison_summary": "Seven of eight primary metrics improve over M1; black-box CW 65.95%, -0.23 pp versus M1 and -0.17 pp versus paper. Eight-metric mean 64.95%; AA 47.15%."
+      }
     }
   ],
   "requirements_source": "run/0909v1/resnet18_g7_v2_awp0p002_cr0p50/requirements.txt",
@@ -172,36 +209,27 @@
     "CIARD_Expansion_mobilenetv2_cifar10/eval_3090_best.sbatch"
   ],
   "verification": {
-    "checked_at": "2026-09-10T21:02:57.900267+08:00",
-    "status": "R5_BACKUP_AND_ACTIVE_SOURCE_VERIFIED",
-    "active_python_files_byte_identical": 40,
-    "new_backup_python_files_byte_identical": 20,
-    "new_backup_files": 24,
-    "all_target_python_files_ast_parsed": 63,
-    "old_backup_files_unchanged": 60,
-    "run_python_files_unchanged": 160,
-    "run_sbatch_files_unchanged": 16,
-    "sbatch_bash_n_and_path_checks": [
-      "CIARD_Expansion_resnet18_cifar10/eval_4090_best.sbatch",
-      "CIARD_Expansion_resnet18_cifar10/train_4090.sbatch",
-      "CIARD_Expansion_mobilenetv2_cifar10/eval_4090_best.sbatch",
-      "CIARD_Expansion_mobilenetv2_cifar10/train_4090.sbatch",
-      "best_backup/resnet18_cifar10_0909v1/eval_4090_best.sbatch",
-      "best_backup/resnet18_cifar10_0909v1/train_4090.sbatch"
-    ],
-    "r5_display_cells_checked": 22,
-    "historical_readme_result_cells_unchanged": true,
-    "local_document_links_checked": 20,
-    "r5_log_json_checkpoint_identity_checked": true,
-    "m1_checkpoint_matches_archived_best": true,
-    "m2_full_evaluation_available": false,
+    "checked_at": "2026-09-11T00:41:33.804448+08:00",
+    "status": "M2_RESULTS_AND_README_TABLES_VERIFIED",
+    "report_groups": 8,
+    "report_primary_result_cells_checked": 64,
+    "m2_minus_m1_cells_checked": 8,
+    "root_mobile_result_cells_checked": 20,
+    "r5_backup_result_and_mean_cells_checked": 12,
+    "unchanged_existing_report_rows": true,
+    "root_g3_removed_g7_r5_preserved": true,
+    "r5_backup_headers_match_g7": true,
+    "markdown_tables_checked": 12,
+    "local_links_checked": 50,
+    "repository_files_unchanged": 146,
+    "run_source_log_json_files_unchanged": 240,
+    "m2_training_job": "132654",
+    "m2_evaluation_job": "132769",
+    "m2_slurm_state": "COMPLETED / 0:0 (both parent jobs; verified in preceding read-only audit)",
+    "m2_checkpoint_cpu_strict_load": "passed in preceding read-only audit",
+    "m2_result_log_checkpoint_hash_checked": true,
     "gpu_operations": 0,
-    "jobs_submitted_or_cancelled": 0,
-    "resource_symlinks_or_runtime_artifacts_copied": false,
-    "r5_slurm_parent_jobs": {
-      "132648": "COMPLETED / 0:0",
-      "132743": "COMPLETED / 0:0"
-    }
+    "jobs_submitted_or_cancelled": 0
   },
   "verification_history": [
     {
@@ -237,9 +265,41 @@
         "reason": "Inherited whitespace/line endings in byte-identical candidate Python sources; deliberately not reformatted."
       },
       "edited_docs_scripts_diff_check": "PASS"
+    },
+    {
+      "checked_at": "2026-09-10T21:02:57.900267+08:00",
+      "status": "R5_BACKUP_AND_ACTIVE_SOURCE_VERIFIED",
+      "active_python_files_byte_identical": 40,
+      "new_backup_python_files_byte_identical": 20,
+      "new_backup_files": 24,
+      "all_target_python_files_ast_parsed": 63,
+      "old_backup_files_unchanged": 60,
+      "run_python_files_unchanged": 160,
+      "run_sbatch_files_unchanged": 16,
+      "sbatch_bash_n_and_path_checks": [
+        "CIARD_Expansion_resnet18_cifar10/eval_4090_best.sbatch",
+        "CIARD_Expansion_resnet18_cifar10/train_4090.sbatch",
+        "CIARD_Expansion_mobilenetv2_cifar10/eval_4090_best.sbatch",
+        "CIARD_Expansion_mobilenetv2_cifar10/train_4090.sbatch",
+        "best_backup/resnet18_cifar10_0909v1/eval_4090_best.sbatch",
+        "best_backup/resnet18_cifar10_0909v1/train_4090.sbatch"
+      ],
+      "r5_display_cells_checked": 22,
+      "historical_readme_result_cells_unchanged": true,
+      "local_document_links_checked": 20,
+      "r5_log_json_checkpoint_identity_checked": true,
+      "m1_checkpoint_matches_archived_best": true,
+      "m2_full_evaluation_available": false,
+      "gpu_operations": 0,
+      "jobs_submitted_or_cancelled": 0,
+      "resource_symlinks_or_runtime_artifacts_copied": false,
+      "r5_slurm_parent_jobs": {
+        "132648": "COMPLETED / 0:0",
+        "132743": "COMPLETED / 0:0"
+      }
     }
   ],
-  "updated_at": "2026-09-10T21:02:57.900267+08:00",
+  "updated_at": "2026-09-11T00:41:33.804448+08:00",
   "backups": [
     {
       "id": "R5",
@@ -271,7 +331,7 @@
       },
       "files_sha256": {
         "CIARD.py": "849739d721915dcc57933ae78c019b8597fb97ff5e2bf923601aa284e321db07",
-        "README.md": "9950537f027623454886ab5f776e01634b0bd632e680d499393f4757eefe51da",
+        "README.md": "3509065344b6167ebb7c01016a4f4db89dcae77f42119a9c58d8cb67d4f58a88",
         "attack_eval.py": "26277d6891cd0b6d76050b630a81720cfcae2269caa2d45590bc37c3b76a4164",
         "awp_consistency.py": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
         "check_eval_log.py": "580308176d927d32e7727b4e15896088676d0d9a4f58f23c6670d80a4125306f",
@@ -298,5 +358,6 @@
       "script_adaptations": "Only absolute working/log paths and Slurm job names changed; Python, CFG and prefix match the completed R5 experiment.",
       "checkpoint_sha256": "865a125f1c82c68e7f3885674b0d72900a1ed7f0182689367f0210d1ed2e021a"
     }
-  ]
+  ],
+  "documentation_update": "Removed 0906v1 G3 from the root README comparison; added completed M1/M2 results; R5 backup now uses the existing horizontal eight-metric table and separate four-mean table. No runtime source, script or artifact changed."
 }

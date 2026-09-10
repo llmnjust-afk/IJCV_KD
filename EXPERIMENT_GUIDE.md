@@ -5,7 +5,8 @@
 > implementation in the two top-level model directories; see `README.md` and
 > the model-specific READMEs for the current 0909v1 entries (ResNet R5
 > and MobileNet M2: KD-AWP + adversarial-view consistency). R5 is evaluated and
-> backed up with FGSM 0.12 pp below the paper; M2 evaluation remains pending. The commands and
+> backed up with FGSM 0.12 pp below the paper; M2 is evaluated with black-box CW
+> 0.17 pp below the paper. See the current result tables. The commands and
 > interfaces below are retained only for design history and must not be used as
 > the current execution interface.
 
