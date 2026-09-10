@@ -1,18 +1,18 @@
 # CIFAR-10 / MobileNetV2 — 0909v1 M2 候选入口
 
-2026-09-09：按用户确认，从 `run/0909v1/mobilenetv2_best_v2_awp0p002_cr0p50` 同步代码。**这是待完整评测的候选源码，不是已验证的性能最佳版本。** 原实验已有用户训练日志，尚无完整测试结果；本源码目录没有权重或运行产物。
+2026-09-10：活动源码与 `run/0909v1/mobilenetv2_best_v2_awp0p002_cr0p50` 的20份Python逐字一致。**M2是采用本批最新双视图/KD-AWP/一致性方法的候选入口，尚无完整测试结果。** 本源码目录没有权重或运行产物；不能将M1或历史最佳成绩标为M2结果。
 
 ## 来源、配置与改进
 
 - 原始配方：已验证 tm010-repeat：push=.05，clean CE=.05，margin=.010 / start140 / warmup80，EMA=.999；保留 MobileNet 普通反传，不启用 ResNet split KD 或 PCGrad。
-- 冻结参考：`origin_code/0909v1/IJCV_KD/best_backup/mobilenetv2_cifar10`。包内 `best_backup` 所有文件保持原样。
+- 冻结参考：`origin_code/0909v1/IJCV_KD/best_backup/mobilenetv2_cifar10`。该MobileNet冻结参考保持原样。
 - 实验身份：`mobilenetv2_best_v2_awp0p002_cr0p50`；prefix：`Cifar10_MobileNetV2_0909v1_best_v2_awp0p002_cr0p50`。
 - 新机制固定为 `training_views=2`、`awp_gamma=.002`、`consistency_weight=.5`、`method_start=120`、`method_warmup=40`、`consistency_temperature=.5`。
 - 从头300轮、batch128、seed0、50k CIFAR-10训练；前120轮保留原分支，121轮渐进启用，160轮完整启用。
 
 KD-AWP 使用原自然KD与对抗KD目标的代理梯度扰动卷积/线性权重，BN和bias不扰动；在扰动权重计算完整训练目标并反向传播，恢复正常权重后SGD及EMA。双视图各自进行原裁剪/翻转与PGD-10（8/255、2/255）；完整原损失取均值，再加类别尺度归一化的对抗预测JS一致性。两个机制的详细公式、已有文献归因及实验对照见[包README](../README.md)。
 
-已验证 tm010-repeat 的八项优势属于原配方；M2 与同期 M1 的逐项比较以及八项/AA成绩尚待完整评测。原顶层 push=.075 的0903候选已由本 M2 源码替换。
+已验证 tm010-repeat 的八项优势属于原配方。同期M1是单视图/AWP0/一致性0的复跑控制，八项均值64.27%，checkpoint SHA256与归档best一致；它没有启用本次新增机制。**M2与ResNet R5仅共用新增方法及其参数，各自基础损失和优化配方保留。** M2相对M1的逐项比较及八项/AA成绩尚待完整评测。原顶层push=.075的0903候选已由本M2源码替换。
 
 ## 固定评测与证据边界
 
@@ -40,6 +40,6 @@ test-loader选模存在测试选择偏差，随机攻击未全部显式定seed�
 sbatch /home/lixidong25/mycode/CIARD_Expansion/run/0909v1/mobilenetv2_best_v2_awp0p002_cr0p50/eval_4090_best.sbatch
 ```
 
-训练日志位于该run目录的 `logs/train_stdout_<job>.log`，评测日志为 `logs/eval_best_stdout_<job>.log`；汇总通过本地 `run/0909v1/summarize_results.py` 在测试完成后生成。本次没有提交、取消、重启训练或推送GitHub。
+训练日志位于该run目录的 `logs/train_stdout_<job>.log`，评测日志为 `logs/eval_best_stdout_<job>.log`；汇总通过本地 `run/0909v1/summarize_results.py` 在测试完成后生成。本次源码发布不触发训练或评测任务。
 
 本目录保留的 convert_rb_teacher.py、fast_eval.py、setup_models.sh 和 train_teacher.py 是历史辅助工具，不属于本次固定教师训练和完整评测入口；不需要执行它们。旧3090提交脚本已由4090脚本替代。

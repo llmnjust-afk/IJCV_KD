@@ -1,8 +1,8 @@
 {
   "version": "0909v1",
   "synced_at": "2026-09-09T17:05:52.001302+08:00",
-  "status": "source_sync_verified_evaluation_pending",
-  "selection": "R5 and M2; two views, AWP gamma=.002, consistency=.5, start120/warmup40; candidate, not verified best",
+  "status": "r5_evaluated_and_backed_up_m2_candidate",
+  "selection": "User-selected evaluated ResNet R5 and latest-method MobileNet M2; both two views, AWP gamma=.002, consistency=.5, start120/warmup40. R5: seven of eight primary metrics above paper, FGSM -0.12 pp. M2: full evaluation pending.",
   "entries": [
     {
       "id": "R5",
@@ -40,7 +40,7 @@
         "check_train_complete.py": "012e6549beff5b794f59b3a0105da71668c662112b6da39cb2462eebb870d290",
         "split_target_mix.py": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
         "awp_consistency.py": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
-        "README.md": "bb38e0a39cdba3334ac1aa8ca95df4ae87b1ec5003413efd938f92fcf241d400",
+        "README.md": "4fc65316cb23accd1cdfb9a6505b7f4e9915eccf2d6d097fa4af5c4751ab981a",
         "eval_4090_best.sbatch": "4aa2d8714706fb71ed2933be2e7d00248d9815fd4561a3c3024086b3077f5d92",
         "train_4090.sbatch": "cba0d9dbfda4c64b6d2072d0bd2a222066ec88021f186eabdbf4202dab0f9e6c",
         "CIARD.py": "849739d721915dcc57933ae78c019b8597fb97ff5e2bf923601aa284e321db07",
@@ -57,7 +57,45 @@
         "cifar10_nat_teacher_models/vgg.py": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
         "cifar10_nat_teacher_models/shufflenetv2.py": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
         "cifar10_nat_teacher_models/resnet.py": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98"
-      }
+      },
+      "status": "evaluated_user_selected_source",
+      "evaluation": {
+        "training_job_id": "132648",
+        "job_id": "132743",
+        "epoch": 230,
+        "checkpoint_sha256": "865a125f1c82c68e7f3885674b0d72900a1ed7f0182689367f0210d1ed2e021a",
+        "evaluator_sha256": "26277d6891cd0b6d76050b630a81720cfcae2269caa2d45590bc37c3b76a4164",
+        "test_samples": 10000,
+        "attack_seed": null,
+        "selection_protocol": "historical_50k_train_test_loader_selection",
+        "protocol": "frozen_source_historical_attacks",
+        "correct_counts": {
+          "autoattack": 4935,
+          "clean": 8907,
+          "whitebox_fgsm": 6176,
+          "whitebox_pgdsat": 5234,
+          "whitebox_pgdtrades": 5501,
+          "whitebox_cw": 5177,
+          "blackbox_pgdtrades": 6716,
+          "blackbox_square": 8087,
+          "blackbox_cw": 6571
+        },
+        "metrics_percent": {
+          "autoattack": 49.35,
+          "clean": 89.07,
+          "whitebox_fgsm": 61.76,
+          "whitebox_pgdsat": 52.34,
+          "whitebox_pgdtrades": 55.01,
+          "whitebox_cw": 51.77,
+          "blackbox_pgdtrades": 67.16,
+          "blackbox_square": 80.87,
+          "blackbox_cw": 65.71
+        },
+        "source_result": "run/0909v1/resnet18_g7_v2_awp0p002_cr0p50/model/Cifar10_ResNet18_0909v1_g7_v2_awp0p002_cr0p50/eval_best_0909v1_132743.json",
+        "source_log": "run/0909v1/resnet18_g7_v2_awp0p002_cr0p50/logs/eval_best_stdout_132743.log",
+        "training_and_evaluation_slurm": "COMPLETED / 0:0"
+      },
+      "backup": "best_backup/resnet18_cifar10_0909v1"
     },
     {
       "id": "M2",
@@ -99,7 +137,7 @@
         "split_target_mix.py": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
         "train_teacher.py": "50d6b578936b61191afd4016cea625291a14b15ac9f30e244245ef99feac93c6",
         "awp_consistency.py": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
-        "README.md": "43499380f96e3eb4f614bbe724cdbe579b01e8fc8649253720722bcf97a21ce8",
+        "README.md": "0c32fc38d37cbc1e6c8d60bdd786276adf1baa5291b48e27e05ece14ddd3a396",
         "eval_4090_best.sbatch": "bb043c580ecb65dd59d56a976ace8b53f3a2bd0c28b5566bd8d384fd087ad4d7",
         "train_4090.sbatch": "55caa5134ede2696211f43a03bd59d9a2af1c154a761f64e2d871fcc06f3a756",
         "CIARD.py": "92a28211f617934216bfe9cb0cbd9ff8c7d2c790cfe33b8c0144c28093869b17",
@@ -116,7 +154,8 @@
         "cifar10_nat_teacher_models/vgg.py": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
         "cifar10_nat_teacher_models/shufflenetv2.py": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
         "cifar10_nat_teacher_models/resnet.py": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98"
-      }
+      },
+      "status": "candidate_full_evaluation_pending"
     }
   ],
   "requirements_source": "run/0909v1/resnet18_g7_v2_awp0p002_cr0p50/requirements.txt",
@@ -133,37 +172,131 @@
     "CIARD_Expansion_mobilenetv2_cifar10/eval_3090_best.sbatch"
   ],
   "verification": {
-    "checked_at": "2026-09-09T17:09:58.897548+08:00",
-    "status": "CANDIDATE_SYNC_OK",
-    "selected": [
-      "R5",
-      "M2"
-    ],
-    "copied_python_files_byte_identical": 40,
-    "all_target_python_files_ast_parsed": 43,
-    "backup_files_unchanged": 61,
+    "checked_at": "2026-09-10T21:02:57.900267+08:00",
+    "status": "R5_BACKUP_AND_ACTIVE_SOURCE_VERIFIED",
+    "active_python_files_byte_identical": 40,
+    "new_backup_python_files_byte_identical": 20,
+    "new_backup_files": 24,
+    "all_target_python_files_ast_parsed": 63,
+    "old_backup_files_unchanged": 60,
     "run_python_files_unchanged": 160,
     "run_sbatch_files_unchanged": 16,
-    "all_eight_original_source_hashes_still_match": true,
-    "six_resnet_references_rebound_to_existing_identical_backup": true,
     "sbatch_bash_n_and_path_checks": [
-      "CIARD_Expansion_resnet18_cifar10/train_4090.sbatch",
       "CIARD_Expansion_resnet18_cifar10/eval_4090_best.sbatch",
+      "CIARD_Expansion_resnet18_cifar10/train_4090.sbatch",
+      "CIARD_Expansion_mobilenetv2_cifar10/eval_4090_best.sbatch",
       "CIARD_Expansion_mobilenetv2_cifar10/train_4090.sbatch",
-      "CIARD_Expansion_mobilenetv2_cifar10/eval_4090_best.sbatch"
+      "best_backup/resnet18_cifar10_0909v1/eval_4090_best.sbatch",
+      "best_backup/resnet18_cifar10_0909v1/train_4090.sbatch"
     ],
-    "four_legacy_mobile_helpers_unchanged": true,
-    "dependency_lists_match_verified_r5": true,
-    "resource_symlinks_or_runtime_artifacts_copied": false,
+    "r5_display_cells_checked": 22,
+    "historical_readme_result_cells_unchanged": true,
+    "local_document_links_checked": 20,
+    "r5_log_json_checkpoint_identity_checked": true,
+    "m1_checkpoint_matches_archived_best": true,
+    "m2_full_evaluation_available": false,
     "gpu_operations": 0,
     "jobs_submitted_or_cancelled": 0,
-    "github_pushes": 0,
-    "performance_status": "candidate pending full evaluation; no best promotion",
-    "git_diff_check": {
-      "exit_code": 2,
-      "warnings": 97,
-      "reason": "Inherited whitespace/line endings in byte-identical candidate Python sources; deliberately not reformatted."
-    },
-    "edited_docs_scripts_diff_check": "PASS"
-  }
+    "resource_symlinks_or_runtime_artifacts_copied": false,
+    "r5_slurm_parent_jobs": {
+      "132648": "COMPLETED / 0:0",
+      "132743": "COMPLETED / 0:0"
+    }
+  },
+  "verification_history": [
+    {
+      "checked_at": "2026-09-09T17:09:58.897548+08:00",
+      "status": "CANDIDATE_SYNC_OK",
+      "selected": [
+        "R5",
+        "M2"
+      ],
+      "copied_python_files_byte_identical": 40,
+      "all_target_python_files_ast_parsed": 43,
+      "backup_files_unchanged": 61,
+      "run_python_files_unchanged": 160,
+      "run_sbatch_files_unchanged": 16,
+      "all_eight_original_source_hashes_still_match": true,
+      "six_resnet_references_rebound_to_existing_identical_backup": true,
+      "sbatch_bash_n_and_path_checks": [
+        "CIARD_Expansion_resnet18_cifar10/train_4090.sbatch",
+        "CIARD_Expansion_resnet18_cifar10/eval_4090_best.sbatch",
+        "CIARD_Expansion_mobilenetv2_cifar10/train_4090.sbatch",
+        "CIARD_Expansion_mobilenetv2_cifar10/eval_4090_best.sbatch"
+      ],
+      "four_legacy_mobile_helpers_unchanged": true,
+      "dependency_lists_match_verified_r5": true,
+      "resource_symlinks_or_runtime_artifacts_copied": false,
+      "gpu_operations": 0,
+      "jobs_submitted_or_cancelled": 0,
+      "github_pushes": 0,
+      "performance_status": "candidate pending full evaluation; no best promotion",
+      "git_diff_check": {
+        "exit_code": 2,
+        "warnings": 97,
+        "reason": "Inherited whitespace/line endings in byte-identical candidate Python sources; deliberately not reformatted."
+      },
+      "edited_docs_scripts_diff_check": "PASS"
+    }
+  ],
+  "updated_at": "2026-09-10T21:02:57.900267+08:00",
+  "backups": [
+    {
+      "id": "R5",
+      "source": "run/0909v1/resnet18_g7_v2_awp0p002_cr0p50",
+      "target": "best_backup/resnet18_cifar10_0909v1",
+      "status": "evaluated_user_selected_source_backup",
+      "created_at": "2026-09-10T21:02:57.900267+08:00",
+      "python_sha256": {
+        "CIARD.py": "849739d721915dcc57933ae78c019b8597fb97ff5e2bf923601aa284e321db07",
+        "attack_eval.py": "26277d6891cd0b6d76050b630a81720cfcae2269caa2d45590bc37c3b76a4164",
+        "awp_consistency.py": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
+        "check_eval_log.py": "580308176d927d32e7727b4e15896088676d0d9a4f58f23c6670d80a4125306f",
+        "check_train_complete.py": "012e6549beff5b794f59b3a0105da71668c662112b6da39cb2462eebb870d290",
+        "mtard_loss.py": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d",
+        "run_checks.py": "8ad3cfae0c7cbe50522b7c10d74093d81a0b633eb23dcb7f3088e1bab64e56f8",
+        "split_target_mix.py": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
+        "validate_ciardpp.py": "21cefa0017e669ba29b77ce30ea6ec32a0936657859bc6d097f06f495bf1b886",
+        "cifar10_models/__init__.py": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c",
+        "cifar10_models/mobilenet_v2.py": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca",
+        "cifar10_models/resnet.py": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3",
+        "cifar10_models/wideresnet.py": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac",
+        "cifar10_nat_teacher_models/__init__.py": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437",
+        "cifar10_nat_teacher_models/mobilenetv2.py": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce",
+        "cifar10_nat_teacher_models/repvgg.py": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15",
+        "cifar10_nat_teacher_models/resnet.py": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98",
+        "cifar10_nat_teacher_models/shufflenetv2.py": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
+        "cifar10_nat_teacher_models/vgg.py": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
+        "cifar10_nat_teacher_models/vit.py": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4"
+      },
+      "files_sha256": {
+        "CIARD.py": "849739d721915dcc57933ae78c019b8597fb97ff5e2bf923601aa284e321db07",
+        "README.md": "9950537f027623454886ab5f776e01634b0bd632e680d499393f4757eefe51da",
+        "attack_eval.py": "26277d6891cd0b6d76050b630a81720cfcae2269caa2d45590bc37c3b76a4164",
+        "awp_consistency.py": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
+        "check_eval_log.py": "580308176d927d32e7727b4e15896088676d0d9a4f58f23c6670d80a4125306f",
+        "check_train_complete.py": "012e6549beff5b794f59b3a0105da71668c662112b6da39cb2462eebb870d290",
+        "cifar10_models/__init__.py": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c",
+        "cifar10_models/mobilenet_v2.py": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca",
+        "cifar10_models/resnet.py": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3",
+        "cifar10_models/wideresnet.py": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac",
+        "cifar10_nat_teacher_models/__init__.py": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437",
+        "cifar10_nat_teacher_models/mobilenetv2.py": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce",
+        "cifar10_nat_teacher_models/repvgg.py": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15",
+        "cifar10_nat_teacher_models/resnet.py": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98",
+        "cifar10_nat_teacher_models/shufflenetv2.py": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
+        "cifar10_nat_teacher_models/vgg.py": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
+        "cifar10_nat_teacher_models/vit.py": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4",
+        "eval_4090_best.sbatch": "d739d0b9ef858afa999c30527a260c205aec80738d012b5714cfdaec0381363d",
+        "mtard_loss.py": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d",
+        "requirements.txt": "c8e45d46dc08ec7651aaa6646cbf81091a1615346f9cc1cd515eba34534a2ffd",
+        "run_checks.py": "8ad3cfae0c7cbe50522b7c10d74093d81a0b633eb23dcb7f3088e1bab64e56f8",
+        "split_target_mix.py": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
+        "train_4090.sbatch": "550c21443edf789cee48fa8dce11f48ac507a9f6b19b18bdcc02a7e3c3141cd3",
+        "validate_ciardpp.py": "21cefa0017e669ba29b77ce30ea6ec32a0936657859bc6d097f06f495bf1b886"
+      },
+      "script_adaptations": "Only absolute working/log paths and Slurm job names changed; Python, CFG and prefix match the completed R5 experiment.",
+      "checkpoint_sha256": "865a125f1c82c68e7f3885674b0d72900a1ed7f0182689367f0210d1ed2e021a"
+    }
+  ]
 }
