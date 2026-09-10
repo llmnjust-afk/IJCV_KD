@@ -53,18 +53,18 @@ The [G7 backup README](best_backup/resnet18_cifar10_0906v2/README.md) records it
 
 ### MobileNet-V2 / CIFAR-10
 
-| Metric | Paper CIARD baseline | 0624 tm010-repeat (Δ vs baseline) | 0909v1 M1 (Δ vs baseline) | 0909v1 M2 (Δ vs baseline) |
-| --- | ---: | ---: | ---: | ---: |
-| Clean | 89.51 | 89.58 (+0.07) | 89.58 (+0.07) | 89.79 (+0.28) |
-| White-box FGSM | 59.10 | 60.12 (+1.02) | 60.12 (+1.02) | 61.03 (+1.93) |
-| White-box PGDsat | 47.67 | 49.56 (+1.89) | 49.45 (+1.78) | 51.06 (+3.39) |
-| White-box PGDtrades | 50.71 | 52.28 (+1.57) | 52.22 (+1.51) | 53.53 (+2.82) |
-| White-box CW | 46.88 | 48.50 (+1.62) | 48.50 (+1.62) | 49.14 (+2.26) |
-| Black-box PGDtrades | 66.66 | 67.32 (+0.66) | 67.33 (+0.67) | 67.71 (+1.05) |
-| Square (query-based) | 80.01 | 80.78 (+0.77) | 80.78 (+0.77) | 81.36 (+1.35) |
-| Black-box CW | 66.12 | 66.18 (+0.06) | 66.18 (+0.06) | 65.95 (-0.17) |
-| Seven-attack mean | 59.59 | 60.68 (+1.08) | 60.65 (+1.06) | 61.40 (+1.80) |
-| Eight-metric mean | 63.33 | 64.29 (+0.96) | 64.27 (+0.94) | 64.95 (+1.61) |
+| Metric | Paper CIARD baseline | 0624 tm010-repeat (Δ vs baseline) | 0909v1 M2 (Δ vs baseline) |
+| --- | ---: | ---: | ---: |
+| Clean | 89.51 | 89.58 (+0.07) | 89.79 (+0.28) |
+| White-box FGSM | 59.10 | 60.12 (+1.02) | 61.03 (+1.93) |
+| White-box PGDsat | 47.67 | 49.56 (+1.89) | 51.06 (+3.39) |
+| White-box PGDtrades | 50.71 | 52.28 (+1.57) | 53.53 (+2.82) |
+| White-box CW | 46.88 | 48.50 (+1.62) | 49.14 (+2.26) |
+| Black-box PGDtrades | 66.66 | 67.32 (+0.66) | 67.71 (+1.05) |
+| Square (query-based) | 80.01 | 80.78 (+0.77) | 81.36 (+1.35) |
+| Black-box CW | 66.12 | 66.18 (+0.06) | 65.95 (-0.17) |
+| Seven-attack mean | 59.59 | 60.68 (+1.08) | 61.40 (+1.80) |
+| Eight-metric mean | 63.33 | 64.29 (+0.96) | 64.95 (+1.61) |
 
 The completed **0624 tm010-repeat** reference and **M1** exceed the paper baseline on all eight primary metrics. M1 is the old-recipe control (one view, AWP=0, consistency=0); its checkpoint SHA256 matches the archived best. The [MobileNet backup README](best_backup/mobilenetv2_cifar10/README.md) preserves that recipe and its historical results. **M2 improves seven primary metrics over M1 and raises the eight-metric mean from 64.27% to 64.95% (+0.68 pp), but black-box CW is 65.95%: 0.23 pp below M1 and 0.17 pp below the paper.** In table order, M2−M1 is +0.21 / +0.91 / +1.61 / +1.31 / +0.64 / +0.38 / +0.58 / -0.23 pp. M2 retains MobileNet's own base parameters, without ResNet split KD or PCGrad; its gains are not an all-metric improvement.
 
