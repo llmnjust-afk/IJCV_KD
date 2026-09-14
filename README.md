@@ -1,29 +1,40 @@
-# IJCV_KD — 0909v1 evaluated R5 and M2 sources
+# IJCV_KD — evaluated CIFAR-10 and CIFAR-100 sources
 
-2026-09-11: the active entries contain evaluated **ResNet R5** and **MobileNet M2**, both using two adversarial views, KD-AWP gamma **0.002**, consistency weight **0.5**, start120/warmup40 and JS temperature0.5. **R5 exceeds the paper baseline on seven of eight primary metrics, with FGSM 0.12 pp below; M2 also exceeds it on seven, with black-box CW 0.17 pp below.** R5 is preserved in [the 0909v1 backup](best_backup/resnet18_cifar10_0909v1/README.md).
+2026-09-14: added the user-selected best evaluated **CIFAR-100 ResNet C100-R1** and **MobileNet C100-M1**, with independent 0911v1 backups. Both use two views, KD-AWP gamma **0.002** and consistency weight **0.50**. C100-R1 exceeds the paper on all seven attack metrics with Clean 2.73 pp below; C100-M1 improves all eight metrics over the historical CIFAR-100 MobileNet best, with Clean still 0.72 pp below the paper. The CIFAR-10 sources and four existing backups are preserved.
+
+| Dataset / entry | Source under `run/0911v1` | Independent backup |
+| --- | --- | --- |
+| [CIFAR-100 / ResNet-18 C100-R1](CIARD_Expansion_resnet18_cifar100/README.md) | `resnet18_cifar100_r5_v2_awp0p002_cr0p50` | [resnet18_cifar100_0911v1](best_backup/resnet18_cifar100_0911v1/README.md) |
+| [CIFAR-100 / MobileNet-V2 C100-M1](CIARD_Expansion_mobilenetv2_cifar100/README.md) | `mobilenetv2_cifar100_m2_v2_awp0p002_cr0p50` | [mobilenetv2_cifar100_0911v1](best_backup/mobilenetv2_cifar100_0911v1/README.md) |
+
+The two new active entries contain 45 Python files, and their backups contain another 45; all match the corresponding completed experiments byte for byte. Each requirements file is also preserved. Only wrapper working/log paths, job names and documentation are adapted. Source/result identities and hashes are recorded in [SYNC_MANIFEST.json](SYNC_MANIFEST.json). These are lightweight source packages; original weights and logs remain in the independent experiments.
+
+## Preserved CIFAR-10 sources
+
+2026-09-11: the CIFAR-10 active entries contain evaluated **ResNet R5** and **MobileNet M2**, both using two adversarial views, KD-AWP gamma **0.002**, consistency weight **0.5**, start120/warmup40 and JS temperature0.5. **R5 exceeds the paper baseline on seven of eight primary metrics, with FGSM 0.12 pp below; M2 also exceeds it on seven, with black-box CW 0.17 pp below.** R5 is preserved in [the 0909v1 backup](best_backup/resnet18_cifar10_0909v1/README.md).
 
 | Entry | Source under `run/0909v1` | Preserved base recipe |
 | --- | --- | --- |
 | [ResNet-18 R5](CIARD_Expansion_resnet18_cifar10/README.md) | `resnet18_g7_v2_awp0p002_cr0p50` | G7 target=.25/nontarget=0, push=.081740, PCGrad, EMA |
 | [MobileNet-V2 M2](CIARD_Expansion_mobilenetv2_cifar10/README.md) | `mobilenetv2_best_v2_awp0p002_cr0p50` | verified push=.05 tm010-repeat, original backpropagation, EMA |
 
-All 40 copied Python files match their respective experiments byte for byte, including CFG, prefix, model definitions, losses, evaluator and completion checks. No architecture, teacher, data or evaluation protocol change was introduced by synchronization. [SYNC_MANIFEST.json](SYNC_MANIFEST.json) records the source hashes, script adaptations and verification summary. The three earlier backup directories remain byte-identical; the backup index now also lists the new R5 snapshot.
+All 40 synchronized CIFAR-10 Python files match their respective experiments byte for byte, including CFG, prefix, model definitions, losses, evaluator and completion checks. No architecture, teacher, data or evaluation protocol change was introduced by synchronization. [SYNC_MANIFEST.json](SYNC_MANIFEST.json) records the source hashes, script adaptations and verification summary. The four existing CIFAR-10 backups remain unchanged; the index also lists the two new CIFAR-100 snapshots.
 
-## Method and evaluated results
+## Shared method and CIFAR-10 lineage
 
 The first 120 epochs retain the original training path. From epoch 121, each image has two independent original crop/flip views, each with PGD-10 at 8/255 and step 2/255. The full original losses are averaged over views. At epoch 160 the added terms reach their configured strength, with `r=clip((epoch-120)/40,0,1)`.
 
-KD-AWP uses a proxy gradient of the original natural/adversarial distillation objective and applies `v=gamma*r*||w||*g/(||g||+1e-12)` to convolution/linear weights only. The actual full objective is differentiated at perturbed weights; weights are restored before SGD and EMA. Consistency adds `lambda*r*mean(JS(softmax(z_adv1/.5),softmax(z_adv2/.5)))/10`, without a temperature-squared multiplier. Teacher, student and dynamic-temperature updates still occur once per logical batch; ResNet retains its original margin PCGrad.
+KD-AWP uses a proxy gradient of the original natural/adversarial distillation objective and applies `v=gamma*r*||w||*g/(||g||+1e-12)` to convolution/linear weights only. The actual full objective is differentiated at perturbed weights; weights are restored before SGD and EMA. Consistency adds `lambda*r*mean(JS(softmax(z_adv1/.5),softmax(z_adv2/.5)))/C`, where C is the number of classes (10 for CIFAR-10 and 100 for CIFAR-100), without a temperature-squared multiplier. Teacher, student and dynamic-temperature updates still occur once per logical batch; ResNet retains its original margin PCGrad.
 
 R5 is the evaluated, user-selected ResNet source: all eight primary results improve over the same-batch G7 control R1. It retains seven improvements over the paper baseline but still misses FGSM by 0.12 pp. R6 has a higher eight-metric mean but three strong white-box results below the paper baseline. M2 applies the R5 combination to MobileNet's verified base recipe. Its completed evaluation improves seven primary metrics over same-batch M1, but black-box CW falls by 0.23 pp; it does not replace M1 as an all-eight-above-paper configuration. Attribution: [Adversarial Weight Perturbation, NeurIPS 2020](https://proceedings.neurips.cc/paper_files/paper/2020/hash/1ef91c212e30e14bf125e9374262401f-Abstract.html) and [Consistency Regularization for Adversarial Robustness, AAAI 2022](https://arxiv.org/pdf/2103.04623). These are CIARD adaptations, not reproductions of the full published recipes or proof of a new contribution. Two views require extra computation.
 
-## Execution and result status
+## CIFAR-10 execution and result status
 
 The existing independent experiments remain the training/evaluation locations. Their source and Slurm scripts are unchanged by this synchronization; no duplicate training is needed. Package wrappers are source templates adapted to the two package directories, with ResNet on compute-4 and MobileNet on compute-2, each requesting one 4090. The package intentionally has no resource symlinks, datasets, checkpoints, outputs or logs, and cannot be submitted directly without preparing an independent run. Both entries use the minimal dependency list for the already verified ciard environment.
 
 Each completed run evaluates one fixed EMA `student_best.pth` on 10,000 test images. R5 training/evaluation jobs 132648/132743 selected epoch 230; M2 jobs 132654/132769 selected epoch 250. All four jobs were verified `COMPLETED / 0:0`. Their original logs remain in the independent experiments; publishing these sources and results requires no repeat training or evaluation. ResNet's target remains all eight metrics strictly above the paper and AA at least 48.88%; higher means alone do not satisfy it. Only the user submits GPU jobs.
 
-## Completed results versus the paper CIARD baseline
+## CIFAR-10 results versus the paper CIARD baseline
 
 The tables contain completed **CIFAR-10** evaluations: historical G7 and MobileNet references, plus **0909v1 R5, M1 and M2**. Each configuration uses one selected `student_best.pth`; values are not combined across checkpoints.
 
@@ -80,8 +91,60 @@ are not all explicitly fixed. PGDtrades uses step size 0.003 in the frozen
 evaluator; the paper describes 2/255, so comparison to its published numbers
 is not proof of an exactly matched reproduction.
 
-## Other source and execution notes
+## CIFAR-100 sources, execution and completed results
+
+Both CIFAR-100 entries use 50,000 training / 10,000 test images, 100-class students, 300 epochs, seed 0 and global batch 128. Training uses two 4090 GPUs (64 images per device for a full batch); evaluation uses one. ResNet stays on compute-4 and MobileNet on compute-2. The robust teacher is WRN-70-16 (`cifar100_linf_wrn70-16_without.pt`); the natural teacher is WRN-22-6 (`cifar100_wrn_22_6_finetuned_best.pth`), both with CIFAR-100 normalization inside the model. The verified ciard environment also supplies the RobustBench teacher implementation pinned by its architecture-file hash in run_checks.py.
+
+ResNet retains R5 split KD (target .25, non-target 0, reference .20), push .081740, clean CE .036067, teacher margin .011316 and PCGrad/EMA .999642. MobileNet retains push .05, clean CE .05, teacher margin .01 and EMA .999. Both retain start120/warmup40 and consistency temperature .5. No training, attack implementation or checkpoint-selection change is introduced by publication. Package wrappers are templates for a future independent run; resources, checkpoints, outputs and completion records are not bundled.
+
+Baseline sources: [supplementary material](https://openaccess.thecvf.com/content/ICCV2025/supplemental/Lu_CIARD_Cyclic_Iterative_ICCV_2025_supplemental.pdf), Tables 1/2, CIFAR-100 columns, for Clean and white-box ResNet/MobileNet; [main paper](https://openaccess.thecvf.com/content/ICCV2025/papers/Lu_CIARD_Cyclic_Iterative_Adversarial_Robustness_Distillation_ICCV_2025_paper.pdf), Tables 5/6, CIFAR-100 **Robust** columns, for black-box attacks. Values are percentages; parentheses show result minus the same-model paper baseline in pp. Means and differences are computed before rounding. The supplementary AutoAttack table is CIFAR-10 and supplies no CIFAR-100 baseline.
+
+### ResNet-18 / CIFAR-100
+
+| Metric | Paper CIARD baseline | 0911v1 C100-R1 (Δ vs baseline) |
+| --- | ---: | ---: |
+| Clean | 65.73 | 63.00 (-2.73 pp) |
+| White-box FGSM | 34.47 | 35.43 (+0.96 pp) |
+| White-box PGDsat | 28.05 | 30.90 (+2.85 pp) |
+| White-box PGDtrades | 29.45 | 32.14 (+2.69 pp) |
+| White-box CW | 24.43 | 27.65 (+3.22 pp) |
+| Black-box PGDtrades | 42.29 | 42.75 (+0.46 pp) |
+| Square (query-based) | 49.76 | 50.54 (+0.78 pp) |
+| Black-box CW | 41.44 | 42.00 (+0.56 pp) |
+| Seven-attack mean | 35.70 | 37.34 (+1.65 pp) |
+| Eight-metric mean | 39.45 | 40.55 (+1.10 pp) |
+
+**C100-R1 exceeds the paper on all seven attacks, while Clean remains 2.73 pp below.** White-box PGDsat / PGDtrades / CW improve by 2.85 / 2.69 / 3.22 pp. Its seven/eight-metric means are higher than C100-R2, but R2 retains small advantages in the two white-box PGD metrics and black-box CW; R1 is the user-selected overall best, not a per-metric maximum.
+
+AutoAttack, separate absolute measurement: **25.68%**, with no cross-dataset baseline comparison. Training/evaluation jobs **132781/133377** were verified `COMPLETED / 0:0`; the fixed EMA best is epoch **220**. Configuration, checkpoint/evaluator hashes and original evidence locations are recorded in the [active entry](CIARD_Expansion_resnet18_cifar100/README.md) and [0911v1 backup](best_backup/resnet18_cifar100_0911v1/README.md).
+
+### MobileNet-V2 / CIFAR-100
+
+| Metric | Paper CIARD baseline | 0624 tm010-repeat (Δ vs baseline) | 0911v1 C100-M1 (Δ vs baseline) |
+| --- | ---: | ---: | ---: |
+| Clean | 66.72 | 65.05 (-1.67 pp) | 66.00 (-0.72 pp) |
+| White-box FGSM | 33.56 | 33.35 (-0.21 pp) | 34.17 (+0.61 pp) |
+| White-box PGDsat | 27.02 | 27.81 (+0.79 pp) | 28.20 (+1.18 pp) |
+| White-box PGDtrades | 28.95 | 29.54 (+0.59 pp) | 29.89 (+0.94 pp) |
+| White-box CW | 25.54 | 25.99 (+0.45 pp) | 26.90 (+1.36 pp) |
+| Black-box PGDtrades | 42.70 | 43.74 (+1.04 pp) | 44.16 (+1.46 pp) |
+| Square (query-based) | 50.85 | 51.74 (+0.89 pp) | 52.30 (+1.45 pp) |
+| Black-box CW | 42.85 | 42.72 (-0.13 pp) | 43.13 (+0.28 pp) |
+| Seven-attack mean | 35.92 | 36.41 (+0.49 pp) | 36.96 (+1.04 pp) |
+| Eight-metric mean | 39.77 | 39.99 (+0.22 pp) | 40.59 (+0.82 pp) |
+
+**C100-M1 improves all eight metrics over the historical CIFAR-100 best and over same-batch C100-M2.** Against the historical best, gains in table order are +0.95 / +0.82 / +0.39 / +0.35 / +0.91 / +0.42 / +0.56 / +0.41 pp; the eight-metric mean rises by 0.60 pp. Seven attacks exceed the paper, while Clean remains 0.72 pp below. The historical comparison is one completed tm010_repeat checkpoint (epoch 250, evaluation 121548), selected by the seven/eight-metric means among seven historical configurations.
+
+AutoAttack, separate absolute measurement: **24.59%**, with no cross-dataset baseline comparison. Training/evaluation jobs **132783/133466** were verified `COMPLETED / 0:0`; the fixed EMA best is epoch **240**. Configuration, checkpoint/evaluator hashes and original evidence locations are recorded in the [active entry](CIARD_Expansion_mobilenetv2_cifar100/README.md) and [0911v1 backup](best_backup/mobilenetv2_cifar100_0911v1/README.md).
+
+### CIFAR-100 evidence and interpretation
+
+The complete local report is `结果分析/0911v1_cifar100_结果分析.md`. Original run sources, result JSON, checkpoint SHA256, epochs and 10,000-image logs were verified, with strict 100-class checkpoint loading on CPU. Historical CIFAR-100 ResNet was not trained/evaluated and is not included. Neither selected configuration exceeds the paper on all eight metrics; jointly halving AWP and consistency did not improve Clean or the eight-metric mean in this batch. Single-seed comparisons do not isolate each mechanism or establish statistical stability.
+
+CIFAR-100 retains test-loader `(Clean+PGD proxy)/2` selection of EMA best, which introduces selection bias. Historical stochastic attacks are not all explicitly seeded. The inherited official PGDtrades evaluator uses 20 steps at .003; training remains PGD-10 at 2/255. These are comparisons to published values, not proof of exactly matched reproduction. Mean accuracy is not joint worst-case accuracy. Only the user submits GPU jobs.
+
+## Other CIFAR-10 source and execution notes
 
 The previous 0903 MobileNet push=.075 candidate missed the CIARD reference on Clean (89.07 versus 89.51) and black-box CW (65.29 versus 66.12). It has now been replaced in the active entry by M2, based on the verified 0624 push=.05 recipe. The verified reference and all earlier backups remain unchanged. Historical auxiliary MobileNet tools remain available, but the active path uses the copied 4090 wrappers and frozen full evaluator.
 
-Both models retain raw-input WRN-34-10 robust and ResNet-56 natural teachers. Training remains 50,000 images with test-loader checkpoint selection, which introduces selection bias. Stochastic attack seeds are not all explicitly fixed; frozen PGDtrades uses step 0.003 while the paper describes 2/255. Earlier numerical results and future candidate results must retain these qualifications.
+Both CIFAR-10 models retain raw-input WRN-34-10 robust and ResNet-56 natural teachers. Training remains 50,000 images with test-loader checkpoint selection, which introduces selection bias. Stochastic attack seeds are not all explicitly fixed; frozen PGDtrades uses step 0.003 while the paper describes 2/255. Earlier numerical results and future candidate results must retain these qualifications.
