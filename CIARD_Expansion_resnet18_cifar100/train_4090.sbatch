@@ -2,14 +2,14 @@
 #SBATCH --partition=rtx4090
 #SBATCH --nodelist=aias-compute-4
 #SBATCH --gres=gpu:4090:2
-#SBATCH --job-name=tr911c100r1a
-#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0911v1/IJCV_KD/CIARD_Expansion_resnet18_cifar100/logs/slurm/train_%j.out
-#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0911v1/IJCV_KD/CIARD_Expansion_resnet18_cifar100/logs/slurm/train_%j.err
+#SBATCH --job-name=tr914c100r1a
+#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0914v1/IJCV_KD/CIARD_Expansion_resnet18_cifar100/logs/slurm/train_%j.out
+#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0914v1/IJCV_KD/CIARD_Expansion_resnet18_cifar100/logs/slurm/train_%j.err
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 
 set -euo pipefail
-cd /home/lixidong25/mycode/CIARD_Expansion/origin_code/0911v1/IJCV_KD/CIARD_Expansion_resnet18_cifar100
+cd /home/lixidong25/mycode/CIARD_Expansion/origin_code/0914v1/IJCV_KD/CIARD_Expansion_resnet18_cifar100
 module load cuda/11.8
 source /apps/miniconda3/etc/profile.d/conda.sh
 conda activate ciard
@@ -17,6 +17,7 @@ export PYTHONUNBUFFERED=1
 export OMP_NUM_THREADS=4
 export PYTHONPATH="$PWD:${PYTHONPATH:-}"
 unset CIARD_GPU CIARD_STUDENT CIARD_PREFIX
+unset CIARD_TM_WEIGHT CIARD_TM_START CIARD_TM_WARMUP CIARD_TM_PS_FLOOR CIARD_TM_PS_CONFLICT CIARD_TM_CLEAN_GATE CIARD_TM_ADV_GATE CIARD_TM_CONFLICT_FLOOR CIARD_TM_CLEAN_TAU CIARD_TM_ADV_TAU
 exec 9>logs/.train.lock
 flock -n 9 || { echo 'Another job for this experiment is running' >&2; exit 1; }
 LOG="logs/train_stdout_${SLURM_JOB_ID}.log"

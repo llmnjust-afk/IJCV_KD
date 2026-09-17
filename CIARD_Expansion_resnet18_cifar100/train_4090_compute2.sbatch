@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --partition=rtx4090
-#SBATCH --nodelist=aias-compute-4
-#SBATCH --gres=gpu:4090:1
-#SBATCH --job-name=ev914c100r1a
-#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0914v1/IJCV_KD/CIARD_Expansion_resnet18_cifar100/logs/slurm/eval_best_%j.out
-#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0914v1/IJCV_KD/CIARD_Expansion_resnet18_cifar100/logs/slurm/eval_best_%j.err
+#SBATCH --nodelist=aias-compute-2
+#SBATCH --gres=gpu:4090:2
+#SBATCH --job-name=tr914c100r1n2a
+#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0914v1/IJCV_KD/CIARD_Expansion_resnet18_cifar100/logs/slurm/train_%j.out
+#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0914v1/IJCV_KD/CIARD_Expansion_resnet18_cifar100/logs/slurm/train_%j.err
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 
@@ -18,15 +18,15 @@ export OMP_NUM_THREADS=4
 export PYTHONPATH="$PWD:${PYTHONPATH:-}"
 unset CIARD_GPU CIARD_STUDENT CIARD_PREFIX
 unset CIARD_TM_WEIGHT CIARD_TM_START CIARD_TM_WARMUP CIARD_TM_PS_FLOOR CIARD_TM_PS_CONFLICT CIARD_TM_CLEAN_GATE CIARD_TM_ADV_GATE CIARD_TM_CONFLICT_FLOOR CIARD_TM_CLEAN_TAU CIARD_TM_ADV_TAU
-exec 9>logs/.eval_best.lock
+exec 9>logs/.train.lock
 flock -n 9 || { echo 'Another job for this experiment is running' >&2; exit 1; }
-LOG="logs/eval_best_stdout_${SLURM_JOB_ID}.log"
+LOG="logs/train_stdout_${SLURM_JOB_ID}.log"
 test ! -e "$LOG" || { echo "Refusing existing log: $LOG" >&2; exit 1; }
 {
-echo 'requested_node=aias-compute-4 requested_gpu=1x4090'
+echo 'requested_node=aias-compute-2 requested_gpu=2x4090'
 echo "running_node=${SLURMD_NODENAME:-unset} allocated_cuda_visible_devices=${CUDA_VISIBLE_DEVICES:-unset}"
-python -u run_checks.py verify
-python -u run_checks.py preflight --cuda --expected-gpus=1
+python -u run_checks.py start
+python -u run_checks.py preflight --cuda --expected-gpus=2
 } 2>&1 | tee "$LOG"
-python -u attack_eval.py 2>&1 | tee -a "$LOG"
-python -u check_eval_log.py "$LOG" "$SLURM_JOB_ID" 2>&1 | tee -a "$LOG"
+python -u CIARD.py 2>&1 | tee -a "$LOG"
+python -u run_checks.py finish --log "$LOG" --job "$SLURM_JOB_ID" 2>&1 | tee -a "$LOG"

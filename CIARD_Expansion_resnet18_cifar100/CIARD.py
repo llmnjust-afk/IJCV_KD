@@ -31,8 +31,8 @@ for _legacy_runtime_env in ("CIARD_GPU", "CIARD_STUDENT", "CIARD_PREFIX"):
     os.environ.pop(_legacy_runtime_env, None)
 
 # Fixed output prefix for this independent variant.
-VARIANT_NAME = 'resnet18_cifar100_r5_v2_awp0p002_cr0p50'
-prefix = 'Cifar100_ResNet18_0909v1_r5_v2_awp0p002_cr0p50'
+VARIANT_NAME = 'resnet18_cifar100_natorig_awp0p002_cr0p50'
+prefix = 'Cifar100_ResNet18_0914v1_natorig_awp0p002_cr0p50'
 draw_file = prefix
 model_dir = './model/' + prefix
 # Refuse reuse of a training trajectory, including a concurrent duplicate job.
@@ -410,7 +410,7 @@ teacher.train()
 
 
 teacher_nat = natural_teacher()
-teacher2_path = 'models/cifar100_wrn_22_6_finetuned_best.pth'
+teacher2_path = 'models/nat_teacher_checkpoint/cifar100_wrn_22_6.pth'
 #state_dict_1 = torch.load(teacher2_path)
 #teacher_nat.load_state_dict(state_dict_1)
 

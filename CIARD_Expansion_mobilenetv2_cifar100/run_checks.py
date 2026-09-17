@@ -88,7 +88,7 @@ def preflight(use_cuda=False, expected_gpus=2):
         torch.__version__, torchvision.__version__, torch.version.cuda))
     specifications = [
         ('models/cifar100_linf_wrn70-16_without.pt', '3114df6b9d5adf9f275e8fea5a91b71c61df78a568ad31544b6950807d595c8c', robust_teacher, 'logits.weight', (100, 1024), 'WRN-70-16'),
-        ('models/cifar100_wrn_22_6_finetuned_best.pth', 'cac8aca0c71e842e958bb49ca7b00fd729731ff465d4f50eb0ec2e53a935cecc', natural_teacher, 'logits.weight', (100, 384), 'WRN-22-6')]
+        ('models/nat_teacher_checkpoint/cifar100_wrn_22_6.pth', 'c91c5bf8b5f6c74c427d9a88815c00f98b73a4d1109fb4508b985ae86919e935', natural_teacher, 'logits.weight', (100, 384), 'WRN-22-6')]
     for path, digest, factory, key, shape, architecture in specifications:
         if sha256(path) != digest:
             raise ValueError('Teacher SHA256 mismatch: ' + path)

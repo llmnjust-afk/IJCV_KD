@@ -33,8 +33,8 @@ def eval_autoattack(model, testloader, epsilon=8/255.0, norm='Linf', attacks_to_
         adv_complete = adversary.run_standard_evaluation(x_test, y_test, bs=128)
 
 eval_target = 'student_best'
-variant_name = 'resnet18_cifar100_r5_v2_awp0p002_cr0p50'
-path = 'model/Cifar100_ResNet18_0909v1_r5_v2_awp0p002_cr0p50/student_best.pth'
+variant_name = 'resnet18_cifar100_natorig_awp0p002_cr0p50'
+path = 'model/Cifar100_ResNet18_0914v1_natorig_awp0p002_cr0p50/student_best.pth'
 student = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=100)
 
 teacher1_path =  'models/cifar100_linf_wrn70-16_without.pt' #for blackbox attack
