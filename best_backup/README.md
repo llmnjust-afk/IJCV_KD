@@ -10,6 +10,6 @@
 | [mobilenetv2_cifar100_0911v1](mobilenetv2_cifar100_0911v1/README.md) | Completed CIFAR-100 C100-M1: all eight metrics improve over the historical best; seven attacks exceed the paper, with Clean 0.72 pp below. |
 
 The CIFAR-10 active entries retain R5 and M2; their four existing backups remain unchanged.
-The CIFAR-100 active entries now use the completed 0914v1 C100-R1/C100-M1 with the original-package natural teacher. The independent 0911v1 backups retain the previous sources, old natural teacher and historical results; they are not copies of the current active entries.
+The CIFAR-100 source entries retain completed 0914v1 C100-R1 and C100-R2 in parallel, plus MobileNet C100-M1, all with the original-package natural teacher. The independent 0911v1 backups retain the previous sources, old natural teacher and historical results; they are not copies of the current active entries.
 New backups contain source, scripts and documentation only. Resources, checkpoints and logs
 are not bundled. See each README for provenance and manual preparation in a new independent run.
