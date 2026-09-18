@@ -1,14 +1,6 @@
 # SARD: Strength-Adaptive Reliability-Calibrated Distillation
 
-> **Historical 0830 document.** The completed 0830 matrix did not replace the
-> 0624 MobileNet-V2 or 0703 ResNet-18 mainline. SARD is no longer the active
-> implementation in the two top-level model directories; see `README.md` and
-> the model-specific READMEs for the current 0909v1 entries (ResNet R5
-> and MobileNet M2: KD-AWP + adversarial-view consistency). R5 is evaluated and
-> backed up with FGSM 0.12 pp below the paper; M2 is evaluated with black-box CW
-> 0.17 pp below the paper. See the current result tables. The commands and
-> interfaces below are retained only for design history and must not be used as
-> the current execution interface.
+> **Historical 0830 design document.** The content and commands below describe an inactive design. Current evaluated sources are0917v1 CIFAR-10 MobileNet M1 (M4 alternative) / ResNet R4 and0914v1 CIFAR-100 MobileNet M1 / ResNet R2. See README.md and the source READMEs; ResNet still has a paper-baseline deficit. Only the current wrappers describe the supported execution templates.
 
 IJCV journal extension of the ICCV 2025 paper **CIARD** (Cyclic Iterative Adversarial Robustness Distillation).
 

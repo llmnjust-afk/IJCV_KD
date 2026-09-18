@@ -6,6 +6,8 @@
 
 [0911v1备份](../best_backup/mobilenetv2_cifar100_0911v1/README.md)保留旧教师版本，不是本目录新教师源码的副本。
 
+2026-09-19：本入口继续保留M1；新增[0914v1 M1冻结备份](../best_backup/mobilenetv2_cifar100_0914v1_m1/README.md)。脚本工作/日志路径已适配0917v1-cifar10源码包，Python与原已测run逐字一致。
+
 ## 来源与固定配置
 
 - 实验身份：`mobilenetv2_cifar100_natorig_awp0p002_cr0p50`；prefix=`Cifar100_MobileNetV2_0914v1_natorig_awp0p002_cr0p50`，与已测来源保持一致。

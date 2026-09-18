@@ -2,14 +2,14 @@
 #SBATCH --partition=rtx4090
 #SBATCH --nodelist=aias-compute-2
 #SBATCH --gres=gpu:4090:1
-#SBATCH --job-name=tr99sm2
-#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0909v1/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10/logs/slurm/train_%j.out
-#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0909v1/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10/logs/slurm/train_%j.err
+#SBATCH --job-name=tr917m1
+#SBATCH --output=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0917v1-cifar10/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10/logs/slurm/train_%j.out
+#SBATCH --error=/home/lixidong25/mycode/CIARD_Expansion/origin_code/0917v1-cifar10/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10/logs/slurm/train_%j.err
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 
 set -euo pipefail
-cd /home/lixidong25/mycode/CIARD_Expansion/origin_code/0909v1/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10
+cd /home/lixidong25/mycode/CIARD_Expansion/origin_code/0917v1-cifar10/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10
 module load cuda/11.8
 source /apps/miniconda3/etc/profile.d/conda.sh
 conda activate ciard

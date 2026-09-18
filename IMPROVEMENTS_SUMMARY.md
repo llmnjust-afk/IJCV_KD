@@ -1,10 +1,6 @@
 # CIARD IJCV 扩展版改进方案总结
 
-> **历史 0830 设计说明。** 完整 0830 矩阵没有替代 0624 MobileNet-V2
-> 或 0703 ResNet-18 主线，本文提出的 SARD/Label Smoothing/Adaptive
-> Temperature 已退出两个顶层模型目录的活动实现。当前 0909v1 ResNet R5 与
-> MobileNet M2（KD-AWP + 对抗双视图一致性，待完整评测）的身份、参数和状态以仓库 `README.md` 及两个模型 README 为准；本文其余
-> 内容只保留用于追溯当时的设计判断。
+> **历史0830设计说明。** 本文后续方案、成绩和接口仅用于追溯。当前已测来源是0917v1 CIFAR-10 MobileNet M1（另记录M4配置）/ResNet R4，以及0914v1 CIFAR-100 MobileNet M1/ResNet R2。具体状态与缺口以仓库README及各入口说明为准，不将历史设计当作当前实现。
 
 ## 背景
 

@@ -1,39 +1,53 @@
-# CIFAR-10 / MobileNetV2 — 0909v1 M2 已评测活动入口
+# CIFAR-10 / MobileNet-V2 — 0917v1 M1 已评测活动入口
 
-2026-09-11：活动源码与 `run/0909v1/mobilenetv2_best_v2_awp0p002_cr0p50` 的20份Python逐字一致。**M2已完成10k测试，相对同期M1七项提高、黑盒CW回落；对论文也仅七项提高，尚非全面改进。** 本目录不含权重或运行产物，完整对照见[总README](../README.md)。
+2026-09-19：按用户选择同步已测来源。同版冻结备份见[best_backup/mobilenetv2_cifar10_0917v1_m1](../best_backup/mobilenetv2_cifar10_0917v1_m1/README.md)。
 
-## 来源、配置与改进
+M1与M4各自同一个固定checkpoint的八项均严格高于论文，AA分别47.01%与46.70%；两者黑盒CW均66.14%，仅高论文.02pp。按用户选择以M1作为默认源码：M1的FGSM、PGDtrades、白盒CW和AA更高；M4的Clean、PGDsat、黑盒PGDtrades和Square更高，八项均值64.89%高于M1的64.83%（M1精确64.825%）。M4−M1九项依次为+.41/−.16/+.08/−.02/−.25/+.31/+.14/0/−.31pp。两者均未全面超过历史0909v1 M2，M1/M4本次过线不等于稳定全胜。
 
-- 原始配方：已验证 tm010-repeat：push=.05，clean CE=.05，margin=.010 / start140 / warmup80，EMA=.999；保留 MobileNet 普通反传，不启用 ResNet split KD 或 PCGrad。
-- 冻结参考：`origin_code/0909v1/IJCV_KD/best_backup/mobilenetv2_cifar10`。该MobileNet冻结参考保持原样。
-- 实验身份：`mobilenetv2_best_v2_awp0p002_cr0p50`；prefix：`Cifar10_MobileNetV2_0909v1_best_v2_awp0p002_cr0p50`。
-- 新机制固定为 `training_views=2`、`awp_gamma=.002`、`consistency_weight=.5`、`method_start=120`、`method_warmup=40`、`consistency_temperature=.5`。
-- 从头300轮、batch128、seed0、50k CIFAR-10训练；前120轮保留原分支，121轮渐进启用，160轮完整启用。
+M4配置和身份修改完整列在[M4复现说明](M4_REPRODUCTION.md)，其中包含M4自己的权重/评测来源，不混用M1权重。
 
-KD-AWP 使用原自然KD与对抗KD目标的代理梯度扰动卷积/线性权重，BN和bias不扰动；在扰动权重计算完整训练目标并反向传播，恢复正常权重后SGD及EMA。双视图各自进行原裁剪/翻转与PGD-10（8/255、2/255）；完整原损失取均值，再加类别尺度归一化的对抗预测JS一致性。两个机制的详细公式、已有文献归因及实验对照见[包README](../README.md)。
+## 固定配置与方法
 
-已验证 tm010-repeat 的八项优势属于原配方。同期M1是单视图/AWP0/一致性0的复跑控制，八项均值64.27%，checkpoint SHA256与归档best一致；它没有启用本次新增机制。**M2与ResNet R5仅共用新增方法及其参数，各自基础损失和优化配方保留。** M2八项均值64.95%，比M1高0.68pp，AA47.15%比M1高0.91pp；但黑盒CW65.95%比M1低0.23pp、比论文低0.17pp，不能据此替换旧best的八项全胜结论。原顶层push=.075的0903候选已由本M2源码替换。
+AWP gamma=0.001，consistency_weight=0.5。VARIANT_NAME=`mobilenetv2_cifar10_v2_awp0p001_cr0p50`，prefix=`Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50`。
 
-## 固定评测与证据边界
+MobileNet保留push=.05、clean CE=.05、teacher margin=.01、EMA=.999和普通反传。
 
-固定目标为 `model/Cifar10_MobileNetV2_0909v1_best_v2_awp0p002_cr0p50/student_best.pth`，沿用历史 `(Clean + PGD proxy)/2` 选择EMA，训练成功后完整评测10k测试集。八项参照89.51/59.10/47.67/50.71/46.88/66.66/80.01/66.12，AA参照46.31；同时报告M2−M1，不能用仍超过论文代替优于当前最佳。
+两组模型均沿用已测KD-AWP＋对抗双视图一致性方法，50,000张训练/10,000张测试，300 epochs、batch=128、seed=0、training_views=2、method_start=120、method_warmup=40、consistency_temperature=.5。实际CFG由原CIARD.py打印，完整配置及Python哈希见同步清单。同步没有改变损失、模型、教师、攻击、选模或评测输出。
 
-`attack_eval.py`、训练及完成检查Python源码与对应run候选逐字一致，清单见[SYNC_MANIFEST.json](../SYNC_MANIFEST.json)。保留原八项与AA攻击参数、顺序和输出；评测前要求对应训练Slurm成功、TRAIN_COMPLETE及来源/权重hash一致。没有复制训练完成记录，不能用此目录直接读取run中的完成标记。
+教师保持raw输入的WRN-34-10（models/model_cifar_wrn.pt）与ResNet-56（models/nat_teacher_checkpoint/cifar10_resnnet56.pth），不增加外部Normalize。训练PGD-10、预算8/255、步长2/255；完整评测保留PGDsat20步/2/255、PGDtrades20步/.003、CW30步/2/255、Square100queries与AA。黑盒PGDtrades/CW由鲁棒教师生成迁移样本，Square查询学生。
 
-test-loader选模存在测试选择偏差，随机攻击未全部显式定seed；历史PGDtrades步长为.003，与论文文字2/255不同。CPU/静态检查不能证明性能提升。
+沿用test-loader的(Clean+PGD proxy)/2选EMA best，存在测试集选择偏差；历史随机攻击未全部显式固定seed。PGDtrades步长.003继承官方实现，与论文文字2/255不同。本次是单seed固定checkpoint结果，不能据此宣称稳定的多seed优势或严格同协议复现；均值不代表联合最坏情况准确率。
 
-## 源码包与运行入口
+## 已完成测试结果
 
-本目录只保存轻量代码、脚本和说明，不含 data/models 资源链接、学生/教师权重、model、logs 或缓存。40份同步Python文件分布于两个模型目录；各组源码、CFG和prefix与原实验一致。两份Slurm脚本仅适配此目录绝对路径和独立作业名称，资源为 rtx4090 / aias-compute-2 / gpu:4090:1 / 4CPU / 16GB。
+单位为%，括号为本结果减同模型论文baseline的百分点差值。论文来源、历史对照及两个数据集结果见[总README](../README.md)。均值不含AA，先计算再舍入。
 
-这些脚本是源码模板，本目录当前不是可直接提交的实验。未来复跑应复制到新的独立run目录，设置唯一prefix、评测路径、脚本工作目录和日志目录，并准备公共资源链接与空输出目录。依赖清单采用R5已核验的ciard环境版本，不需要为本次同步安装或升级依赖。
+| Metric | Paper CIARD baseline | 0909v1 M2 (historical) (Δ vs paper) | 0917v1 M1 (Δ vs paper) | 0917v1 M4 (Δ vs paper) |
+| --- | ---: | ---: | ---: | ---: |
+| Clean | 89.51 | 89.79 (+0.28 pp) | 89.61 (+0.10 pp) | 90.02 (+0.51 pp) |
+| White-box FGSM | 59.10 | 61.03 (+1.93 pp) | 60.87 (+1.77 pp) | 60.71 (+1.61 pp) |
+| White-box PGDsat | 47.67 | 51.06 (+3.39 pp) | 50.67 (+3.00 pp) | 50.75 (+3.08 pp) |
+| White-box PGDtrades | 50.71 | 53.53 (+2.82 pp) | 53.36 (+2.65 pp) | 53.34 (+2.63 pp) |
+| White-box CW | 46.88 | 49.14 (+2.26 pp) | 49.01 (+2.13 pp) | 48.76 (+1.88 pp) |
+| Black-box PGDtrades | 66.66 | 67.71 (+1.05 pp) | 67.67 (+1.01 pp) | 67.98 (+1.32 pp) |
+| Square (query-based) | 80.01 | 81.36 (+1.35 pp) | 81.27 (+1.26 pp) | 81.41 (+1.40 pp) |
+| Black-box CW | 66.12 | 65.95 (-0.17 pp) | 66.14 (+0.02 pp) | 66.14 (+0.02 pp) |
+| AutoAttack (separate) | 46.31 | 47.15 (+0.84 pp) | 47.01 (+0.70 pp) | 46.70 (+0.39 pp) |
+| Seven-attack mean | 59.59 | 61.40 (+1.80 pp) | 61.28 (+1.69 pp) | 61.30 (+1.71 pp) |
+| Eight-metric mean | 63.33 | 64.95 (+1.61 pp) | 64.83 (+1.49 pp) | 64.89 (+1.56 pp) |
 
-原实验已完成训练和评测，无需因本次发布重复运行：
+## 完成证据
 
-```text
-/home/lixidong25/mycode/CIARD_Expansion/run/0909v1/mobilenetv2_best_v2_awp0p002_cr0p50
-```
+- 已测来源：`/home/lixidong25/mycode/CIARD_Expansion/run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50`。
+- 训练/评测：`134636 / 135053`，均为`COMPLETED / 0:0`；固定EMA best epoch=250，完整10000张测试集。
+- 权重：`model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/student_best.pth`；checkpoint SHA256：`3956b121747007143f5a9ddd561dafe080b197a4670f95d20ee831551dc8bc7e`。
+- evaluator SHA256：`ea395e24cdb7f1089a4e10aca7c3911d09e5ec55cac8a8d48c702a34dfeac152`。
+- 结果：`run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/eval_best_0909v1_135053.json`；历史JSON文件名保留0909v1，不代表来源批次。
+- 日志：`run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/train_stdout_134636.log`、`run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/eval_best_stdout_135053.log`。
+- 已核验CPU严格加载、完成标记、源码/权重/评测器哈希、九项正确数及日志/JSON一致性；原始权重和日志保留在原run。
 
-训练132654与评测132769均已核验Slurm COMPLETED/0:0，固定EMA best epoch=250；日志为`logs/train_stdout_132654.log`、`logs/eval_best_stdout_132769.log`。原model目录保留训练完成记录及`eval_best_0909v1_132769.json`。权重/evaluator哈希见总README和同步清单；本地完整报告为`结果分析/0909v1_结果分析.md`。本次仅更新结果文档，不触发GPU任务。
+## 源码模板与复跑
 
-本目录保留的 convert_rb_teacher.py、fast_eval.py、setup_models.sh 和 train_teacher.py 是历史辅助工具，不属于本次固定教师训练和完整评测入口；不需要执行它们。旧3090提交脚本已由4090脚本替代。
+本目录包含23份Python，与已测run逐字一致，完整CFG和文件哈希见[SYNC_MANIFEST.json](../SYNC_MANIFEST.json)。训练与完整评测入口为CIARD.py、attack_eval.py，配套train_4090.sbatch与eval_4090_best.sbatch；其他辅助脚本保留历史用途。脚本只修改工作目录及日志路径；保留原rtx4090分区、aias-compute-2、单4090、4CPU/16GB配置。
+
+本包只有源码、依赖和说明，不包含data/models链接、checkpoint、model/logs或缓存，当前不能直接提交。未来复跑需复制到新的独立run，设置唯一身份/prefix、匹配评测路径和脚本目录，建立公共data/models链接及空输出目录。原已测run保持冻结，全部GPU训练与评测由用户手动提交；本次同步无需重训。

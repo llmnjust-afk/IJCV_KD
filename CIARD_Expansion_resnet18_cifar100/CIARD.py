@@ -31,8 +31,8 @@ for _legacy_runtime_env in ("CIARD_GPU", "CIARD_STUDENT", "CIARD_PREFIX"):
     os.environ.pop(_legacy_runtime_env, None)
 
 # Fixed output prefix for this independent variant.
-VARIANT_NAME = 'resnet18_cifar100_natorig_awp0p002_cr0p50'
-prefix = 'Cifar100_ResNet18_0914v1_natorig_awp0p002_cr0p50'
+VARIANT_NAME = 'resnet18_cifar100_natorig_awp0p003_cr0p50'
+prefix = 'Cifar100_ResNet18_0914v1_natorig_awp0p003_cr0p50'
 draw_file = prefix
 model_dir = './model/' + prefix
 # Refuse reuse of a training trajectory, including a concurrent duplicate job.
@@ -61,7 +61,7 @@ CIARD_SAFE_PLUS = True
 CFG = {
     # 0909v1 fixed method configuration.
     'training_views': 2,
-    'awp_gamma': 0.002,
+    'awp_gamma': 0.003,
     'consistency_weight': 0.5,
     'method_start': 120,
     'method_warmup': 40,

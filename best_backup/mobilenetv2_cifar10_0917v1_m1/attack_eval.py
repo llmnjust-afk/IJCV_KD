@@ -1,8 +1,5 @@
 import os
 import torch
-from cifar100_teacher import robust_teacher
-from cifar10_models.resnet import ResNet, BasicBlock
-from cifar10_models.mobilenet_v2 import MobileNetV2
 from cifar10_models.resnet import resnet18
 from cifar10_models import *
 from cifar10_nat_teacher_models import *
@@ -32,23 +29,21 @@ def eval_autoattack(model, testloader, epsilon=8/255.0, norm='Linf', attacks_to_
     with torch.no_grad():
         adv_complete = adversary.run_standard_evaluation(x_test, y_test, bs=128)
 
-eval_target = 'student_best'
-variant_name = 'resnet18_cifar100_natorig_awp0p003_cr0p50'
-path = 'model/Cifar100_ResNet18_0914v1_natorig_awp0p003_cr0p50/student_best.pth'
-student = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=100)
+variant_name = 'mobilenetv2_cifar10_v2_awp0p001_cr0p50'
+path = 'model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/student_best.pth'
+student = mobilenet_v2()# cifar10_resnet56()# wideresnet()##resnet18()#
 
-teacher1_path =  'models/cifar100_linf_wrn70-16_without.pt' #for blackbox attack
-teacher = robust_teacher()
+teacher1_path =  'models/model_cifar_wrn.pt' #for blackbox attack
+teacher = wideresnet()
 
 transform_test = transforms.Compose([
     transforms.ToTensor(),
 ])
-testset = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=transform_test)
+testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(testset, batch_size=128, shuffle=False, num_workers=0)
 
 logger.info("""CIARD resolved eval config:
 variant: {}
-eval_target: {}
 checkpoint: {}
 dataset: {} test_samples={}
 student: {} num_classes={}
@@ -56,12 +51,10 @@ batch_size: {}
 blackbox_teacher_checkpoint: {}
 whitebox_pgd_trades: steps=20 step_size=0.003 epsilon=8/255
 whitebox_pgd_sat: steps=20 step_size=2/255 epsilon=8/255
-cw_num_classes: 100
-""".format(
-    variant_name, eval_target, path, testset.__class__.__name__, len(testset),
+cw_num_classes: {}
+""".format(variant_name, path, testset.__class__.__name__, len(testset),
     student.__class__.__name__, student.linear.out_features, testloader.batch_size,
-    teacher1_path))
-
+    teacher1_path, student.linear.out_features))
 state_dict = torch.load(path,map_location=torch.device('cpu'))["model"]
 new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 student.load_state_dict(new_state_dict)
@@ -105,7 +98,7 @@ def attack_fgsm(model, train_batch_data, train_batch_labels, epsilon=8.0/255.0):
     perturbed_data = torch.clamp(perturbed_data, 0, 1) 
     return perturbed_data
 
-def attack_cw_inf(model, input, target, confidence=50, num_classes=100, epsilon=8/255, lr=2/255, steps=30):
+def attack_cw_inf(model, input, target, confidence=50, num_classes=10, epsilon=8/255, lr=2/255, steps=30):
     perturbation = torch.zeros_like(input).cuda().requires_grad_()
     for _ in range(steps):
         output = model(input + perturbation)

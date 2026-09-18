@@ -10,9 +10,6 @@ import copy
 import time
 from awp_consistency import EpochViews, MethodRunner, method_enabled, method_ramp
 import torch
-from cifar100_teacher import robust_teacher, natural_teacher
-from cifar10_models.resnet import ResNet, BasicBlock
-from cifar10_models.mobilenet_v2 import MobileNetV2
 from mtard_loss import *
 from cifar10_models import *
 from cifar10_nat_teacher_models import *
@@ -20,22 +17,20 @@ import torchvision
 from torchvision import transforms
 from loguru import logger
 import math
-from split_target_mix import split_target_mix_loss
 # we fix the random seed to 0, this method can keep the results consistent in the same conputer.
 torch.manual_seed(0)
 torch.cuda.manual_seed_all(0)
 torch.backends.cudnn.deterministic = True
 
-# Independent variants respect Slurm CUDA_VISIBLE_DEVICES and ignore legacy runtime overrides.
+# Allow GPU selection via env var (shell scripts set this per-experiment).
 for _legacy_runtime_env in ("CIARD_GPU", "CIARD_STUDENT", "CIARD_PREFIX"):
     os.environ.pop(_legacy_runtime_env, None)
 
 # Fixed output prefix for this independent variant.
-VARIANT_NAME = 'resnet18_cifar100_natorig_awp0p003_cr0p50'
-prefix = 'Cifar100_ResNet18_0914v1_natorig_awp0p003_cr0p50'
+VARIANT_NAME = 'mobilenetv2_cifar10_v2_awp0p001_cr0p50'
+prefix = 'Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50'
 draw_file = prefix
 model_dir = './model/' + prefix
-# Refuse reuse of a training trajectory, including a concurrent duplicate job.
 os.makedirs(model_dir, exist_ok=False)
 
 with open('./model/' + prefix+ '/'+ draw_file,'w') as f:
@@ -61,19 +56,11 @@ CIARD_SAFE_PLUS = True
 CFG = {
     # 0909v1 fixed method configuration.
     'training_views': 2,
-    'awp_gamma': 0.003,
+    'awp_gamma': 0.001,
     'consistency_weight': 0.5,
     'method_start': 120,
     'method_warmup': 40,
     'consistency_temperature': 0.5,
-    # Reliable clean-input predictions of the live robust teacher may correct
-    # only the adversarial KD target. Zero alpha preserves the original path.
-    "target_mix_alpha": 0.2,
-    "target_mix_start": 120,
-    "target_mix_warmup": 40,
-    "split_target_mix": True,
-    "split_target_alpha": 0.25,
-    "split_nontarget_alpha": 0.0,
     # -------------------------------------------------------------------------
     # (A) soft-weighted feature-level contrastive push loss
     # -------------------------------------------------------------------------
@@ -88,7 +75,7 @@ CFG = {
     # subtracted (which collapsed clean accuracy). lambda is the final push
     # weight; it is ramped from 0 over `push_warmup` epochs and capped so the
     # push can never dominate the two distillation losses.
-    "push_lambda": 0.08174,      # best observed weak-push region: 0.02-0.10
+    "push_lambda": 0.05,      # best observed weak-push region: 0.02-0.10
     "push_warmup": 80,        # slow warm-up avoids early clean-accuracy damage
     # Push is now reliability-gated: apply it only if the clean teacher is wrong
     # but the robust teacher is correct on the same x_adv. This prevents the
@@ -106,17 +93,17 @@ CFG = {
     "adv_weight_floor": 0.35,
     # Label anchors: KD/push losses can drift the boundary away from the ground
     # truth. Small CE anchors preserve clean accuracy and transfer robustness.
-    "clean_ce_weight": 0.036067,  # clean CE works, but must be robust-gated (below)
+    "clean_ce_weight": 0.05,  # clean CE works, but must be robust-gated (below)
     "adv_ce_weight": 0.0,
-    "ce_start": 158,          # later start: avoid disturbing early robust KD/push
-    "ce_warmup": 116,
+    "ce_start": 120,          # later start: avoid disturbing early robust KD/push
+    "ce_warmup": 80,
     # Robust-gated clean CE: applying clean CE to every sample improved clean acc
     # but destroyed several robust metrics. Gate it by the student's detached
     # adversarial logit margin, so clean CE mainly refines samples whose robust
     # decision is already stable. This preserves the clean gain while reducing
     # the clean/robust trade-off.
     "clean_ce_robust_gate": True,
-    "clean_ce_gate_tau": 0.682852,
+    "clean_ce_gate_tau": 2.0,
     "clean_ce_gate_floor": 0.0,
     # CW-style adversarial margin anchor. CW attacks optimise logit margins, so
     # a tiny late margin penalty is more targeted than increasing CE. Keep this
@@ -130,11 +117,11 @@ CFG = {
     # in the same direction. This gated variant only asks the student to match a
     # positive robust-teacher margin when the robust teacher is correct, which is
     # a safer signal for black-box CW transfer robustness.
-    "teacher_margin_weight": 0.011316,
-    "teacher_margin_start": 120,
-    "teacher_margin_warmup": 89,
-    "teacher_margin_tau": 1.124788,
-    "teacher_margin_cap": 1.428932,
+    "teacher_margin_weight": 0.010,
+    "teacher_margin_start": 140,
+    "teacher_margin_warmup": 80,
+    "teacher_margin_tau": 2.0,
+    "teacher_margin_cap": 2.0,
     # Extra safety gate for teacher-margin matching. The tm010 experiment shows
     # teacher margin fixes black-box CW, but higher weights hurt clean accuracy
     # and transfer metrics. Experiments showed the CLEAN gate (not the per-sample
@@ -150,24 +137,12 @@ CFG = {
     "teacher_margin_adv_gate": False,
     "teacher_margin_adv_tau": 1.0,
     "teacher_margin_adv_floor": 0.0,
-    # Relative margin target. The current absolute hinge
-    #   relu(teacher_margin - student_margin)
-    # pushes the student ALL the way to the teacher's margin, which over-
-    # optimises the adversarial boundary on already-stable samples and causes
-    # the slight clean / white-box drop in the clean-gated config. A RELATIVE
-    # target only asks the student to close a FRACTION (eta_rel) of the gap to
-    # the teacher's margin:
-    #   target_rel = student_margin + eta_rel * (teacher_margin - student_margin)
-    #   loss = relu(target_rel - student_margin) = eta_rel * relu(teacher_margin - student_margin)
-    # This is a gentler nudge that avoids over-sharpening the boundary.
-    "teacher_margin_relative": False,
-    "teacher_margin_relative_eta": 0.5,
     # Batch-level gradient-conflict gate. A SOFT floor (0.3) keeps a fraction of
     # the teacher-margin signal even on conflicting batches, which the best
     # ResNet-18 config used. Hard floor (0.0) was too aggressive.
-    "teacher_margin_conflict_gate": True,
+    "teacher_margin_conflict_gate": False,
     "teacher_margin_conflict_threshold": 0.0,
-    "teacher_margin_conflict_floor": 0.211797,
+    "teacher_margin_conflict_floor": 0.0,
     # Architecture-aware teacher-margin. The same margin weight that helps
     # MobileNet-V2 can conflict with ResNet-18, whose baseline robust boundary is
     # already stronger. When a ResNet student is detected, teacher-margin is made
@@ -222,41 +197,9 @@ CFG = {
     # improves both clean and robust accuracy slightly when the raw final model
     # oscillates. This is the default Safe+ improvement over CIARD baseline.
     "student_ema": True,
-    "student_ema_decay": 0.999642,
+    "student_ema_decay": 0.999,
     "eval_student_ema": True,
     "save_ema_as_student": True,
-    # =========================================================================
-    # WEIGHT SPACE AVERAGING (Model Soup) — the effective fix for ResNet-18.
-    # -------------------------------------------------------------------------
-    # Problem: teacher_margin improves black-box CW but hurts white-box + clean
-    # on ResNet-18, because its residual connections let the margin gradient
-    # disturb the conv features that determine white-box robustness. 8+ rounds of
-    # gating experiments proved this cannot be fixed in-training.
-    #
-    # Solution: save the EMA student at teacher_margin_start (before margin kicks
-    # in → white-box-optimal) and at the end of training (black-box-optimal).
-    # After training, average their weights: w = alpha*w_pre + (1-alpha)*w_post.
-    # Both checkpoints are from the SAME trajectory → same loss basin → weight
-    # averaging is valid (Model Soups, Wortsman et al. 2022). The result is a
-    # SINGLE model (no extra inference cost) that interpolates between:
-    #   alpha=1.0: pure white-box-optimal (baseline-level white-box + clean)
-    #   alpha=0.0: pure black-box-optimal (black-box CW gain, white-box drop)
-    #   alpha=0.5: balanced
-    # =========================================================================
-    "weight_averaging": True,
-    "wa_alpha": 0.5,             # weight of pre-margin checkpoint (1.0=white-box, 0.0=black-box)
-    # -------------------------------------------------------------------------
-    # PCGrad-style gradient surgery for teacher-margin.
-    # -------------------------------------------------------------------------
-    # ResNet-18's failure mode is that teacher-margin helps black-box metrics but
-    # its gradient can oppose the base CIARD objective, producing clean/white-box
-    # drops. Instead of gating the LOSS value, PCGrad edits the teacher-margin
-    # GRADIENT: if it conflicts with the base CIARD gradient on a parameter, the
-    # conflicting component is projected away. This preserves margin information
-    # that is orthogonal or aligned with CIARD, while provably removing the part
-    # that would increase the base loss.
-    "pcgrad_teacher_margin": True,
-    "pcgrad_start": 120,
 }
 
 class AverageMeter(object):
@@ -284,15 +227,15 @@ transform_test = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-trainset = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transform_train)
+trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
 training_data = EpochViews(trainset)
 trainloader = torch.utils.data.DataLoader(training_data, batch_size=batch_size, shuffle=True, num_workers=0)
 
-testset = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=transform_test)
+testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=0)
 
 # Student architecture is fixed for this independent variant.
-student = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=100)
+student = mobilenet_v2()
 # Architecture-aware teacher-margin. ResNet-18 already has a stronger baseline
 # robust boundary than MobileNet-V2, so the same margin weight/start that gives
 # MobileNet-V2 all-positive metrics can hurt ResNet-18's white-box robustness.
@@ -312,17 +255,49 @@ if USE_CIARDPP and CFG["student_arch_adaptive_margin"]:
 for _legacy_tm_env in ("CIARD_TM_WEIGHT", "CIARD_TM_START", "CIARD_TM_WARMUP",
                        "CIARD_TM_PS_FLOOR", "CIARD_TM_PS_CONFLICT", "CIARD_TM_CLEAN_GATE",
                        "CIARD_TM_ADV_GATE", "CIARD_TM_CONFLICT_FLOOR", "CIARD_TM_CLEAN_TAU",
-                       "CIARD_TM_ADV_TAU", "CIARD_TM_RELATIVE", "CIARD_TM_RELATIVE_ETA"):
+                       "CIARD_TM_ADV_TAU"):
     os.environ.pop(_legacy_tm_env, None)
 
-# Legacy teacher-margin environment overrides are intentionally ignored in independent variants.
+# Env-var overrides for teacher-margin config. These run AFTER the architecture-
+# adaptive defaults, so shell scripts can force any weight regardless of student
+# arch. Each is optional; absence leaves the adaptive default in place.
+if os.environ.get("CIARD_TM_WEIGHT") is not None:
+    CFG["teacher_margin_weight"] = float(os.environ["CIARD_TM_WEIGHT"])
+    logger.info("Override: teacher_margin_weight={}".format(CFG["teacher_margin_weight"]))
+if os.environ.get("CIARD_TM_START") is not None:
+    CFG["teacher_margin_start"] = int(os.environ["CIARD_TM_START"])
+    logger.info("Override: teacher_margin_start={}".format(CFG["teacher_margin_start"]))
+if os.environ.get("CIARD_TM_WARMUP") is not None:
+    CFG["teacher_margin_warmup"] = int(os.environ["CIARD_TM_WARMUP"])
+    logger.info("Override: teacher_margin_warmup={}".format(CFG["teacher_margin_warmup"]))
+if os.environ.get("CIARD_TM_PS_FLOOR") is not None:
+    CFG["teacher_margin_per_sample_floor"] = float(os.environ["CIARD_TM_PS_FLOOR"])
+    logger.info("Override: teacher_margin_per_sample_floor={}".format(CFG["teacher_margin_per_sample_floor"]))
+if os.environ.get("CIARD_TM_PS_CONFLICT") is not None:
+    CFG["teacher_margin_per_sample_conflict"] = os.environ["CIARD_TM_PS_CONFLICT"].lower() in ("1", "true", "yes")
+    logger.info("Override: teacher_margin_per_sample_conflict={}".format(CFG["teacher_margin_per_sample_conflict"]))
+if os.environ.get("CIARD_TM_CLEAN_GATE") is not None:
+    CFG["teacher_margin_clean_gate"] = os.environ["CIARD_TM_CLEAN_GATE"].lower() in ("1", "true", "yes")
+    logger.info("Override: teacher_margin_clean_gate={}".format(CFG["teacher_margin_clean_gate"]))
+if os.environ.get("CIARD_TM_ADV_GATE") is not None:
+    CFG["teacher_margin_adv_gate"] = os.environ["CIARD_TM_ADV_GATE"].lower() in ("1", "true", "yes")
+    logger.info("Override: teacher_margin_adv_gate={}".format(CFG["teacher_margin_adv_gate"]))
+if os.environ.get("CIARD_TM_CONFLICT_FLOOR") is not None:
+    CFG["teacher_margin_conflict_floor"] = float(os.environ["CIARD_TM_CONFLICT_FLOOR"])
+    logger.info("Override: teacher_margin_conflict_floor={}".format(CFG["teacher_margin_conflict_floor"]))
+if os.environ.get("CIARD_TM_CLEAN_TAU") is not None:
+    CFG["teacher_margin_clean_tau"] = float(os.environ["CIARD_TM_CLEAN_TAU"])
+    logger.info("Override: teacher_margin_clean_tau={}".format(CFG["teacher_margin_clean_tau"]))
+if os.environ.get("CIARD_TM_ADV_TAU") is not None:
+    CFG["teacher_margin_adv_tau"] = float(os.environ["CIARD_TM_ADV_TAU"])
+    logger.info("Override: teacher_margin_adv_tau={}".format(CFG["teacher_margin_adv_tau"]))
 
 resume_student_path = None 
 if resume_student_path != None:
     state_dict = torch.load(resume_student_path,map_location=torch.device('cpu'))["model"]
     new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
     student.load_state_dict(new_state_dict)
-student = torch.nn.DataParallel(student.cuda())
+student = student.cuda()
 student.train()
 ema_student = None
 if USE_CIARDPP and CFG["student_ema"]:
@@ -390,8 +365,8 @@ def pull_loss(teacher_logits, students_logits, labels,T=1):#train_batch_labels
     #print(diff_student_logits)
     return kl_loss(F.log_softmax(diff_student_logits/T,dim=1),F.softmax(diff_teacher_logits.detach(),dim=1))
 
-teacher = robust_teacher()
-teacher1_path =  'models/cifar100_linf_wrn70-16_without.pt'
+teacher = wideresnet()#WideResNet()
+teacher1_path =  'models/model_cifar_wrn.pt'
 #state_dict = torch.load(teacher1_path)
 #teacher.load_state_dict(state_dict)
 
@@ -400,7 +375,7 @@ new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 teacher.load_state_dict(new_state_dict)
 
 #teacher = torch.nn.DataParallel(teacher)
-teacher = torch.nn.DataParallel(teacher.cuda())
+teacher = teacher.cuda()
 # teacher = teacher.half()
 #teacher.eval()
 teacher_lr = 0.0001
@@ -409,8 +384,8 @@ ADV_teacher_loss_CE = torch.nn.CrossEntropyLoss().cuda()
 teacher.train()
 
 
-teacher_nat = natural_teacher()
-teacher2_path = 'models/nat_teacher_checkpoint/cifar100_wrn_22_6.pth'
+teacher_nat = cifar10_resnet56()#resnet56()
+teacher2_path = 'models/nat_teacher_checkpoint/cifar10_resnnet56.pth'
 #state_dict_1 = torch.load(teacher2_path)
 #teacher_nat.load_state_dict(state_dict_1)
 
@@ -419,7 +394,7 @@ new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 teacher_nat.load_state_dict(new_state_dict)
 
 #teacher = torch.nn.DataParallel(teacher)
-teacher_nat = torch.nn.DataParallel(teacher_nat.cuda())
+teacher_nat = teacher_nat.cuda()
 teacher_nat.eval()
 
 
@@ -432,8 +407,8 @@ ema_teacher = None
 if USE_CIARDPP and CFG["push_feature"]:
     # projection heads map student / clean-teacher penultimate features into a
     # shared embedding space for the feature-level push (component A).
-    student_head = ProjectionHead(student.module.feature_dim, proj_dim=CFG["proj_dim"]).cuda()
-    nat_teacher_head = ProjectionHead(teacher_nat.module.feature_dim, proj_dim=CFG["proj_dim"]).cuda()
+    student_head = ProjectionHead(student.feature_dim, proj_dim=CFG["proj_dim"]).cuda()
+    nat_teacher_head = ProjectionHead(teacher_nat.feature_dim, proj_dim=CFG["proj_dim"]).cuda()
     # the student head is trained jointly with the student.
     optimizer.add_param_group({"params": student_head.parameters()})
     # the clean-teacher head is frozen (clean teacher is fixed); we only need a
@@ -471,42 +446,27 @@ Strong CIARD++ components remain available through CFG, but are disabled by
 default because the latest full-metric run showed systematic regression.
 Lr stage decay, epoch = 300 coslr
 ''')
-logger.info("CIARD explicit teacher-margin config: prefix={}, student={}, weight={}, start={}, warmup={}, clean_gate={}, clean_tau={}, adv_gate={}, adv_tau={}, conflict_floor={}, per_sample_conflict={}, relative={}, relative_eta={}{}".format(
-    prefix, student.__class__.__name__, CFG["teacher_margin_weight"], CFG["teacher_margin_start"],
-    CFG["teacher_margin_warmup"], CFG["teacher_margin_clean_gate"], CFG["teacher_margin_clean_tau"],
-    CFG["teacher_margin_adv_gate"], CFG["teacher_margin_adv_tau"], CFG["teacher_margin_conflict_floor"],
-    CFG["teacher_margin_per_sample_conflict"], CFG["teacher_margin_relative"], CFG["teacher_margin_relative_eta"],
-    "" if CFG["teacher_margin_relative"] else " (ignored because teacher_margin_relative=False)"))
 logger.info("""CIARD resolved train config:
 variant: {}
 prefix: {}
 dataset: {} train_samples={} test_samples={}
 student: {} num_classes={}
 epochs: {}
-batch_size: {} (global; 64 per device for full training batches)
-training_gpus: 2 (DataParallel)
-teacher_input: raw [0,1]; model-internal CIFAR100 normalization
-epsilon: {}
+batch_size: {}
+train_epsilon: {}
 train_pgd_steps: 10
 train_pgd_step_size: 2/255
 training_seed: 0
 selection_protocol: historical_50k_train_test_loader_selection
-target_mix_teacher: live_robust_teacher_clean_logits_existing_forward
-target_mix_temperature: current_batch_temp_adv_before_update
-target_mix_reduction: original_mean_over_batch_and_classes
-split_mix_reference: G3_q020_non_target_mass_when_enabled
-split_mix_loss: source_KL_plus_binary_and_conditional_KL_correction
 robust_teacher_checkpoint: {}
 natural_teacher_checkpoint: {}
 USE_CIARDPP: {}
 CIARD_SAFE_PLUS: {}
-model_dir: {}
 CFG:
 {}
-""".format(
-    VARIANT_NAME, prefix, trainset.__class__.__name__, len(trainset), len(testset),
-    student.module.__class__.__name__, student.module.linear.out_features, epochs, batch_size, epsilon,
-    teacher1_path, teacher2_path, USE_CIARDPP, CIARD_SAFE_PLUS, model_dir,
+""".format(VARIANT_NAME, prefix, trainset.__class__.__name__, len(trainset), len(testset),
+    student.__class__.__name__, student.linear.out_features, epochs, batch_size, epsilon,
+    teacher1_path, teacher2_path, USE_CIARDPP, CIARD_SAFE_PLUS,
     "\n".join("  {}: {}".format(k, CFG[k]) for k in sorted(CFG))))
 
 method_runner = None
@@ -565,44 +525,7 @@ for epoch in range(begin_epoch,epochs+1):
         else:
             robust_soft_logits = teacher_adv_logits
 
-        # BEGIN 0906 TARGET MIX: no extra forwards, BN updates, or teacher grads.
-        target_mix_ramp = min(1.0, max(0.0,
-            (epoch - CFG["target_mix_start"]) / float(max(1, CFG["target_mix_warmup"]))))
-        target_mix_alpha = CFG["target_mix_alpha"] * target_mix_ramp
-        if USE_CIARDPP and target_mix_alpha > 0.0:
-            with torch.no_grad():
-                target_mix_adv = F.softmax(robust_soft_logits.detach()/temp_adv, dim=1)
-                target_mix_clean = F.softmax(adv_teacher_nat.detach()/temp_adv, dim=1)
-                target_mix_correct = (adv_teacher_nat.detach().argmax(dim=1)
-                                      == train_batch_labels).to(target_mix_adv.dtype)
-                target_mix_weight = target_mix_alpha * target_mix_correct.unsqueeze(1)
-                target_mix_probs = ((1.0 - target_mix_weight) * target_mix_adv
-                                    + target_mix_weight * target_mix_clean)
-            kl_Loss1 = kl_loss(F.log_softmax(student_adv_logits, dim=1), target_mix_probs)
-        else:
-            kl_Loss1 = kl_loss(F.log_softmax(student_adv_logits,dim=1),F.softmax(robust_soft_logits.detach()/temp_adv,dim=1))
-        # Diagnostics are detached and do not feed the temperature/gate updates.
-        if step % 100 == 0:
-            with torch.no_grad():
-                tmix_correct_fraction = (adv_teacher_nat.detach().argmax(dim=1)
-                                         == train_batch_labels).float().mean().item()
-                tmix_mean_weight = 0.0
-                tmix_target_l1 = 0.0
-                if USE_CIARDPP and target_mix_alpha > 0.0:
-                    tmix_mean_weight = target_mix_weight.mean().item()
-                    tmix_target_l1 = (target_mix_probs - target_mix_adv).abs().sum(dim=1).mean().item()
-                tmix_temperature = float(temp_adv)
-        # END 0906 TARGET MIX
-        # BEGIN 0906V2 SPLIT MIX
-        split_target_alpha = CFG["split_target_alpha"] * target_mix_ramp
-        split_nontarget_alpha = CFG["split_nontarget_alpha"] * target_mix_ramp
-        split_mix_stats = None
-        if USE_CIARDPP and CFG["split_target_mix"] and target_mix_alpha > 0.0:
-            kl_Loss1, split_mix_stats = split_target_mix_loss(
-                kl_Loss1, student_adv_logits, robust_soft_logits, adv_teacher_nat,
-                train_batch_labels, target_mix_probs, temp_adv, target_mix_alpha,
-                split_target_alpha, split_nontarget_alpha)
-        # END 0906V2 SPLIT MIX
+        kl_Loss1 = kl_loss(F.log_softmax(student_adv_logits,dim=1),F.softmax(robust_soft_logits.detach()/temp_adv,dim=1))
         kl_Loss2 = kl_loss(F.log_softmax(student_nat_logits,dim=1),F.softmax(teacher_nat_logits.detach()/temp_nat,dim=1))
         # Reliability-aware robust KD: do not blindly imitate a wrong robust
         # teacher. If the robust teacher is correct and confident on y, the KL
@@ -749,16 +672,7 @@ for epoch in range(begin_epoch,epochs+1):
                 else:
                     adv_margin_gate = torch.ones(train_batch_labels.size(0)).cuda()
             student_adv_margin = true_logit - max_other_logit
-            # Relative margin target: only close a fraction (eta_rel) of the gap
-            # to the teacher's margin, instead of the full gap. This avoids over-
-            # optimising the adversarial boundary on already-stable samples,
-            # which caused the slight clean / white-box drop in the clean-gated
-            # config.
-            if CFG["teacher_margin_relative"]:
-                gap = F.relu(teacher_margin_target - student_adv_margin)
-                teacher_margin_loss = torch.mean(teacher_margin_gate * CFG["teacher_margin_relative_eta"] * gap)
-            else:
-                teacher_margin_loss = torch.mean(teacher_margin_gate * F.relu(teacher_margin_target - student_adv_margin))
+            teacher_margin_loss = torch.mean(teacher_margin_gate * F.relu(teacher_margin_target - student_adv_margin))
             teacher_margin_conflict_score = torch.tensor(1.0).cuda()
             teacher_margin_conflict_scale = 1.0
             # Per-sample gradient alignment. The previous batch-level gate was
@@ -827,21 +741,16 @@ for epoch in range(begin_epoch,epochs+1):
                                                      else CFG["teacher_margin_conflict_floor"])
             # Apply the (per-sample) conflict scale to the teacher-margin loss.
             # The final loss is the mean over samples of
-            #   per_sample_scale * teacher_margin_gate * eta_rel * relu(target - margin),
+            #   per_sample_scale * teacher_margin_gate * relu(target - student_margin),
             # which only spends gradient on samples where teacher-margin AGREES
-            # with the original robust KD direction, and only closes a fraction
-            # of the gap to avoid over-optimising the boundary.
-            tm_gap = F.relu(teacher_margin_target - student_adv_margin)
-            if CFG["teacher_margin_relative"]:
-                tm_gap = CFG["teacher_margin_relative_eta"] * tm_gap
-            tm_per_sample = teacher_margin_per_sample_scale * teacher_margin_gate * tm_gap
+            # with the original robust KD direction.
+            tm_per_sample = teacher_margin_per_sample_scale * teacher_margin_gate * F.relu(teacher_margin_target - student_adv_margin)
             teacher_margin_loss_scaled = torch.mean(tm_per_sample)
-            teacher_margin_term = teacher_margin_ramp * CFG["teacher_margin_weight"] * teacher_margin_loss_scaled
             total_loss = (total_loss
                           + ce_ramp * CFG["clean_ce_weight"] * clean_ce
                           + ce_ramp * CFG["adv_ce_weight"] * adv_ce
                           + margin_ramp * CFG["adv_margin_weight"] * adv_margin
-                          + teacher_margin_term)
+                          + teacher_margin_ramp * CFG["teacher_margin_weight"] * teacher_margin_loss_scaled)
         else:
             clean_ce = torch.tensor(0.0).cuda()
             adv_ce = torch.tensor(0.0).cuda()
@@ -854,7 +763,6 @@ for epoch in range(begin_epoch,epochs+1):
             teacher_margin_conflict_score = torch.tensor(1.0).cuda()
             teacher_margin_conflict_scale = 1.0
             teacher_margin_per_sample_scale = torch.ones(train_batch_labels.size(0)).cuda()
-            teacher_margin_term = torch.tensor(0.0).cuda()
 
 
         # (A) soft-weighted feature-level contrastive push loss.
@@ -932,53 +840,7 @@ for epoch in range(begin_epoch,epochs+1):
             temp_learn_rate *= 0.1
                     
         student.train()
-        pcgrad_conflict_count = 0
-        pcgrad_param_count = 0
-        if (USE_CIARDPP and CFG.get("pcgrad_teacher_margin", False)
-                and epoch >= CFG.get("pcgrad_start", 0)
-                and teacher_margin_term.requires_grad
-                and float(teacher_margin_term.detach().item()) != 0.0):
-            # PCGrad-style gradient surgery. Split the optimization into:
-            #   base_loss = original CIARD objective (KD + push + CE anchors)
-            #   margin_loss = teacher-guided CW margin
-            # If margin_loss has a conflicting gradient on a parameter, project
-            # the conflicting component away before adding it to the base grad.
-            base_loss = total_loss - teacher_margin_term
-            opt_params = []
-            for group in optimizer.param_groups:
-                opt_params.extend([p for p in group['params'] if p.requires_grad])
-
-            optimizer.zero_grad()
-            base_loss.backward(retain_graph=True)
-            base_grads = []
-            for p in opt_params:
-                base_grads.append(None if p.grad is None else p.grad.detach().clone())
-
-            optimizer.zero_grad()
-            teacher_margin_term.backward(retain_graph=True)
-            margin_grads = []
-            for p in opt_params:
-                margin_grads.append(None if p.grad is None else p.grad.detach().clone())
-
-            optimizer.zero_grad()
-            for p, bg, mg in zip(opt_params, base_grads, margin_grads):
-                if bg is None and mg is None:
-                    p.grad = None
-                    continue
-                if bg is None:
-                    p.grad = mg.clone()
-                    continue
-                if mg is None:
-                    p.grad = bg.clone()
-                    continue
-                dot = torch.sum(mg * bg)
-                pcgrad_param_count += 1
-                if dot.item() < 0:
-                    mg = mg - dot / (torch.sum(bg * bg) + 1e-12) * bg
-                    pcgrad_conflict_count += 1
-                p.grad = bg + mg
-        else:
-            total_loss.backward()
+        total_loss.backward()
         optimizer.step()
         if USE_CIARDPP and CFG["student_ema"] and ema_student is not None:
             ema_update_teacher(ema_student, student, decay=CFG["student_ema_decay"])
@@ -996,21 +858,12 @@ for epoch in range(begin_epoch,epochs+1):
             text = 'lr:' + str(lr) 
             text += ' weight_nat: {}, nat_loss: {}, weight_adv: {}, adv_loss: {}'.format(weight["nat_loss"], kl_Loss2.item(), weight["adv_loss"], kl_Loss1.item()) 
             text += " weight-klloss3 " + str(loss3_weight) + " Loss3: " + str(kl_Loss3.item()) 
-            text += " clean_ce: {}, adv_ce: {}, adv_margin: {}, clean_gate: {}, teacher_margin: {}, teacher_margin_gate: {}, teacher_clean_gate: {}, teacher_adv_gate: {}, tm_grad_cos: {}, tm_scale: {}, tm_ps_scale: {}, pcgrad_conflicts: {}/{}".format(
+            text += " clean_ce: {}, adv_ce: {}, adv_margin: {}, clean_gate: {}, teacher_margin: {}, teacher_margin_gate: {}, teacher_clean_gate: {}, teacher_adv_gate: {}, tm_grad_cos: {}, tm_scale: {}, tm_ps_scale: {}".format(
                 clean_ce.item(), adv_ce.item(), adv_margin.item(), torch.mean(clean_gate).item(),
                 teacher_margin_loss.item(), torch.mean(teacher_margin_gate).item(), torch.mean(clean_margin_gate).item(),
                 torch.mean(adv_margin_gate).item(),
                 teacher_margin_conflict_score.item(), teacher_margin_conflict_scale,
-                torch.mean(teacher_margin_per_sample_scale).item(), pcgrad_conflict_count, pcgrad_param_count)
-            text += " tmix: alpha={} ramp={} clean_correct_fraction={} mean_weight={} target_l1={} temperature={}".format(
-                target_mix_alpha, target_mix_ramp, tmix_correct_fraction,
-                tmix_mean_weight, tmix_target_l1, tmix_temperature)
-            # BEGIN 0906V2 SPLIT LOG
-            if split_mix_stats is not None:
-                text += " splitmix: target_alpha={} nontarget_alpha={} ".format(
-                    split_target_alpha, split_nontarget_alpha)
-                text += " ".join("{}={}".format(k, v.item()) for k, v in sorted(split_mix_stats.items()))
-            # END 0906V2 SPLIT LOG
+                torch.mean(teacher_margin_per_sample_scale).item())
             logger.info(text) 
         
 
@@ -1051,14 +904,12 @@ for epoch in range(begin_epoch,epochs+1):
             predictions = np.argmax(logits.cpu().detach().numpy(),axis=1)
             predictions = predictions - test_batch_labels.cpu().detach().numpy()
             test_accs = test_accs + predictions.tolist()
-            with torch.no_grad():
-                teacher_logits = teacher(test_ifgsm_data)
+            teacher_logits = teacher(test_ifgsm_data)
             teacher_predictions = np.argmax(teacher_logits.cpu().detach().numpy(),axis=1)
             teacher_predictions = teacher_predictions - test_batch_labels.cpu().detach().numpy()
             teacher_test_accs = teacher_test_accs + teacher_predictions.tolist()
 
-            with torch.no_grad():
-                nat_teacher_logits = teacher_nat(test_ifgsm_data)
+            nat_teacher_logits = teacher_nat(test_ifgsm_data)
             nat_teacher_predictions = np.argmax(nat_teacher_logits.cpu().detach().numpy(),axis=1)
             nat_teacher_predictions = nat_teacher_predictions - test_batch_labels.cpu().detach().numpy()
             nat_teacher_test_accs = nat_teacher_test_accs + nat_teacher_predictions.tolist()
@@ -1087,14 +938,12 @@ for epoch in range(begin_epoch,epochs+1):
             predictions = predictions - test_batch_labels.cpu().detach().numpy()
             test_accs_naturals = test_accs_naturals + predictions.tolist()
 
-            with torch.no_grad():
-                teacher_logits = teacher(test_batch_data)
+            teacher_logits = teacher(test_batch_data)
             teacher_predictions = np.argmax(teacher_logits.cpu().detach().numpy(),axis=1)
             teacher_predictions = teacher_predictions - test_batch_labels.cpu().detach().numpy()
             teacher_test_accs_naturals = teacher_test_accs_naturals + teacher_predictions.tolist()
 
-            with torch.no_grad():
-                nat_teacher_logits = teacher_nat(test_batch_data)
+            nat_teacher_logits = teacher_nat(test_batch_data)
             nat_teacher_predictions = np.argmax(nat_teacher_logits.cpu().detach().numpy(),axis=1)
             nat_teacher_predictions = nat_teacher_predictions - test_batch_labels.cpu().detach().numpy()
             nat_teacher_test_accs_naturals = nat_teacher_test_accs_naturals + nat_teacher_predictions.tolist()
@@ -1105,19 +954,6 @@ for epoch in range(begin_epoch,epochs+1):
 
         nat_teacher_test_accs_naturals = np.array(nat_teacher_test_accs_naturals)
         nat_teacher_test_accs_natural = np.sum(nat_teacher_test_accs_naturals==0)/len(nat_teacher_test_accs_naturals)
-
-        # ---- Save pre-margin checkpoint for weight averaging ----
-        # This checkpoint is saved at teacher_margin_start (before margin kicks
-        # in), so it has baseline-level white-box + clean (no margin disturbance).
-        # After training, its weights are averaged with the final checkpoint to
-        # produce a model that retains both white-box and black-box benefits.
-        if (USE_CIARDPP and CFG.get("weight_averaging", False)
-                and epoch == CFG["teacher_margin_start"]
-                and not os.path.exists('./model/' + prefix + "/student_pre_margin.pth")):
-            save_student_pre = ema_student if (USE_CIARDPP and CFG["save_ema_as_student"] and ema_student is not None) else student
-            state_pre = {'model': save_student_pre.state_dict(), 'epoch': epoch}
-            torch.save(state_pre, './model/' + prefix + "/student_pre_margin.pth")
-            logger.info("Saved pre-margin checkpoint at epoch {} for weight averaging".format(epoch))
 
         if epoch%50 == 0 :
             save_student = ema_student if (USE_CIARDPP and CFG["save_ema_as_student"] and ema_student is not None) else student
@@ -1169,130 +1005,3 @@ for epoch in range(begin_epoch,epochs+1):
         with open('./model/' + prefix+ '/'+ draw_file,'a') as f:
             text = str(epoch) + " " + str(test_acc) + " " + str(test_accs_natural) + " " + str(teacher_test_acc) + " "+ str(teacher_test_accs_natural)+ " "+ str(nat_teacher_test_acc) + " "+ str(nat_teacher_test_accs_natural)+'\n'
             f.write(text)
-
-# =============================================================================
-# POST-TRAINING: WEIGHT SPACE AVERAGING (Model Soup)
-# =============================================================================
-# After training, average the weights of the pre-margin checkpoint (white-box-
-# optimal) and the final/best checkpoint (black-box-optimal). This produces a
-# single model that retains both white-box and black-box benefits.
-# =============================================================================
-if USE_CIARDPP and CFG.get("weight_averaging", False):
-    pre_margin_path = './model/' + prefix + "/student_pre_margin.pth"
-    post_margin_path = './model/' + prefix + "/student_best.pth"
-    if not os.path.exists(post_margin_path):
-        post_margin_path = './model/' + prefix + "/student_latest.pth"
-
-    if os.path.exists(pre_margin_path) and os.path.exists(post_margin_path):
-        logger.info("=" * 60)
-        logger.info("WEIGHT SPACE AVERAGING (Model Soup)")
-        logger.info("  pre-margin checkpoint:  {}".format(pre_margin_path))
-        logger.info("  post-margin checkpoint: {}".format(post_margin_path))
-        alpha = CFG["wa_alpha"]
-        logger.info("  alpha = {} (1.0=white-box-optimal, 0.0=black-box-optimal)".format(alpha))
-
-        # load both checkpoints
-        pre_state = torch.load(pre_margin_path, map_location='cpu')
-        post_state = torch.load(post_margin_path, map_location='cpu')
-        pre_sd = pre_state['model']
-        post_sd = post_state['model']
-
-        # average weights
-        averaged_sd = {}
-        for k in post_sd.keys():
-            if k in pre_sd:
-                averaged_sd[k] = alpha * pre_sd[k].float() + (1.0 - alpha) * post_sd[k].float()
-            else:
-                averaged_sd[k] = post_sd[k]
-        # cast back to original dtype
-        for k in averaged_sd:
-            averaged_sd[k] = averaged_sd[k].to(post_sd[k].dtype)
-
-        # load averaged weights into a fresh student
-        wa_student = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=100)
-        wa_student.load_state_dict({k.replace("module.", ""): v for k, v in averaged_sd.items()})
-        wa_student = wa_student.cuda()
-        wa_student.eval()
-
-        # evaluate the averaged model
-        wa_test_accs = []
-        wa_test_accs_naturals = []
-        for step,(test_batch_data,test_batch_labels) in enumerate(testloader):
-            test_batch_data = test_batch_data.float().cuda()
-            test_batch_labels = test_batch_labels.cuda()
-            # white-box PGD
-            test_ifgsm_data = attack_pgd(wa_student, test_batch_data, test_batch_labels,
-                                         attack_iters=20, step_size=0.003, epsilon=8.0/255.0)
-            with torch.no_grad():
-                logits = wa_student(test_ifgsm_data)
-            predictions = np.argmax(logits.cpu().detach().numpy(), axis=1)
-            predictions = predictions - test_batch_labels.cpu().detach().numpy()
-            wa_test_accs = wa_test_accs + predictions.tolist()
-            # clean
-            with torch.no_grad():
-                logits = wa_student(test_batch_data)
-            predictions = np.argmax(logits.cpu().detach().numpy(), axis=1)
-            predictions = predictions - test_batch_labels.cpu().detach().numpy()
-            wa_test_accs_naturals = wa_test_accs_naturals + predictions.tolist()
-
-        wa_test_accs = np.array(wa_test_accs)
-        wa_test_adv = np.sum(wa_test_accs == 0) / len(wa_test_accs)
-        wa_test_accs_naturals = np.array(wa_test_accs_naturals)
-        wa_test_nat = np.sum(wa_test_accs_naturals == 0) / len(wa_test_accs_naturals)
-
-        logger.info("Weight-averaged model (alpha={}):".format(alpha))
-        logger.info("  Clean acc:   {:.4f}".format(wa_test_nat))
-        logger.info("  Robust acc:  {:.4f} (white-box PGD-20)".format(wa_test_adv))
-        logger.info("  (Compare with final model: clean={:.4f}, robust={:.4f})".format(
-            test_accs_natural, test_acc))
-
-        # save the averaged model
-        wa_state = {'model': wa_student.state_dict(), 'epoch': epochs, 'alpha': alpha}
-        torch.save(wa_state, './model/' + prefix + "/student_weight_averaged.pth")
-        logger.info("  Saved to: ./model/{}/student_weight_averaged.pth".format(prefix))
-        logger.info("=" * 60)
-
-        # also sweep alpha to find the best trade-off
-        logger.info("Sweeping alpha to find best trade-off...")
-        best_wa_score = 0
-        best_wa_alpha = alpha
-        for sweep_alpha in [0.0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0]:
-            sweep_sd = {}
-            for k in post_sd.keys():
-                if k in pre_sd:
-                    sweep_sd[k] = (sweep_alpha * pre_sd[k].float() + (1.0 - sweep_alpha) * post_sd[k].float()).to(post_sd[k].dtype)
-                else:
-                    sweep_sd[k] = post_sd[k]
-            sweep_student = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=100)
-            sweep_student.load_state_dict({k.replace("module.", ""): v for k, v in sweep_sd.items()})
-            sweep_student = sweep_student.cuda()
-            sweep_student.eval()
-            sw_accs = []
-            sw_nats = []
-            for step,(test_batch_data,test_batch_labels) in enumerate(testloader):
-                test_batch_data = test_batch_data.float().cuda()
-                test_batch_labels = test_batch_labels.cuda()
-                test_ifgsm_data = attack_pgd(sweep_student, test_batch_data, test_batch_labels,
-                                             attack_iters=20, step_size=0.003, epsilon=8.0/255.0)
-                with torch.no_grad():
-                    logits = sweep_student(test_ifgsm_data)
-                predictions = np.argmax(logits.cpu().detach().numpy(), axis=1) - test_batch_labels.cpu().detach().numpy()
-                sw_accs = sw_accs + predictions.tolist()
-                with torch.no_grad():
-                    logits = sweep_student(test_batch_data)
-                predictions = np.argmax(logits.cpu().detach().numpy(), axis=1) - test_batch_labels.cpu().detach().numpy()
-                sw_nats = sw_nats + predictions.tolist()
-            sw_adv = np.sum(np.array(sw_accs) == 0) / len(sw_accs)
-            sw_nat = np.sum(np.array(sw_nats) == 0) / len(sw_nats)
-            sw_score = 0.5 * sw_nat + 0.5 * sw_adv
-            logger.info("  alpha={:.1f}: clean={:.4f}, robust={:.4f}, score={:.4f}".format(
-                sweep_alpha, sw_nat, sw_adv, sw_score))
-            if sw_score > best_wa_score:
-                best_wa_score = sw_score
-                best_wa_alpha = sweep_alpha
-        logger.info("Best alpha={:.1f} with score={:.4f}".format(best_wa_alpha, best_wa_score))
-        logger.info("To use best alpha, set CFG['wa_alpha']={} and re-run".format(best_wa_alpha))
-    else:
-        logger.warning("Weight averaging skipped: pre_margin or post_margin checkpoint not found.")
-        logger.warning("  pre_margin: {} (exists={})".format(pre_margin_path, os.path.exists(pre_margin_path)))
-        logger.warning("  post_margin: {} (exists={})".format(post_margin_path, os.path.exists(post_margin_path)))
