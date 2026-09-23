@@ -100,20 +100,24 @@ Baseline sources: [supplementary material](https://openaccess.thecvf.com/content
 
 ### ResNet-18 / CIFAR-100
 
-| Metric | Paper CIARD baseline | 0914v1 C100-R1 (Δ vs baseline) | 0914v1 C100-R2 (Δ vs baseline) |
-| --- | ---: | ---: | ---: |
-| Clean | 65.73 | 63.53 (-2.20 pp) | 63.78 (-1.95 pp) |
-| White-box FGSM | 34.47 | 35.37 (+0.90 pp) | 35.70 (+1.23 pp) |
-| White-box PGDsat | 28.05 | 30.91 (+2.86 pp) | 31.20 (+3.15 pp) |
-| White-box PGDtrades | 29.45 | 32.02 (+2.57 pp) | 32.28 (+2.83 pp) |
-| White-box CW | 24.43 | 27.72 (+3.29 pp) | 27.82 (+3.39 pp) |
-| Black-box PGDtrades | 42.29 | 43.35 (+1.06 pp) | 43.29 (+1.00 pp) |
-| Square (query-based) | 49.76 | 51.65 (+1.89 pp) | 51.69 (+1.93 pp) |
-| Black-box CW | 41.44 | 42.27 (+0.83 pp) | 42.49 (+1.05 pp) |
-| Seven-attack mean | 35.70 | 37.61 (+1.91 pp) | 37.78 (+2.08 pp) |
-| Eight-metric mean | 39.45 | 40.85 (+1.40 pp) | 41.03 (+1.58 pp) |
+| Metric | Paper CIARD baseline | 0914v1 C100-R1 (Δ vs baseline) | 0914v1 C100-R2 (Δ vs baseline) | 0918v1 C100-E2 (Δ vs baseline) |
+| --- | ---: | ---: | ---: | ---: |
+| Clean | 65.73 | 63.53 (-2.20 pp) | 63.78 (-1.95 pp) | 65.83 (+0.10 pp) |
+| White-box FGSM | 34.47 | 35.37 (+0.90 pp) | 35.70 (+1.23 pp) | 33.78 (-0.69 pp) |
+| White-box PGDsat | 28.05 | 30.91 (+2.86 pp) | 31.20 (+3.15 pp) | 28.22 (+0.17 pp) |
+| White-box PGDtrades | 29.45 | 32.02 (+2.57 pp) | 32.28 (+2.83 pp) | 29.64 (+0.19 pp) |
+| White-box CW | 24.43 | 27.72 (+3.29 pp) | 27.82 (+3.39 pp) | 26.46 (+2.03 pp) |
+| Black-box PGDtrades | 42.29 | 43.35 (+1.06 pp) | 43.29 (+1.00 pp) | 43.29 (+1.00 pp) |
+| Square (query-based) | 49.76 | 51.65 (+1.89 pp) | 51.69 (+1.93 pp) | 52.50 (+2.74 pp) |
+| Black-box CW | 41.44 | 42.27 (+0.83 pp) | 42.49 (+1.05 pp) | 42.23 (+0.79 pp) |
+| Seven-attack mean | 35.70 | 37.61 (+1.91 pp) | 37.78 (+2.08 pp) | 36.59 (+0.89 pp) |
+| Eight-metric mean | 39.45 | 40.85 (+1.40 pp) | 41.03 (+1.58 pp) | 40.24 (+0.79 pp) |
 
 **Only R2 is retained as an active source in this package, under CIARD_Expansion_resnet18_cifar100. R1 is a historical result reference; its source remains in origin_code/0914v1 and its original run.** R2−R1 in table order is +0.25 / +0.33 / +0.29 / +0.26 / +0.10 / −0.06 / +0.04 / +0.22 pp: seven primary metrics rise and black-box PGDtrades falls. AutoAttack is **25.70% for R1 and 25.59% for R2**. The higher R2 eight-metric mean does not imply improvement on every metric; neither run exceeds the paper's Clean (R1/R2 gaps: 2.20/1.95 pp). These are single-seed observations, not statistically established superiority. The R2 source README binds its configuration, checkpoint and evaluation evidence; historical R1 evidence remains in the manifest.
+
+**0918v1 C100-E2 is an additional result reference alongside R2; this update publishes its results only, while R2 remains the active code entry.** E2 uses the epoch-190 EMA `student_best.pth`, evaluated on all 10,000 test images; training/evaluation jobs **134960 / 135316** both completed successfully. Its original local experiment directory is `/home/lixidong25/mycode/CIARD_Expansion/run/0918v1/resnet18_cifar100_ce0p05_s120_w80_tau2p0_tm0p011316/` (a local filesystem path, not a directory included in this GitHub repository). The evaluation log is `logs/eval_best_stdout_135316.log` within that directory, and the complete local report is `结果分析/0918v1_cifar100_结果分析.md`. E2 source code, checkpoints and logs are not synchronized here.
+
+E2 improves Clean by **2.05 pp** relative to R2, while FGSM falls **1.92 pp**; its AutoAttack is **24.06%**, versus R2's 25.59%. Relative to the paper baseline used in the new column, E2 exceeds seven of eight primary metrics: Clean is +0.10 pp, but FGSM remains −0.69 pp. R2 and E2 therefore remain complementary references, not an all-metric replacement of one by the other. E2 trained and was evaluated on one A800; historical R2 trained on two 4090s, so their comparison is not a strict single-factor experiment.
 
 ### MobileNet-V2 / CIFAR-100
 
