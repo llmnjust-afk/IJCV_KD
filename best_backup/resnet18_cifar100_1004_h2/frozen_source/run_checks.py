@@ -21,10 +21,10 @@ PROTOCOL = 'paired_seed0_historical_attacks'
 SELECTION = 'fixed_epoch190_no_test_selection'
 STATE_KEYS = {'student', 'ema_student', 'teacher', 'optimizer', 'teacher_optimizer', 'dynamics', 'rng'}
 METHODS = {
-    'H1': ('resnet18_cifar100_nb_l1p5_w40_s0', 1.5, 40),
-    'H2': ('resnet18_cifar100_nb_l2_w40_s0', 2., 40),
-    'H3': ('resnet18_cifar100_nb_l3_w40_s0', 3., 40),
-    'H4': ('resnet18_cifar100_nb_l2_w20_s0', 2., 20)}
+    'G1': ('ce_transfer', 'resnet18_cifar100_clean_transfer_s0', .1, False, 0., False),
+    'G2': ('ce_transfer_normalized', 'resnet18_cifar100_clean_transfer_norm_s0', .1, True, 0., False),
+    'G3': ('natural_binary_both', 'resnet18_cifar100_nat_binary_both_s0', 0., False, 1., True),
+    'G4': ('natural_binary_outer', 'resnet18_cifar100_nat_binary_outer_s0', 0., False, 1., False)}
 
 
 def source_hashes():
@@ -61,23 +61,21 @@ def settings():
     if len(entries) != 1:
         raise ValueError('Group is not uniquely identified in manifest')
     entry = entries[0]
-    if (manifest['batch'] != '1004-cifar100-binary-v1'
-            or manifest['protocol'] != PROTOCOL or manifest['selection_protocol'] != SELECTION
+    if (manifest['protocol'] != PROTOCOL or manifest['selection_protocol'] != SELECTION
             or type(manifest['epochs']) is not int or manifest['epochs'] != 190):
         raise ValueError('Wrong frozen batch protocol or endpoint')
     if (entry['id'] not in METHODS or type(entry['training_seed']) is not int
             or entry['training_seed'] != 0 or entry['error_swap'] is not False):
         raise ValueError('Wrong experiment seed or disabled error-swap identity')
-    name, binary, warmup = METHODS[entry['id']]
-    method = 'natural_binary_outer'
+    method, name, ratio, preserve, binary, awp = METHODS[entry['id']]
     if (entry['method'] != method or entry['name'] != name
-            or entry['prefix'] != 'Cifar100_ResNet18_1004_binary_v1_' + entry['id']):
+            or entry['prefix'] != 'Cifar100_ResNet18_1002_clean_v1_' + entry['id']):
         raise ValueError('Wrong fixed group, method or prefix')
     train = literals(GROUP / 'CIARD.py')
-    expected_cfg = {'robust_kd_error_swap': False, 'clean_ce_transfer_ratio': 0.,
-                    'clean_ce_preserve_loss': False, 'natural_binary_weight': binary,
-                    'natural_binary_awp': False, 'natural_binary_start': 120,
-                    'natural_binary_warmup': warmup}
+    expected_cfg = {'robust_kd_error_swap': False, 'clean_ce_transfer_ratio': ratio,
+                    'clean_ce_preserve_loss': preserve, 'natural_binary_weight': binary,
+                    'natural_binary_awp': awp, 'natural_binary_start': 120,
+                    'natural_binary_warmup': 40}
     for key, value in expected_cfg.items():
         actual = train['CFG'][key]
         numeric = type(value) is float and type(actual) in (int, float)

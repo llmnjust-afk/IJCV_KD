@@ -1,6 +1,6 @@
 # SARD: Strength-Adaptive Reliability-Calibrated Distillation
 
-> **Historical 0830 design document.** The content and commands below describe an inactive design. Current evaluated sources are0917v1 CIFAR-10 MobileNet M1 (M4 alternative) / ResNet R4 and0914v1 CIFAR-100 MobileNet M1 / ResNet R2. See README.md and the source READMEs; ResNet still has a paper-baseline deficit. Only the current wrappers describe the supported execution templates.
+> **Historical 0830 design document.** The content and commands below describe an inactive design. Following the2026-10-05 local synchronization, current evaluated sources are0917v1 CIFAR-10 MobileNet M1 (M4 alternative) / ResNet R4,0914v1 CIFAR-100 MobileNet M1, and1004 CIFAR-100 ResNet H2. H2's fixed epoch190 EMA passes all eight paper values under the project's frozen protocol in this single-seed evaluation; CIFAR-10 ResNet R4 still has an FGSM deficit. See README.md and the source READMEs. These are resource-free source snapshots, not direct submission targets; H2 retains its original identity/path/parent-manifest bindings, so its adapted A800 wrappers are not ready-to-submit experiments. The user authorized GitHub publication of this verified H2 source update; the earlier local synchronization remains separately documented.
 
 IJCV journal extension of the ICCV 2025 paper **CIARD** (Cyclic Iterative Adversarial Robustness Distillation).
 

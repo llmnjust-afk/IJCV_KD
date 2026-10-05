@@ -1,4 +1,4 @@
-# CIFAR-100 / ResNet-18 — 1004 H2 当前方法入口
+# CIFAR-100 / ResNet-18 — 1004 H2 冻结源码备份
 
 2026-10-05：按用户选择同步已测H2。1004表示实验批次 `1004-cifar100-binary-v1`；实际源码同步及备份日期为2026-10-05。此入口替代旧0914v1 R2，历史结果和冻结来源继续保留。
 
@@ -12,13 +12,13 @@
 - 新增自然教师真类／其余类二元KL：weight=2、start120/warmup40，仅学生外层；自然教师正确、学生Clean错误且教师真类概率更高时生效；全batch均值再除100类，使用原自然教师温度、学生T1、无T²。第121轮开始非零，第160轮满强度。AWP内层保留原自然KD及含target mix/split的对抗KD，不加入该额外二元项。
 - 继承双视图、KD-AWP gamma=.003、一致性=.50、target mix=.20、split target=.25/non-target=0、push=.081740、门控Clean CE=.036067/start158/warmup116/τ=.682852、teacher margin=.011316/start120/warmup89及margin PCGrad、student EMA=.999642。
 - CE预算转移、CE损失保持、CE梯度投影及ELS均关闭。`teacher_margin_conflict_gate`保留历史配置值，但当前runner未应用该额外门控；不能仅据配置名声称启用。
-- 完整CFG保存在[同步清单](../SYNC_MANIFEST.json)的H2条目，并附于下方；Python逐字保留已测实现，包括历史注释，实际运行行为以代码及本说明为准。
+- 完整CFG保存在[同步清单](../../SYNC_MANIFEST.json)的H2条目，并附于下方；Python逐字保留已测实现，包括历史注释，实际运行行为以代码及本说明为准。
 
 自然教师为原始包WRN-22-6 `models/nat_teacher_checkpoint/cifar100_wrn_22_6.pth`，SHA256 `c91c5bf8b5f6c74c427d9a88815c00f98b73a4d1109fb4508b985ae86919e935`。鲁棒教师为循环更新的WRN-70-16 `models/cifar100_linf_wrn70-16_without.pt`，SHA256 `3114df6b9d5adf9f275e8fea5a91b71c61df78a568ad31544b6950807d595c8c`。输入raw [0,1]、模型内部CIFAR-100归一化，未新增外部Normalize。
 
 ## 已完成测试结果
 
-单位为%；论文差为百分点。论文来源和全部历史列保留在[总README](../README.md)。每项来自同一个固定checkpoint的完整10,000张测试，均值不含AA。
+单位为%；论文差为百分点。论文来源和全部历史列保留在[总README](../../README.md)。每项来自同一个固定checkpoint的完整10,000张测试，均值不含AA。
 
 | Metric | Paper CIARD baseline | H2 | Δ vs paper |
 | --- | ---: | ---: | ---: |

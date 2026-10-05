@@ -34,8 +34,8 @@ def eval_autoattack(model, testloader, epsilon=8/255.0, norm='Linf', attacks_to_
         adv_complete = adversary.run_standard_evaluation(x_test, y_test, bs=128)
 
 eval_target = 'epoch190'
-variant_name = 'resnet18_cifar100_nb_l2_w40_s0'
-path = '/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/student_epoch190.pth'
+variant_name = 'resnet18_cifar100_nat_binary_outer_s0'
+path = '/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/run/1002-cifar100-clean-v1/resnet18_cifar100_nat_binary_outer_s0/model/Cifar100_ResNet18_1002_clean_v1_G4/student_epoch190.pth'
 student = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=100)
 
 teacher1_path =  'models/cifar100_linf_wrn70-16_without.pt' #for blackbox attack
