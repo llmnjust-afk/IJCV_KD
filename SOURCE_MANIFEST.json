@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "prepared_on": "2026-10-08",
-  "purpose": "CIARD拓展论文讨论源码集合",
-  "status": "local_source_archive",
+  "purpose": "CIARD拓展论文讨论源码与已完成实验日志集合",
+  "status": "source_and_log_archive",
   "source_package": "process",
   "historical_sync_manifest": "process/SYNC_MANIFEST.json",
   "historical_sync_manifest_sha256": "a0dc60d1a61b40fe314ea43e1f916aeca15a0c070aa2a6361402eab4a6c770f7",
@@ -10,11 +10,14 @@
   "verification_record": "../preparation_20261008/verification.json",
   "policy": {
     "computation_and_scripts": "byte-identical to selected process snapshots",
-    "documentation_changes_only": true,
+    "documentation_changes_only": false,
     "directly_runnable": false,
     "new_training_or_evaluation": false,
-    "published": false,
-    "checkpoint_data_logs_copied": false
+    "published": true,
+    "changes": "documentation and copies of existing completed-run logs only; computation and scripts unchanged",
+    "publication_note": "Source package published at 145bfb88d4e8c723056f0d6bb5fcf48c62ed8815; log publication is recorded separately in log_archive_20261008/publication.json beside this repository.",
+    "checkpoint_data_copied": false,
+    "logs_copied": true
   },
   "metric_order": [
     "clean",
@@ -203,7 +206,7 @@
         {
           "path": "README.md",
           "source_sha256": "f801a610ba8dbd769d198a68bc1e9fba59de49717d75dd1899a261a2b4ee1132",
-          "sha256": "65e792410e1b6812d7a0f4bb78ee9ba17190acef4b78a825168720623b9d02d4",
+          "sha256": "09f41e9dfd39cbebe2ebd825e5bd9c43c4e80eaf007e8bc3f08078efb61c043a",
           "same_as_source": false
         },
         {
@@ -369,7 +372,63 @@
       ],
       "dataset": "CIFAR-10",
       "num_classes": 10,
-      "student_architecture": "MobileNet-V2"
+      "student_architecture": "MobileNet-V2",
+      "log_archive": {
+        "files": [
+          {
+            "source_project_relative_path": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/train_stdout_134636.log",
+            "package_relative_path": "CIARD_Expansion_mobilenetv2_cifar10/logs/train_stdout_134636.log",
+            "job": "134636",
+            "bytes": 937339,
+            "sha256": "d690e8ecb461e702691a4d82c096debd0af7de4b27c220eace0ddbfbca5392c3"
+          },
+          {
+            "source_project_relative_path": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/eval_best_stdout_135053.log",
+            "package_relative_path": "CIARD_Expansion_mobilenetv2_cifar10/logs/eval_best_stdout_135053.log",
+            "job": "135053",
+            "bytes": 13501,
+            "sha256": "d55279c58afa591e121667f638903a984142f55eadcb8c3218fbe911f2e0821b"
+          },
+          {
+            "source_project_relative_path": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/slurm/train_134636.out",
+            "package_relative_path": "CIARD_Expansion_mobilenetv2_cifar10/logs/slurm/train_134636.out",
+            "job": "134636",
+            "bytes": 937339,
+            "sha256": "d690e8ecb461e702691a4d82c096debd0af7de4b27c220eace0ddbfbca5392c3"
+          },
+          {
+            "source_project_relative_path": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/slurm/train_134636.err",
+            "package_relative_path": "CIARD_Expansion_mobilenetv2_cifar10/logs/slurm/train_134636.err",
+            "job": "134636",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "source_project_relative_path": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/slurm/eval_best_135053.out",
+            "package_relative_path": "CIARD_Expansion_mobilenetv2_cifar10/logs/slurm/eval_best_135053.out",
+            "job": "135053",
+            "bytes": 13501,
+            "sha256": "d55279c58afa591e121667f638903a984142f55eadcb8c3218fbe911f2e0821b"
+          },
+          {
+            "source_project_relative_path": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/slurm/eval_best_135053.err",
+            "package_relative_path": "CIARD_Expansion_mobilenetv2_cifar10/logs/slurm/eval_best_135053.err",
+            "job": "135053",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "excluded": [
+          {
+            "source_project_relative_path": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/.eval_best.lock",
+            "reason": "runtime lock file"
+          },
+          {
+            "source_project_relative_path": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/.train.lock",
+            "reason": "runtime lock file"
+          }
+        ]
+      }
     },
     {
       "id": "R4",
@@ -552,7 +611,7 @@
         {
           "path": "README.md",
           "source_sha256": "2c92905a232fcc308eaa99174b9be4ccbddbc01781dbc2d1aace8c553bdede45",
-          "sha256": "3fcbd4180ee6d95973a49a8f9790fd5a3a3df4c3f4398ec2eca6047b537210bd",
+          "sha256": "6bc735e3ff939f980066fc0ad741df69bcb157a074bdff9d89641ebe1795980f",
           "same_as_source": false
         },
         {
@@ -694,7 +753,63 @@
       ],
       "dataset": "CIFAR-10",
       "num_classes": 10,
-      "student_architecture": "ResNet-18"
+      "student_architecture": "ResNet-18",
+      "log_archive": {
+        "files": [
+          {
+            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/train_stdout_134643.log",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/train_stdout_134643.log",
+            "job": "134643",
+            "bytes": 1017257,
+            "sha256": "a20116b9fd983d3100a88fc4f3c340948a9684d674b83c1f4ac9d13c9f26b309"
+          },
+          {
+            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/eval_best_stdout_134905.log",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/eval_best_stdout_134905.log",
+            "job": "134905",
+            "bytes": 13714,
+            "sha256": "f30a6cac866ef90b3867a0948103752f859ed91bfe8e98fc9d22d11855c5e66d"
+          },
+          {
+            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/slurm/train_134643.out",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/slurm/train_134643.out",
+            "job": "134643",
+            "bytes": 1017257,
+            "sha256": "a20116b9fd983d3100a88fc4f3c340948a9684d674b83c1f4ac9d13c9f26b309"
+          },
+          {
+            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/slurm/train_134643.err",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/slurm/train_134643.err",
+            "job": "134643",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/slurm/eval_best_134905.out",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/slurm/eval_best_134905.out",
+            "job": "134905",
+            "bytes": 13714,
+            "sha256": "f30a6cac866ef90b3867a0948103752f859ed91bfe8e98fc9d22d11855c5e66d"
+          },
+          {
+            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/slurm/eval_best_134905.err",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/slurm/eval_best_134905.err",
+            "job": "134905",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "excluded": [
+          {
+            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/.eval_best.lock",
+            "reason": "runtime lock file"
+          },
+          {
+            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/.train.lock",
+            "reason": "runtime lock file"
+          }
+        ]
+      }
     },
     {
       "id": "C100-M1",
@@ -865,7 +980,7 @@
         {
           "path": "README.md",
           "source_sha256": "aa30a0ab71820d74ee749808255f1bd05b726589bf4b35a30d3aafb9157d13a5",
-          "sha256": "7dedc88b04b4f4bdc638ee81fef925192f20ef4a7ae681aadeb3d3a45a5f0e22",
+          "sha256": "0f24eb88db24494d88609c4147f6e54eb2df93f775a826116f54d1853dec1983",
           "same_as_source": false
         },
         {
@@ -1031,7 +1146,75 @@
       ],
       "dataset": "CIFAR-100",
       "num_classes": 100,
-      "student_architecture": "MobileNet-V2"
+      "student_architecture": "MobileNet-V2",
+      "log_archive": {
+        "files": [
+          {
+            "source_project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/train_stdout_133792.log",
+            "package_relative_path": "CIARD_Expansion_mobilenetv2_cifar100/logs/train_stdout_133792.log",
+            "job": "133792",
+            "bytes": 937546,
+            "sha256": "6b3de3044fcb4f18ee5566d226f51b3119fc47ee43a01a6fd923a7e599a4a5f4"
+          },
+          {
+            "source_project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/eval_best_stdout_134582.log",
+            "package_relative_path": "CIARD_Expansion_mobilenetv2_cifar100/logs/eval_best_stdout_134582.log",
+            "job": "134582",
+            "bytes": 10008,
+            "sha256": "a9a4123c8c2e15116a8a46f51bbb37c8ac7b77569a132981abb5358bd1873820"
+          },
+          {
+            "source_project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/slurm/train_133792.out",
+            "package_relative_path": "CIARD_Expansion_mobilenetv2_cifar100/logs/slurm/train_133792.out",
+            "job": "133792",
+            "bytes": 937546,
+            "sha256": "6b3de3044fcb4f18ee5566d226f51b3119fc47ee43a01a6fd923a7e599a4a5f4"
+          },
+          {
+            "source_project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/slurm/train_133792.err",
+            "package_relative_path": "CIARD_Expansion_mobilenetv2_cifar100/logs/slurm/train_133792.err",
+            "job": "133792",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "source_project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/slurm/eval_best_134582.out",
+            "package_relative_path": "CIARD_Expansion_mobilenetv2_cifar100/logs/slurm/eval_best_134582.out",
+            "job": "134582",
+            "bytes": 10008,
+            "sha256": "a9a4123c8c2e15116a8a46f51bbb37c8ac7b77569a132981abb5358bd1873820"
+          },
+          {
+            "source_project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/slurm/eval_best_134582.err",
+            "package_relative_path": "CIARD_Expansion_mobilenetv2_cifar100/logs/slurm/eval_best_134582.err",
+            "job": "134582",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "excluded": [
+          {
+            "source_project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/.eval_best.lock",
+            "reason": "runtime lock file"
+          },
+          {
+            "source_project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/.train.lock",
+            "reason": "runtime lock file"
+          },
+          {
+            "source_project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/slurm/train_133782.err",
+            "reason": "job 133782 failed GPU preflight before training; not the selected completed run"
+          },
+          {
+            "source_project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/slurm/train_133782.out",
+            "reason": "job 133782 failed GPU preflight before training; not the selected completed run"
+          },
+          {
+            "source_project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/train_stdout_133782.log",
+            "reason": "job 133782 failed GPU preflight before training; not the selected completed run"
+          }
+        ]
+      }
     },
     {
       "id": "C100-H2",
@@ -1222,7 +1405,7 @@
         {
           "path": "README.md",
           "source_sha256": "a159b2312aab40fa6eddad3c8efd29322d7fb9ebecf2e67719c17756a0d41428",
-          "sha256": "642995c41ddd2b1ee842dcf67889a23503452acf7264c336ea07d2bcb7f17e7e",
+          "sha256": "0e891bb1268d95816142ba098170b956a43263d69d8c7c7a3413f14ddca007b8",
           "same_as_source": false
         },
         {
@@ -1544,7 +1727,59 @@
       ],
       "dataset": "CIFAR-100",
       "num_classes": 100,
-      "student_architecture": "ResNet-18"
+      "student_architecture": "ResNet-18",
+      "log_archive": {
+        "files": [
+          {
+            "source_project_relative_path": "run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/train_stdout_137534.log",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar100/logs/train_stdout_137534.log",
+            "job": "137534",
+            "bytes": 1016391,
+            "sha256": "213d53afbde5e3d31172414662865c2d679a0c94b28995dea5da90ffd3fa806f"
+          },
+          {
+            "source_project_relative_path": "run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/eval_stdout_137729.log",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar100/logs/eval_stdout_137729.log",
+            "job": "137729",
+            "bytes": 16635,
+            "sha256": "91d2dfb3170a5fea6ae7e21813d4b16772e5f48d4bee787c4b81c678e69c2d80"
+          },
+          {
+            "source_project_relative_path": "run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/slurm/train_137534.out",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar100/logs/slurm/train_137534.out",
+            "job": "137534",
+            "bytes": 1016391,
+            "sha256": "213d53afbde5e3d31172414662865c2d679a0c94b28995dea5da90ffd3fa806f"
+          },
+          {
+            "source_project_relative_path": "run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/slurm/train_137534.err",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar100/logs/slurm/train_137534.err",
+            "job": "137534",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "source_project_relative_path": "run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/slurm/eval_137729.out",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar100/logs/slurm/eval_137729.out",
+            "job": "137729",
+            "bytes": 16635,
+            "sha256": "91d2dfb3170a5fea6ae7e21813d4b16772e5f48d4bee787c4b81c678e69c2d80"
+          },
+          {
+            "source_project_relative_path": "run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/slurm/eval_137729.err",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar100/logs/slurm/eval_137729.err",
+            "job": "137729",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "excluded": [
+          {
+            "source_project_relative_path": "run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/.artifact.lock",
+            "reason": "runtime lock file"
+          }
+        ]
+      }
     }
   ],
   "paper_baseline_sources": [
@@ -1560,12 +1795,23 @@
     }
   ],
   "documentation": {
-    "README.md": "144e1ad376d50aa767f9c20e213d87cbcd13e099bcf442ca3d68d1691ed4a424",
-    "CIARD扩展方法改进说明.md": "9b85983a5a9ef9579c5e455f215a9bd76a9da869fed6341a5008fcca5fdb6e6d"
+    "README.md": "9f501da051c3e2212e6b4e61137ac96c610c520fc3d8eda3c9fc21f558397fe5",
+    "CIARD扩展方法改进说明.md": "ecebafe0e9ccd138baf399f62a0dd993c638665421b58008d0f204cee3def44d"
   },
   "path_conventions": {
     "copy_source_target_files": "relative to this package",
     "original_run_previous_selected_source_evidence_paper_sources": "relative to CIARD_Expansion project root",
-    "verification_record": "relative to this package"
+    "verification_record": "relative to this package",
+    "log_archive": "source_project_relative_path relative to CIARD_Expansion project root; package_relative_path relative to this package"
+  },
+  "verification_record_note": "Initial source preparation verification only; later log archive verification is separate.",
+  "log_archive": {
+    "archived_on": "2026-10-08",
+    "file_count": 24,
+    "total_bytes": 7924782,
+    "scope": "completed training and final evaluation stdout plus corresponding Slurm out/err; original files and contents unchanged",
+    "verification_record": "../log_archive_20261008/verification.json",
+    "publication_record": "../log_archive_20261008/publication.json",
+    "publication_record_note": "Local audit outside GitHub; commit and remote verification recorded after push succeeds."
   }
 }

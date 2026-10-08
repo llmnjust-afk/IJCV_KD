@@ -1,0 +1,185 @@
+requested_partition=a800 requested_qos=urgent requested_gpu=1xA800
+running_node=aias-compute-6 allocated_cuda_visible_devices=0
+TRAIN_COMPLETION_VERIFIED job=137534
+preflight_torch=1.10.0+cu113 torchvision=0.11.1+cu113 cuda_build=11.3
+teacher=WRN-70-16 checkpoint=/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/models/cifar100_linf_wrn70-16_without.pt bytes=1067932403 sha256=3114df6b9d5adf9f275e8fea5a91b71c61df78a568ad31544b6950807d595c8c shape=(100, 1024) input=raw model_internal_normalization=CIFAR100
+teacher=WRN-22-6 checkpoint=/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/models/nat_teacher_checkpoint/cifar100_wrn_22_6.pth bytes=38845779 sha256=c91c5bf8b5f6c74c427d9a88815c00f98b73a4d1109fb4508b985ae86919e935 shape=(100, 384) input=raw model_internal_normalization=CIFAR100
+preflight_dataset=CIFAR100 classes=100 phase=eval samples=10000
+RUNTIME_SOURCE_FILES_JSON={"CIARD.py": "050fce5eb0e6209165a19246c218625c38537338cb8d3eeed85ca42ca08a0953", "attack_eval.py": "e730fef8329fd3352c6e7c9884988ccb66f37c3ed0492ca84b0633ea44c6de1f", "awp_consistency.py": "a5fb0b336ac7f56d027668739fb1f87b17d2837984039404cbddd52e308392cf", "check_a800_runtime.py": "c5011092bda6b6033c5ab34b04c632f16668785711607c644fd9c7513510bd22", "check_eval_log.py": "8a20862b50d673d85b537eb91eb35b099b429a7a83015c38e01a5273258b4e66", "cifar100_teacher.py": "c2b8410fd6b5ef7eec02f2bdda3e5e01e3f620418f02425cff687e769ddbdf6e", "cifar10_models/__init__.py": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c", "cifar10_models/mobilenet_v2.py": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca", "cifar10_models/resnet.py": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3", "cifar10_models/wideresnet.py": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac", "cifar10_nat_teacher_models/__init__.py": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437", "cifar10_nat_teacher_models/mobilenetv2.py": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce", "cifar10_nat_teacher_models/repvgg.py": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15", "cifar10_nat_teacher_models/resnet.py": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98", "cifar10_nat_teacher_models/shufflenetv2.py": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e", "cifar10_nat_teacher_models/vgg.py": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2", "cifar10_nat_teacher_models/vit.py": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4", "clean_supervision.py": "16ff88be03f909a8f9d04ccc0f9a22b3b7ae169c73aa331cfbf0eb77477f0e1b", "error_swap.py": "1a5f72c41a0cf4ddaddb6ef7fc3c4e72883334b05815ad195b7d08fd89063f14", "eval_seed.py": "d714cde195145670f424aa57ba908166d6ac10e1c83b7859d99b0fac67da0af1", "frozen_source/CIARD.py": "c39a85d91842256add5937f625b0bff64dee8037055585eded4cfc8fc3289094", "frozen_source/attack_eval.py": "fe76dc8a0f345a831d528ac3c6809c5435933523cd47cd5f1549b27ed0980a9f", "frozen_source/awp_consistency.py": "a5fb0b336ac7f56d027668739fb1f87b17d2837984039404cbddd52e308392cf", "frozen_source/check_a800_runtime.py": "c5011092bda6b6033c5ab34b04c632f16668785711607c644fd9c7513510bd22", "frozen_source/check_eval_log.py": "8a20862b50d673d85b537eb91eb35b099b429a7a83015c38e01a5273258b4e66", "frozen_source/cifar100_teacher.py": "c2b8410fd6b5ef7eec02f2bdda3e5e01e3f620418f02425cff687e769ddbdf6e", "frozen_source/cifar10_models/__init__.py": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c", "frozen_source/cifar10_models/mobilenet_v2.py": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca", "frozen_source/cifar10_models/resnet.py": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3", "frozen_source/cifar10_models/wideresnet.py": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac", "frozen_source/cifar10_nat_teacher_models/__init__.py": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437", "frozen_source/cifar10_nat_teacher_models/mobilenetv2.py": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce", "frozen_source/cifar10_nat_teacher_models/repvgg.py": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15", "frozen_source/cifar10_nat_teacher_models/resnet.py": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98", "frozen_source/cifar10_nat_teacher_models/shufflenetv2.py": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e", "frozen_source/cifar10_nat_teacher_models/vgg.py": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2", "frozen_source/cifar10_nat_teacher_models/vit.py": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4", "frozen_source/clean_supervision.py": "16ff88be03f909a8f9d04ccc0f9a22b3b7ae169c73aa331cfbf0eb77477f0e1b", "frozen_source/error_swap.py": "1a5f72c41a0cf4ddaddb6ef7fc3c4e72883334b05815ad195b7d08fd89063f14", "frozen_source/eval_seed.py": "d714cde195145670f424aa57ba908166d6ac10e1c83b7859d99b0fac67da0af1", "frozen_source/mtard_loss.py": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d", "frozen_source/run_checks.py": "ea5fadf96b2baad49b37130a8102886783d822246bd2f8df82acb9bb5296e3ea", "frozen_source/split_target_mix.py": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4", "frozen_source/train_data.py": "ee76634b06a5c704899bceeb2282ee614d10a05006d5203d373366b341e38c67", "frozen_source/training_state.py": "c15871e451a1ba5e88523ed75bc09684622a1d06fa3ca58062c0c02a9f4379cb", "mtard_loss.py": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d", "run_checks.py": "e64e5db22d99fc86675b8223f7c5aa7d15c54e294f0d7425449a03248eb927c4", "split_target_mix.py": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4", "train_data.py": "ee76634b06a5c704899bceeb2282ee614d10a05006d5203d373366b341e38c67", "training_state.py": "c15871e451a1ba5e88523ed75bc09684622a1d06fa3ca58062c0c02a9f4379cb"}
+RUNTIME_SCRIPT_FILES_JSON={"eval_a800.sbatch": "639f67302ec3810d5a3c3cba4d18ff66734b8ef5357a75c9f7ac4d8b2d9bdfdc", "train_a800.sbatch": "4f6da33eccaaf95f746847ab2c8bd8018df1bc32c8d21c77ec30c724529d8c5b"}
+RUNTIME_MANIFEST_SHA256=620d6281ff10c18da66ddda2870cac445a190dee0f0faa803ab5574b2c9e0b11
+preflight_gpu=0 name=NVIDIA A800 80GB PCIe
+PRECHECK_OK mode=cuda
+A800_RUNTIME torch=1.10.0+cu113 cuda=11.3 cudnn=8200 architectures=['sm_37', 'sm_50', 'sm_60', 'sm_70', 'sm_75', 'sm_80', 'sm_86']
+A800_DRIVER NVRM version: NVIDIA UNIX Open Kernel Module for x86_64  570.86.15  Release Build  (dvs-builder@U16-I2-C03-12-4)  Thu Jan 23 22:50:36 UTC 2025 GCC version:  gcc version 12.2.0 (Debian 12.2.0-14+deb12u1)  
+A800_DEVICE index=0 name=NVIDIA A800 80GB PCIe memory_bytes=85095874560
+A800_RUNTIME_OK gpus=1 batch=128 input_gradient=passed backward=passed
+Files already downloaded and verified
+2026-10-05 03:12:43.576 | INFO     | __main__:<module>:50 - CIARD resolved eval config:
+variant: resnet18_cifar100_nb_l2_w40_s0
+eval_target: epoch190
+checkpoint: /mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/student_epoch190.pth
+dataset: CIFAR100 test_samples=10000
+student: ResNet num_classes=100
+batch_size: 128
+blackbox_teacher_checkpoint: models/cifar100_linf_wrn70-16_without.pt
+whitebox_pgd_trades: steps=20 step_size=0.003 epsilon=8/255
+whitebox_pgd_sat: steps=20 step_size=2/255 epsilon=8/255
+cw_num_classes: 100
+
+2026-10-05 03:12:49.497 | INFO     | __main__:<module>:123 - =============== AutoAttack Evaluation ===============
+EVAL_SEED metric=autoattack seed=0 cudnn_deterministic=True benchmark=False
+setting parameters for standard version
+using standard version including apgd-ce, apgd-t, fab-t, square.
+initial accuracy: 65.96%
+apgd-ce - 1/52 - 72 out of 128 successfully perturbed
+apgd-ce - 2/52 - 71 out of 128 successfully perturbed
+apgd-ce - 3/52 - 67 out of 128 successfully perturbed
+apgd-ce - 4/52 - 75 out of 128 successfully perturbed
+apgd-ce - 5/52 - 70 out of 128 successfully perturbed
+apgd-ce - 6/52 - 80 out of 128 successfully perturbed
+apgd-ce - 7/52 - 77 out of 128 successfully perturbed
+apgd-ce - 8/52 - 72 out of 128 successfully perturbed
+apgd-ce - 9/52 - 76 out of 128 successfully perturbed
+apgd-ce - 10/52 - 68 out of 128 successfully perturbed
+apgd-ce - 11/52 - 67 out of 128 successfully perturbed
+apgd-ce - 12/52 - 67 out of 128 successfully perturbed
+apgd-ce - 13/52 - 66 out of 128 successfully perturbed
+apgd-ce - 14/52 - 78 out of 128 successfully perturbed
+apgd-ce - 15/52 - 66 out of 128 successfully perturbed
+apgd-ce - 16/52 - 77 out of 128 successfully perturbed
+apgd-ce - 17/52 - 74 out of 128 successfully perturbed
+apgd-ce - 18/52 - 73 out of 128 successfully perturbed
+apgd-ce - 19/52 - 74 out of 128 successfully perturbed
+apgd-ce - 20/52 - 67 out of 128 successfully perturbed
+apgd-ce - 21/52 - 75 out of 128 successfully perturbed
+apgd-ce - 22/52 - 68 out of 128 successfully perturbed
+apgd-ce - 23/52 - 76 out of 128 successfully perturbed
+apgd-ce - 24/52 - 65 out of 128 successfully perturbed
+apgd-ce - 25/52 - 75 out of 128 successfully perturbed
+apgd-ce - 26/52 - 65 out of 128 successfully perturbed
+apgd-ce - 27/52 - 74 out of 128 successfully perturbed
+apgd-ce - 28/52 - 80 out of 128 successfully perturbed
+apgd-ce - 29/52 - 73 out of 128 successfully perturbed
+apgd-ce - 30/52 - 73 out of 128 successfully perturbed
+apgd-ce - 31/52 - 71 out of 128 successfully perturbed
+apgd-ce - 32/52 - 83 out of 128 successfully perturbed
+apgd-ce - 33/52 - 68 out of 128 successfully perturbed
+apgd-ce - 34/52 - 74 out of 128 successfully perturbed
+apgd-ce - 35/52 - 64 out of 128 successfully perturbed
+apgd-ce - 36/52 - 80 out of 128 successfully perturbed
+apgd-ce - 37/52 - 62 out of 128 successfully perturbed
+apgd-ce - 38/52 - 82 out of 128 successfully perturbed
+apgd-ce - 39/52 - 73 out of 128 successfully perturbed
+apgd-ce - 40/52 - 75 out of 128 successfully perturbed
+apgd-ce - 41/52 - 75 out of 128 successfully perturbed
+apgd-ce - 42/52 - 60 out of 128 successfully perturbed
+apgd-ce - 43/52 - 76 out of 128 successfully perturbed
+apgd-ce - 44/52 - 68 out of 128 successfully perturbed
+apgd-ce - 45/52 - 78 out of 128 successfully perturbed
+apgd-ce - 46/52 - 70 out of 128 successfully perturbed
+apgd-ce - 47/52 - 70 out of 128 successfully perturbed
+apgd-ce - 48/52 - 68 out of 128 successfully perturbed
+apgd-ce - 49/52 - 69 out of 128 successfully perturbed
+apgd-ce - 50/52 - 65 out of 128 successfully perturbed
+apgd-ce - 51/52 - 69 out of 128 successfully perturbed
+apgd-ce - 52/52 - 44 out of 68 successfully perturbed
+robust accuracy after APGD-CE: 28.91% (total time 75.7 s)
+apgd-t - 1/23 - 20 out of 128 successfully perturbed
+apgd-t - 2/23 - 19 out of 128 successfully perturbed
+apgd-t - 3/23 - 29 out of 128 successfully perturbed
+apgd-t - 4/23 - 24 out of 128 successfully perturbed
+apgd-t - 5/23 - 20 out of 128 successfully perturbed
+apgd-t - 6/23 - 22 out of 128 successfully perturbed
+apgd-t - 7/23 - 22 out of 128 successfully perturbed
+apgd-t - 8/23 - 22 out of 128 successfully perturbed
+apgd-t - 9/23 - 15 out of 128 successfully perturbed
+apgd-t - 10/23 - 26 out of 128 successfully perturbed
+apgd-t - 11/23 - 18 out of 128 successfully perturbed
+apgd-t - 12/23 - 17 out of 128 successfully perturbed
+apgd-t - 13/23 - 19 out of 128 successfully perturbed
+apgd-t - 14/23 - 18 out of 128 successfully perturbed
+apgd-t - 15/23 - 26 out of 128 successfully perturbed
+apgd-t - 16/23 - 17 out of 128 successfully perturbed
+apgd-t - 17/23 - 20 out of 128 successfully perturbed
+apgd-t - 18/23 - 18 out of 128 successfully perturbed
+apgd-t - 19/23 - 21 out of 128 successfully perturbed
+apgd-t - 20/23 - 20 out of 128 successfully perturbed
+apgd-t - 21/23 - 28 out of 128 successfully perturbed
+apgd-t - 22/23 - 19 out of 128 successfully perturbed
+apgd-t - 23/23 - 9 out of 75 successfully perturbed
+robust accuracy after APGD-T: 24.22% (total time 364.5 s)
+fab-t - 1/19 - 0 out of 128 successfully perturbed
+fab-t - 2/19 - 0 out of 128 successfully perturbed
+fab-t - 3/19 - 0 out of 128 successfully perturbed
+fab-t - 4/19 - 0 out of 128 successfully perturbed
+fab-t - 5/19 - 0 out of 128 successfully perturbed
+fab-t - 6/19 - 0 out of 128 successfully perturbed
+fab-t - 7/19 - 0 out of 128 successfully perturbed
+fab-t - 8/19 - 0 out of 128 successfully perturbed
+fab-t - 9/19 - 0 out of 128 successfully perturbed
+fab-t - 10/19 - 0 out of 128 successfully perturbed
+fab-t - 11/19 - 0 out of 128 successfully perturbed
+fab-t - 12/19 - 0 out of 128 successfully perturbed
+fab-t - 13/19 - 0 out of 128 successfully perturbed
+fab-t - 14/19 - 0 out of 128 successfully perturbed
+fab-t - 15/19 - 0 out of 128 successfully perturbed
+fab-t - 16/19 - 0 out of 128 successfully perturbed
+fab-t - 17/19 - 0 out of 128 successfully perturbed
+fab-t - 18/19 - 0 out of 128 successfully perturbed
+fab-t - 19/19 - 0 out of 118 successfully perturbed
+robust accuracy after FAB-T: 24.22% (total time 752.3 s)
+square - 1/19 - 0 out of 128 successfully perturbed
+square - 2/19 - 0 out of 128 successfully perturbed
+square - 3/19 - 0 out of 128 successfully perturbed
+square - 4/19 - 0 out of 128 successfully perturbed
+square - 5/19 - 0 out of 128 successfully perturbed
+square - 6/19 - 0 out of 128 successfully perturbed
+square - 7/19 - 0 out of 128 successfully perturbed
+square - 8/19 - 0 out of 128 successfully perturbed
+square - 9/19 - 0 out of 128 successfully perturbed
+square - 10/19 - 0 out of 128 successfully perturbed
+square - 11/19 - 0 out of 128 successfully perturbed
+square - 12/19 - 0 out of 128 successfully perturbed
+square - 13/19 - 0 out of 128 successfully perturbed
+square - 14/19 - 0 out of 128 successfully perturbed
+square - 15/19 - 0 out of 128 successfully perturbed
+square - 16/19 - 0 out of 128 successfully perturbed
+square - 17/19 - 0 out of 128 successfully perturbed
+square - 18/19 - 0 out of 128 successfully perturbed
+square - 19/19 - 0 out of 118 successfully perturbed
+robust accuracy after SQUARE: 24.22% (total time 1199.5 s)
+max Linf perturbation: 0.03137, nan in tensor: 0, max: 1.00000, min: 0.00000
+robust accuracy: 24.22%
+2026-10-05 03:32:50.241 | INFO     | __main__:<module>:127 - ============white box attack===================
+EVAL_SEED metric=clean seed=0 cudnn_deterministic=True benchmark=False
+2026-10-05 03:32:51.245 | INFO     | __main__:<module>:143 - student clean acc:  0.6596
+EVAL_SEED metric=whitebox_pgdtrades seed=0 cudnn_deterministic=True benchmark=False
+2026-10-05 03:33:13.939 | INFO     | __main__:<module>:161 - student robust acc under PGD_trades Attack 0.3078
+EVAL_SEED metric=whitebox_pgdsat seed=0 cudnn_deterministic=True benchmark=False
+2026-10-05 03:33:36.547 | INFO     | __main__:<module>:179 - student robust acc under PGD_sat Attack 0.2976
+EVAL_SEED metric=whitebox_fgsm seed=0 cudnn_deterministic=True benchmark=False
+2026-10-05 03:33:38.629 | INFO     | __main__:<module>:197 - student robust acc under FGSM Attack 0.3452
+EVAL_SEED metric=whitebox_cw seed=0 cudnn_deterministic=True benchmark=False
+2026-10-05 03:34:11.629 | INFO     | __main__:<module>:215 - student robust acc under CW L_inf 0.2666
+2026-10-05 03:34:13.354 | INFO     | __main__:<module>:225 - ===============blackbox attack================
+EVAL_SEED metric=blackbox_pgdtrades seed=0 cudnn_deterministic=True benchmark=False
+2026-10-05 03:45:45.316 | INFO     | __main__:<module>:243 - student robust acc under PGD_trades Attack 0.4352
+EVAL_SEED metric=blackbox_square seed=0 cudnn_deterministic=True benchmark=False
+2026-10-05 03:46:19.749 | INFO     | __main__:<module>:264 - student robust acc under Square Attack 0.5190
+EVAL_SEED metric=blackbox_cw seed=0 cudnn_deterministic=True benchmark=False
+2026-10-05 04:03:35.295 | INFO     | __main__:<module>:282 - student robust acc under CW L_inf 0.4229
+TRAIN_COMPLETION_VERIFIED job=137534
+========== 完整 10000 张测试集成绩（百分比） ==========
+Clean: 65.96%
+白盒 FGSM: 34.52%
+白盒 PGDsat: 29.76%
+白盒 PGDtrades: 30.78%
+白盒 CW: 26.66%
+黑盒 PGDtrades: 43.52%
+黑盒 Square: 51.90%
+黑盒 CW: 42.29%
+AA: 24.22%
+七攻击均值: 37.06%
+八项均值: 40.67%
+EVAL_COMPLETE variant=resnet18_cifar100_nb_l2_w40_s0 checkpoint_sha256=e32461425fc112b763c6650c65756979e8ca75c3342119acbe4363075be0d13b evaluator_sha256=e730fef8329fd3352c6e7c9884988ccb66f37c3ed0492ca84b0633ea44c6de1f result=/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/eval_137729.json

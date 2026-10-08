@@ -1,10 +1,12 @@
 # CIFAR-10 / MobileNet-V2 — 0917v1 M1 已评测活动入口
 
-**2026-10-08 论文讨论源码副本。** 本目录从 `../process/CIARD_Expansion_mobilenetv2_cifar10` 完整复制，计算源码、固定配置、依赖与历史脚本保持原样；本次只整理说明和链接。下文早于本日期的同步与核验记录均描述原版本。
+**2026-10-08 论文讨论源码副本。** 本目录从 `../process/CIARD_Expansion_mobilenetv2_cifar10` 完整复制，计算源码、固定配置、依赖与历史脚本保持原样；初次整理只调整说明和链接，现补充所选成功训练与评测日志。下文早于本日期的同步与核验记录均描述原版本。
 
 [返回1008总导航](../README.md) · [中文方法改进说明](../CIARD扩展方法改进说明.md) · [本次来源清单](../SOURCE_MANIFEST.json)
 
-**本目录用于阅读与追溯现有结果，不能直接提交。** 未打包数据、教师和学生权重、日志或资源链接；下文 `run/`、`model/`、`logs/` 产物均属于所列原实验。复跑须另建独立实验并重建身份、路径及校验绑定。
+**本目录用于阅读与追溯现有结果，不能直接提交。** 已附所选成功训练与评测日志，未打包数据、教师和学生权重或资源链接。下文 `run/`、`model/`、结果JSON、完整报告及校验记录仍在原实验或项目目录，仅供本地追溯。复跑须另建独立实验并重建身份、路径及校验绑定。
+
+`logs/`保留本组训练与评测的stdout及对应Slurm `.out/.err`，共6份；stdout与对应`.out`逐字节一致，`.err`为空，未复制锁文件。四组共24份、约7.9 MB的归档范围见[总README](../README.md)，来源及hash见[来源清单](../SOURCE_MANIFEST.json)。
 
 2026-09-19：按用户选择同步已测来源。同版冻结备份见[best_backup/mobilenetv2_cifar10_0917v1_m1](../process/best_backup/mobilenetv2_cifar10_0917v1_m1/README.md)。
 
@@ -49,11 +51,11 @@ MobileNet保留push=.05、clean CE=.05、teacher margin=.01、EMA=.999和普通�
 - 权重：`model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/student_best.pth`；checkpoint SHA256：`3956b121747007143f5a9ddd561dafe080b197a4670f95d20ee831551dc8bc7e`。
 - evaluator SHA256：`ea395e24cdb7f1089a4e10aca7c3911d09e5ec55cac8a8d48c702a34dfeac152`。
 - 结果：`run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/eval_best_0909v1_135053.json`；历史JSON文件名保留0909v1，不代表来源批次。
-- 日志：`run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/train_stdout_134636.log`、`run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/eval_best_stdout_135053.log`。
+- 仓库内日志：[训练](logs/train_stdout_134636.log)、[评测](logs/eval_best_stdout_135053.log)；对应Slurm输出保存在[logs/slurm](logs/slurm/)。
 - 已核验CPU严格加载、完成标记、源码/权重/评测器哈希、九项正确数及日志/JSON一致性；原始权重和日志保留在原run。
 
 ## 源码模板与复跑
 
 本目录包含23份Python，与已测run逐字一致，完整CFG和文件哈希见[SYNC_MANIFEST.json](../process/SYNC_MANIFEST.json)。训练与完整评测入口为CIARD.py、attack_eval.py，配套train_4090.sbatch与eval_4090_best.sbatch；其他辅助脚本保留历史用途。脚本在历史同步时修改了工作目录及日志路径；1008逐字保留该模板，工作和日志路径仍指向 `origin_code/0917v1-cifar10`，不能直接执行；保留原rtx4090分区、aias-compute-2、单4090、4CPU/16GB配置。
 
-本包只有源码、依赖和说明，不包含data/models链接、checkpoint、model/logs或缓存，当前不能直接提交。未来复跑需复制到新的独立run，设置唯一身份/prefix、匹配评测路径和脚本目录，建立公共data/models链接及空输出目录。原已测run保持冻结，全部GPU训练与评测由用户手动提交；本次同步无需重训。
+本包包含源码、依赖、说明和上述成功日志，不包含data/models链接、checkpoint、model目录或缓存，当前不能直接提交。未来复跑需复制到新的独立run，设置唯一身份/prefix、匹配评测路径和脚本目录，建立公共data/models链接及空输出目录。原已测run保持冻结，全部GPU训练与评测由用户手动提交；本次同步无需重训。

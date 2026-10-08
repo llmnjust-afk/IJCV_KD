@@ -19,15 +19,19 @@
 
 - [CIARD](CIARD/README.md)：ICCV原始实现；[原论文](CIARD/Lu_CIARD_Cyclic_Iterative_Adversarial_Robustness_Distillation_ICCV_2025_paper.pdf)及[补充材料](CIARD/ICCV_CIARD_Supplementary.pdf)供对照。
 - [process](process/README.md)：此前的开发、版本说明与历史备份；本次完整保留。
-- 四个平级 `CIARD_Expansion_*` 目录：从 `process` 的同名入口复制。计算源码、配置、依赖和历史脚本不作清理或重构；新副本只调整说明和链接。
-- [SOURCE_MANIFEST.json](SOURCE_MANIFEST.json)：复制来源、固定CFG、逐文件SHA256、原实验身份、权重及结果证据。
-- [本次整理核验](../preparation_20261008/verification.json)：文件一致性、静态检查、结果与链接核验；不代表本次进行了新训练或测试。
+- 四个平级 `CIARD_Expansion_*` 目录：从 `process` 的同名入口复制。计算源码、配置、依赖和历史脚本不作清理或重构；源码整理时只调整说明和链接，现另附对应成功日志。
+- [SOURCE_MANIFEST.json](SOURCE_MANIFEST.json)：源码与日志的复制来源、固定CFG、逐文件SHA256、原实验身份、权重及结果证据；保留原实验路径和hash，并补充本次日志归档记录。
+- [初次整理核验（仅本地）](../preparation_20261008/verification.json)：文件一致性、静态检查、结果与链接核验；不代表本次进行了新训练或测试。
+
+四份入口的 `logs/` 已补充所选成功训练与评测的原始日志，共24份、7,924,782字节（约7.9 MB）。每组保留训练和评测的stdout日志，以及对应 `slurm/` 下的 `.out`、`.err`；stdout与对应`.out`逐字节一致，8份`.err`均为空。未复制7个锁文件，也未纳入CIFAR-100 MobileNet作业133782的CUDA预检查失败记录；这些原文件仍保留在原run，不属于本表成绩的来源。
+
+下文训练与评测日志链接指向仓库内副本，可在GitHub阅读。完整结果报告、结果JSON、checkpoint及整理核验仍在仓库外，相关链接仅供本地工作区追溯；日志正文中的原绝对路径保持原样。
 
 ## 阅读副本与运行入口
 
-**四份目录用于阅读和追溯现有成绩，不能直接提交作业。** 未复制数据、公共教师、学生权重、日志或资源软链接。前三组脚本保留 `origin_code/0917v1-cifar10` 的工作与日志路径，H2脚本保留 `origin_code/1004` 的路径；H2还绑定原实验身份、父manifest和固定权重路径。脚本与校验程序一起作为历史源码保留，不能仅改一个目录就视为新的复现包。
+**四份目录用于阅读和追溯现有成绩，不能直接提交作业。** 已归档所选成功日志，未复制数据、公共教师、学生权重或资源软链接。前三组脚本保留 `origin_code/0917v1-cifar10` 的工作与日志路径，H2脚本保留 `origin_code/1004` 的路径；H2还绑定原实验身份、父manifest和固定权重路径。脚本与校验程序一起作为历史源码保留，不能仅改一个目录就视为新的复现包。
 
-未来复跑须另建独立run，重新准备身份、公共资源链接、输出目录及配套校验；所有GPU作业由用户手动提交。本次仅本地整理，不涉及新训练、评测或Git发布。
+未来复跑须另建独立run，重新准备身份、公共资源链接、输出目录及配套校验；所有GPU作业由用户手动提交。1008源码已于2026-10-08发布至GitHub（[145bfb8](https://github.com/llmnjust-afk/IJCV_KD/commit/145bfb88d4e8c723056f0d6bb5fcf48c62ed8815)）；本次按用户要求补充同一批已测结果的日志归档，不涉及新训练或评测。
 
 ## 结果口径
 
@@ -55,7 +59,7 @@
 | 七项攻击均值 | 59.59 | 61.28 | +1.69 |
 | 八项均值 | 63.33 | 64.83 | +1.49 |
 
-[完整结果报告](../../../结果分析/0917v1_结果分析.md) · [评测日志](../../../run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/eval_best_stdout_135053.log) · [原始结果JSON](../../../run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/eval_best_0909v1_135053.json) · [训练日志](../../../run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/train_stdout_134636.log)
+[完整结果报告（仅本地）](../../../结果分析/0917v1_结果分析.md) · [评测日志](CIARD_Expansion_mobilenetv2_cifar10/logs/eval_best_stdout_135053.log) · [原始结果JSON（仅本地）](../../../run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/eval_best_0909v1_135053.json) · [训练日志](CIARD_Expansion_mobilenetv2_cifar10/logs/train_stdout_134636.log)
 
 ## ResNet-18 / CIFAR-10
 
@@ -75,7 +79,7 @@
 | 七项攻击均值 | 61.39 | 61.95 | +0.55 |
 | 八项均值 | 64.83 | 65.34 | +0.51 |
 
-[完整结果报告](../../../结果分析/0917v1_结果分析.md) · [评测日志](../../../run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/eval_best_stdout_134905.log) · [原始结果JSON](../../../run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/eval_best_0909v1_134905.json) · [训练日志](../../../run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/train_stdout_134643.log)
+[完整结果报告（仅本地）](../../../结果分析/0917v1_结果分析.md) · [评测日志](CIARD_Expansion_resnet18_cifar10/logs/eval_best_stdout_134905.log) · [原始结果JSON（仅本地）](../../../run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/eval_best_0909v1_134905.json) · [训练日志](CIARD_Expansion_resnet18_cifar10/logs/train_stdout_134643.log)
 
 ## MobileNet-V2 / CIFAR-100
 
@@ -95,7 +99,7 @@
 | 七项攻击均值 | 35.92 | 37.47 | +1.55 |
 | 八项均值 | 39.77 | 41.15 | +1.38 |
 
-[完整结果报告](../../../结果分析/0914v1_cifar100_结果分析.md) · [评测日志](../../../run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/eval_best_stdout_134582.log) · [原始结果JSON](../../../run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/model/Cifar100_MobileNetV2_0914v1_natorig_awp0p002_cr0p50/eval_best_0909v1_134582.json) · [训练日志](../../../run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/train_stdout_133792.log)
+[完整结果报告（仅本地）](../../../结果分析/0914v1_cifar100_结果分析.md) · [评测日志](CIARD_Expansion_mobilenetv2_cifar100/logs/eval_best_stdout_134582.log) · [原始结果JSON（仅本地）](../../../run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/model/Cifar100_MobileNetV2_0914v1_natorig_awp0p002_cr0p50/eval_best_0909v1_134582.json) · [训练日志](CIARD_Expansion_mobilenetv2_cifar100/logs/train_stdout_133792.log)
 
 ## ResNet-18 / CIFAR-100
 
@@ -115,4 +119,4 @@
 | 七项攻击均值 | 35.70 | 37.06 | +1.36 |
 | 八项均值 | 39.45 | 40.67 | +1.22 |
 
-[完整结果报告](../../../结果分析/1004-cifar100-binary-v1_结果分析.md) · [评测日志](../../../run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/eval_stdout_137729.log) · [原始结果JSON](../../../run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/eval_137729.json) · [训练日志](../../../run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/train_stdout_137534.log)
+[完整结果报告（仅本地）](../../../结果分析/1004-cifar100-binary-v1_结果分析.md) · [评测日志](CIARD_Expansion_resnet18_cifar100/logs/eval_stdout_137729.log) · [原始结果JSON（仅本地）](../../../run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/eval_137729.json) · [训练日志](CIARD_Expansion_resnet18_cifar100/logs/train_stdout_137534.log)

@@ -1,10 +1,12 @@
 # CIFAR-100 / ResNet-18 — 1004 H2 当前方法入口
 
-**2026-10-08 论文讨论源码副本。** 本目录从 `../process/CIARD_Expansion_resnet18_cifar100` 完整复制，计算源码、固定配置、依赖与历史脚本保持原样；本次只整理说明和链接。下文早于本日期的同步与核验记录均描述原版本。
+**2026-10-08 论文讨论源码副本。** 本目录从 `../process/CIARD_Expansion_resnet18_cifar100` 完整复制，计算源码、固定配置、依赖与历史脚本保持原样；初次整理只调整说明和链接，现补充所选成功训练与评测日志。下文早于本日期的同步与核验记录均描述原版本。
 
 [返回1008总导航](../README.md) · [中文方法改进说明](../CIARD扩展方法改进说明.md) · [本次来源清单](../SOURCE_MANIFEST.json)
 
-**本目录用于阅读与追溯现有结果，不能直接提交。** 未打包数据、教师和学生权重、日志或资源链接；下文 `run/`、`model/`、`logs/` 产物均属于所列原实验。复跑须另建独立实验并重建身份、路径及校验绑定。
+**本目录用于阅读与追溯现有结果，不能直接提交。** 已附所选成功训练与评测日志，未打包数据、教师和学生权重或资源链接。下文 `run/`、`model/`、结果JSON、完整报告及校验记录仍在原实验或项目目录，仅供本地追溯。复跑须另建独立实验并重建身份、路径及校验绑定。
+
+`logs/`保留本组训练与评测的stdout及对应Slurm `.out/.err`，共6份；stdout与对应`.out`逐字节一致，`.err`为空，未复制锁文件。四组共24份、约7.9 MB的归档范围见[总README](../README.md)，来源及hash见[来源清单](../SOURCE_MANIFEST.json)。
 
 2026-10-05：按用户选择同步已测H2。1004表示实验批次 `1004-cifar100-binary-v1`；实际源码同步及备份日期为2026-10-05。此入口替代旧0914v1 R2，历史结果和冻结来源继续保留。
 
@@ -49,7 +51,7 @@ FGSM3452张正确，比论文报告值对应的3447张多5张。AA比非同期�
 - 训练／评测job：137534／137729，均COMPLETED/0:0，实际节点均为aias-compute-6、每作业1×A800。
 - 原checkpoint：`/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/student_epoch190.pth`；SHA256：`e32461425fc112b763c6650c65756979e8ca75c3342119acbe4363075be0d13b`。
 - 原评测器SHA256：`e730fef8329fd3352c6e7c9884988ccb66f37c3ed0492ca84b0633ea44c6de1f`；原批次manifest SHA256：`620d6281ff10c18da66ddda2870cac445a190dee0f0faa803ab5574b2c9e0b11`。
-- [训练日志](/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/train_stdout_137534.log)、[评测日志](/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/eval_stdout_137729.log)、[结果JSON](/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/eval_137729.json)；结果JSON SHA256：`b44db407d901618a76cd4e682b52472d0fed864d217ef1564148e3a761923162`。
+- [训练日志](logs/train_stdout_137534.log)、[评测日志](logs/eval_stdout_137729.log)、[结果JSON（仅本地）](/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/eval_137729.json)；结果JSON SHA256：`b44db407d901618a76cd4e682b52472d0fed864d217ef1564148e3a761923162`。
 - [正式结果分析](/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/结果分析/1004-cifar100-binary-v1_结果分析.md)、[原结果核验](/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/run/1004-cifar100-binary-v1/preparation/results_20261005/verification.json)、[1004历史源码同步核验](/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/origin_code/1004/sync_h2_20261005/verification.json)。原结果核验包含作业成功、权重／源码／脚本／manifest身份及九项完整计数；本次不重复训练或GPU评测。
 - 旧R2的26个轻量文件与[0917冻结入口](/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/origin_code/0917v1-cifar10/IJCV_KD/CIARD_Expansion_resnet18_cifar100/README.md)逐字一致，迁移映射保存在[old_r2_mapping.json](/mnt/beegfs/home/lixidong25/mycode/CIARD_Expansion/origin_code/1004/sync_h2_20261005/old_r2_mapping.json)。不能把旧教师0911 R1备份当作R2。
 
@@ -57,9 +59,9 @@ FGSM3452张正确，比论文报告值对应的3447张多5张。AA比非同期�
 
 本目录包含50份Python（25份当前代码及25份`frozen_source`），全部与已测H2相同；依赖保留原requirements.txt。该文件不是独立重建环境的完整锁文件：实际实现还依赖已验证环境中的robustbench，run_checks同时绑定其模型实现源码哈希，复跑时须保留对应环境约束。训练／评测入口为CIARD.py和attack_eval.py，配套train_a800.sbatch与eval_a800.sbatch。模板保留1004同步时的工作／日志路径和job-name，仍指向 `origin_code/1004`；1008未修改脚本路径，不能直接执行。资源配置继续保留a800/urgent、1×A800、4CPU、16GB、动态节点及无脚本时限。
 
-**这是轻量源码快照，不能直接提交。** 未打包data/models资源链接、权重、model/logs或缓存。Python保留原身份/prefix、原评测权重绝对路径，以及run_checks对原组名、父级experiment_manifest.json和preparation校验文件的绑定；`frozen_source`参与源码哈希，不能省略。适配模板路径不等于重新建立这些绑定，不通过删除检查或复制虚假manifest使快照运行。
+**这是含成功日志的轻量源码快照，不能直接提交。** 未打包data/models资源链接、权重、model目录或缓存。Python保留原身份/prefix、原评测权重绝对路径，以及run_checks对原组名、父级experiment_manifest.json和preparation校验文件的绑定；`frozen_source`参与源码哈希，不能省略。适配模板路径不等于重新建立这些绑定，不通过删除检查或复制虚假manifest使快照运行。
 
-未来复跑须另建独立run，明确新的身份/prefix、评测路径、manifest和冻结哈希，建立公共资源链接及独立输出，再由用户手动提交。原已完成H2源码、日志和权重保持冻结；2026-10-05的1004源码更新已按当时授权发布至GitHub；1008此次仅本地整理，未commit/push，也未提交训练或评测作业。
+未来复跑须另建独立run，明确新的身份/prefix、评测路径、manifest和冻结哈希，建立公共资源链接及独立输出，再由用户手动提交。原已完成H2源码、日志和权重保持冻结；2026-10-05的1004源码更新已按当时授权发布至GitHub；1008源码亦已于2026-10-08发布（145bfb8）；本次补充既有成功日志，不提交训练或评测作业。
 
 ## 完整固定CFG
 

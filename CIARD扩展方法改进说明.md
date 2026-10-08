@@ -336,18 +336,18 @@ AWP、JS 一致性、EMA、PCGrad 以及 KL 的二元分解都不是仅凭本次
 
 八项均值只帮助概括趋势，不替代单项结果或 AA。R10 的 FGSM 回落、M10 的黑盒 CW 小余量与 H2 的 FGSM 小余量都应留在主结果讨论中。用“总体取得改善，同时存在少数指标权衡”描述当前证据，比“所有设置全面提升”更准确。
 
-本目录是与既有结果一一对应的源码归档。教师、数据、checkpoint 和日志仍保留在原资源与实验目录，本文链接用于追溯。源码中的运行身份、prefix、旧脚本路径及 H2 manifest 绑定应按各入口 README 理解，不能因复制到新目录就认为可直接重提；后续若需要复跑，应另行准备独立运行目录并由用户手动提交。本次方法说明没有引入新的训练或评测前置要求。
+本目录是与既有结果一一对应的源码归档，源码已于2026-10-08发布至GitHub（145bfb8）。现补充四组成功训练与评测的24份原始日志，共7,924,782字节（约7.9 MB），保留stdout及对应Slurm `.out/.err`；stdout与对应`.out`逐字节一致，8份`.err`均为空。7个锁文件和CIFAR-100 MobileNet失败作业133782的3份日志未纳入，原文件仍在原run。教师、数据、checkpoint、结果JSON与完整报告仍在仓库外，相关链接仅供本地追溯；本文训练和评测日志链接改为仓库内副本，原日志正文与绝对路径保持不变。源码中的运行身份、prefix、旧脚本路径及 H2 manifest 绑定应按各入口 README 理解，不能因复制到新目录就认为可直接重提；后续若需要复跑，应另行准备独立运行目录并由用户手动提交。本次方法说明没有引入新的训练或评测前置要求。
 
 ## checkpoint 与原始证据
 
-下列训练与评测在对应结果归档中均已核验 `COMPLETED/0:0`，每个评测包含完整 10k 九项结果。此处列出原始证据位置，数字采用指定评测记录，不用后续复评替换。
+下列训练与评测在对应结果归档中均已核验 `COMPLETED/0:0`，每个评测包含完整 10k 九项结果。此处训练与评测日志可在仓库中阅读；固定权重、结果JSON及其他仓库外证据链接仅在本地工作区有效。数字采用指定评测记录，不用后续复评替换。
 
-| 配方 | 固定权重 | 训练日志 | 评测日志 | 结果 JSON |
+| 配方 | 固定权重（仅本地） | 训练日志 | 评测日志 | 结果 JSON（仅本地） |
 | --- | --- | --- | --- | --- |
-| M10 | [epoch250 EMA](../../../run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/student_best.pth) | [134636](../../../run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/train_stdout_134636.log) | [135053](../../../run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/eval_best_stdout_135053.log) | [整数计数与身份](../../../run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/eval_best_0909v1_135053.json) |
-| R10 | [epoch252 EMA](../../../run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/student_best.pth) | [134643](../../../run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/train_stdout_134643.log) | [134905](../../../run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/eval_best_stdout_134905.log) | [整数计数与身份](../../../run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/eval_best_0909v1_134905.json) |
-| M100 | [epoch230 EMA](../../../run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/model/Cifar100_MobileNetV2_0914v1_natorig_awp0p002_cr0p50/student_best.pth) | [133792](../../../run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/train_stdout_133792.log) | [134582](../../../run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/eval_best_stdout_134582.log) | [整数计数与身份](../../../run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/model/Cifar100_MobileNetV2_0914v1_natorig_awp0p002_cr0p50/eval_best_0909v1_134582.json) |
-| R100 H2 | [固定 epoch190 EMA](../../../run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/student_epoch190.pth) | [137534](../../../run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/train_stdout_137534.log) | [137729](../../../run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/eval_stdout_137729.log) | [整数计数与身份](../../../run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/eval_137729.json) |
+| M10 | [epoch250 EMA](../../../run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/student_best.pth) | [134636](CIARD_Expansion_mobilenetv2_cifar10/logs/train_stdout_134636.log) | [135053](CIARD_Expansion_mobilenetv2_cifar10/logs/eval_best_stdout_135053.log) | [整数计数与身份](../../../run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/eval_best_0909v1_135053.json) |
+| R10 | [epoch252 EMA](../../../run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/student_best.pth) | [134643](CIARD_Expansion_resnet18_cifar10/logs/train_stdout_134643.log) | [134905](CIARD_Expansion_resnet18_cifar10/logs/eval_best_stdout_134905.log) | [整数计数与身份](../../../run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/eval_best_0909v1_134905.json) |
+| M100 | [epoch230 EMA](../../../run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/model/Cifar100_MobileNetV2_0914v1_natorig_awp0p002_cr0p50/student_best.pth) | [133792](CIARD_Expansion_mobilenetv2_cifar100/logs/train_stdout_133792.log) | [134582](CIARD_Expansion_mobilenetv2_cifar100/logs/eval_best_stdout_134582.log) | [整数计数与身份](../../../run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/model/Cifar100_MobileNetV2_0914v1_natorig_awp0p002_cr0p50/eval_best_0909v1_134582.json) |
+| R100 H2 | [固定 epoch190 EMA](../../../run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/student_epoch190.pth) | [137534](CIARD_Expansion_resnet18_cifar100/logs/train_stdout_137534.log) | [137729](CIARD_Expansion_resnet18_cifar100/logs/eval_stdout_137729.log) | [整数计数与身份](../../../run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/eval_137729.json) |
 
 | 配方 | checkpoint SHA256 |
 | --- | --- |
