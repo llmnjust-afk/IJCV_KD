@@ -1,12 +1,18 @@
 # CIFAR-100 / MobileNet-V2 — 0914v1 C100-M1 已评测活动入口
 
+**2026-10-08 论文讨论源码副本。** 本目录从 `../process/CIARD_Expansion_mobilenetv2_cifar100` 完整复制，计算源码、固定配置、依赖与历史脚本保持原样；本次只整理说明和链接。下文早于本日期的同步与核验记录均描述原版本。
+
+[返回1008总导航](../README.md) · [中文方法改进说明](../CIARD扩展方法改进说明.md) · [本次来源清单](../SOURCE_MANIFEST.json)
+
+**本目录用于阅读与追溯现有结果，不能直接提交。** 未打包数据、教师和学生权重、日志或资源链接；下文 `run/`、`model/`、`logs/` 产物均属于所列原实验。复跑须另建独立实验并重建身份、路径及校验绑定。
+
 2026-09-17：按用户指定，从`run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50`同步已测完整轻量源码与结果。**同一个固定checkpoint的八项数值全部高于论文，Clean=66.91%，高0.19个百分点；八项也均高于旧教师0911v1 M1。Clean优势较小，单seed不能证明统计显著性或多次训练的稳定优势。**
 
 2026-09-18：补齐M2对照结果；本目录继续保留M1已测源码。
 
-[0911v1备份](../best_backup/mobilenetv2_cifar100_0911v1/README.md)保留旧教师版本，不是本目录新教师源码的副本。
+[0911v1备份](../process/best_backup/mobilenetv2_cifar100_0911v1/README.md)保留旧教师版本，不是本目录新教师源码的副本。
 
-2026-09-19：本入口继续保留M1；新增[0914v1 M1冻结备份](../best_backup/mobilenetv2_cifar100_0914v1_m1/README.md)。脚本工作/日志路径已适配0917v1-cifar10源码包，Python与原已测run逐字一致。
+2026-09-19：本入口继续保留M1；新增[0914v1 M1冻结备份](../process/best_backup/mobilenetv2_cifar100_0914v1_m1/README.md)。脚本工作/日志路径已适配0917v1-cifar10源码包，Python与原已测run逐字一致。
 
 ## 来源与固定配置
 
@@ -22,7 +28,7 @@
 
 4090/3090诊断作业133714/133741均成功，17项逐样本分类结果一致；现有CIFAR-100处理下旧/新教师Clean为56.62%/76.49%。输入保持raw [0,1]与模型内CIFAR-100归一化，不增加外部Normalize。旧微调checkpoint退化原因尚未定位；本组为“新教师＋原参数”，不将换教师收益归因为新增方法创新。
 
-鲁棒教师仍为WRN-70-16：`models/cifar100_linf_wrn70-16_without.pt`，SHA256 `3114df6b9d5adf9f275e8fea5a91b71c61df78a568ad31544b6950807d595c8c`，保留循环更新。其诊断Clean=60.86%与论文63.56%的差距尚未解释。CIFAR-10教师保持原配置。诊断原始证据在本地`结果分析/0914v1_教师诊断_4090与3090对比.md`及对应run结果中，发布摘要与hash见[SYNC_MANIFEST.json](../SYNC_MANIFEST.json)。
+鲁棒教师仍为WRN-70-16：`models/cifar100_linf_wrn70-16_without.pt`，SHA256 `3114df6b9d5adf9f275e8fea5a91b71c61df78a568ad31544b6950807d595c8c`，保留循环更新。其诊断Clean=60.86%与论文63.56%的差距尚未解释。CIFAR-10教师保持原配置。诊断原始证据在本地`结果分析/0914v1_教师诊断_4090与3090对比.md`及对应run结果中，发布摘要与hash见[SYNC_MANIFEST.json](../process/SYNC_MANIFEST.json)。
 
 ## 与论文 CIARD baseline 对比
 
@@ -52,11 +58,11 @@ AutoAttack单独记录：M1 **24.95%**，M2 **24.53%**。补充材料AA表是CIF
 - checkpoint SHA256：`5df58522edfee576f61ecd102be396d9e893d447347c92d89f04bf183f8ece1e`。
 - evaluator SHA256：`277e1f93759be6acc064b7a7d93c116278a854f9623b183d052aa8ec5b832439`。
 - 原始日志：`logs/train_stdout_133792.log`和`logs/eval_best_stdout_134582.log`，附Slurm out/err；本地完整报告为`结果分析/0914v1_cifar100_结果分析.md`。
-- 已核验100类checkpoint CPU严格加载、训练完成标记、源码/评测器/权重hash、完整10k日志与JSON/正确数及Slurm输出一致性。来源与同步文件hash见[SYNC_MANIFEST.json](../SYNC_MANIFEST.json)，汇总见[总README](../README.md)。
+- 已核验100类checkpoint CPU严格加载、训练完成标记、源码/评测器/权重hash、完整10k日志与JSON/正确数及Slurm输出一致性。来源与同步文件hash见[SYNC_MANIFEST.json](../process/SYNC_MANIFEST.json)，汇总见[历史结果总README](../process/README.md)。
 
 ## 使用与协议说明
 
-本目录包含24份Python、原requirements及两份Slurm模板；Python、CFG、prefix和评测实现与已测run逐字一致。脚本只适配工作/日志绝对路径与job-name，默认compute-4、rtx4090、训练2卡/评测1卡、4CPU/16GB。本组已完成评测实际使用compute-2；模板默认节点不等于历史实际执行节点。compute-2仍需注意实际7卡与GRES登记8卡的差异，保留原CUDA设备检查。
+本目录包含24份Python、原requirements及两份Slurm模板；Python、CFG、prefix和评测实现与已测run逐字一致。脚本在历史同步时适配了工作/日志绝对路径与job-name；1008逐字保留模板，其路径仍指向 `origin_code/0917v1-cifar10`，不能直接执行；默认compute-4、rtx4090、训练2卡/评测1卡、4CPU/16GB。本组已完成评测实际使用compute-2；模板默认节点不等于历史实际执行节点。compute-2仍需注意实际7卡与GRES登记8卡的差异，保留原CUDA设备检查。
 
 源码包不包含data/models资源链接、权重、model/logs或训练完成记录，不能直接提交为现成实验。后续复跑应复制至新的独立run目录，设置唯一prefix、匹配路径及公共资源/输出目录；全部GPU作业由用户手动提交。既有结果留在原run，无需因同步重新训练或评测。
 

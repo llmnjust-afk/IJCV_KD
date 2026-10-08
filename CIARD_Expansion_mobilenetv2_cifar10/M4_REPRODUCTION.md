@@ -1,6 +1,8 @@
 # CIFAR-10 MobileNet-V2：从M1复现0917v1 M4
 
-本目录默认保存M1；M4为另一组已完成测试的参数配置，不需要另外保存重复源码。M4的23份Python与M1相比，仅CIARD.py和attack_eval.py不同。完整M4 CFG、23份源码SHA256和原始结果记录在仓库SYNC_MANIFEST.json的cifar10_batch_results中。
+2026-10-08：随M1保留的历史M4复现参考。本次仅整理论文讨论源码，没有准备新的M4实验；历史身份不可直接用于重提已完成作业。当前入口仍为M1，见[1008总导航](../README.md)。
+
+本目录默认保存M1；M4为另一组已完成测试的参数配置，不需要另外保存重复源码。M4的23份Python与M1相比，仅CIARD.py和attack_eval.py不同。完整M4 CFG、23份源码SHA256和原始结果记录在[历史同步清单](../process/SYNC_MANIFEST.json)的 `cifar10_batch_results`中。
 
 M1与M4各自同一个固定checkpoint的八项均严格高于论文，AA分别47.01%与46.70%；两者黑盒CW均66.14%，仅高论文.02pp。按用户选择以M1作为默认源码：M1的FGSM、PGDtrades、白盒CW和AA更高；M4的Clean、PGDsat、黑盒PGDtrades和Square更高，八项均值64.89%高于M1的64.83%（M1精确64.825%）。M4−M1九项依次为+.41/−.16/+.08/−.02/−.25/+.31/+.14/0/−.31pp。两者均未全面超过历史0909v1 M2，M1/M4本次过线不等于稳定全胜。
 

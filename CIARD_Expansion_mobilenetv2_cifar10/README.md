@@ -1,6 +1,12 @@
 # CIFAR-10 / MobileNet-V2 — 0917v1 M1 已评测活动入口
 
-2026-09-19：按用户选择同步已测来源。同版冻结备份见[best_backup/mobilenetv2_cifar10_0917v1_m1](../best_backup/mobilenetv2_cifar10_0917v1_m1/README.md)。
+**2026-10-08 论文讨论源码副本。** 本目录从 `../process/CIARD_Expansion_mobilenetv2_cifar10` 完整复制，计算源码、固定配置、依赖与历史脚本保持原样；本次只整理说明和链接。下文早于本日期的同步与核验记录均描述原版本。
+
+[返回1008总导航](../README.md) · [中文方法改进说明](../CIARD扩展方法改进说明.md) · [本次来源清单](../SOURCE_MANIFEST.json)
+
+**本目录用于阅读与追溯现有结果，不能直接提交。** 未打包数据、教师和学生权重、日志或资源链接；下文 `run/`、`model/`、`logs/` 产物均属于所列原实验。复跑须另建独立实验并重建身份、路径及校验绑定。
+
+2026-09-19：按用户选择同步已测来源。同版冻结备份见[best_backup/mobilenetv2_cifar10_0917v1_m1](../process/best_backup/mobilenetv2_cifar10_0917v1_m1/README.md)。
 
 M1与M4各自同一个固定checkpoint的八项均严格高于论文，AA分别47.01%与46.70%；两者黑盒CW均66.14%，仅高论文.02pp。按用户选择以M1作为默认源码：M1的FGSM、PGDtrades、白盒CW和AA更高；M4的Clean、PGDsat、黑盒PGDtrades和Square更高，八项均值64.89%高于M1的64.83%（M1精确64.825%）。M4−M1九项依次为+.41/−.16/+.08/−.02/−.25/+.31/+.14/0/−.31pp。两者均未全面超过历史0909v1 M2，M1/M4本次过线不等于稳定全胜。
 
@@ -20,7 +26,7 @@ MobileNet保留push=.05、clean CE=.05、teacher margin=.01、EMA=.999和普通�
 
 ## 已完成测试结果
 
-单位为%，括号为本结果减同模型论文baseline的百分点差值。论文来源、历史对照及两个数据集结果见[总README](../README.md)。均值不含AA，先计算再舍入。
+单位为%，括号为本结果减同模型论文baseline的百分点差值。论文来源、历史对照及两个数据集结果见[历史结果总README](../process/README.md)。均值不含AA，先计算再舍入。
 
 | Metric | Paper CIARD baseline | 0909v1 M2 (historical) (Δ vs paper) | 0917v1 M1 (Δ vs paper) | 0917v1 M4 (Δ vs paper) |
 | --- | ---: | ---: | ---: | ---: |
@@ -48,6 +54,6 @@ MobileNet保留push=.05、clean CE=.05、teacher margin=.01、EMA=.999和普通�
 
 ## 源码模板与复跑
 
-本目录包含23份Python，与已测run逐字一致，完整CFG和文件哈希见[SYNC_MANIFEST.json](../SYNC_MANIFEST.json)。训练与完整评测入口为CIARD.py、attack_eval.py，配套train_4090.sbatch与eval_4090_best.sbatch；其他辅助脚本保留历史用途。脚本只修改工作目录及日志路径；保留原rtx4090分区、aias-compute-2、单4090、4CPU/16GB配置。
+本目录包含23份Python，与已测run逐字一致，完整CFG和文件哈希见[SYNC_MANIFEST.json](../process/SYNC_MANIFEST.json)。训练与完整评测入口为CIARD.py、attack_eval.py，配套train_4090.sbatch与eval_4090_best.sbatch；其他辅助脚本保留历史用途。脚本在历史同步时修改了工作目录及日志路径；1008逐字保留该模板，工作和日志路径仍指向 `origin_code/0917v1-cifar10`，不能直接执行；保留原rtx4090分区、aias-compute-2、单4090、4CPU/16GB配置。
 
 本包只有源码、依赖和说明，不包含data/models链接、checkpoint、model/logs或缓存，当前不能直接提交。未来复跑需复制到新的独立run，设置唯一身份/prefix、匹配评测路径和脚本目录，建立公共data/models链接及空输出目录。原已测run保持冻结，全部GPU训练与评测由用户手动提交；本次同步无需重训。

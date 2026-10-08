@@ -1,0 +1,1571 @@
+{
+  "schema_version": 1,
+  "prepared_on": "2026-10-08",
+  "purpose": "CIARD拓展论文讨论源码集合",
+  "status": "local_source_archive",
+  "source_package": "process",
+  "historical_sync_manifest": "process/SYNC_MANIFEST.json",
+  "historical_sync_manifest_sha256": "a0dc60d1a61b40fe314ea43e1f916aeca15a0c070aa2a6361402eab4a6c770f7",
+  "baseline_code": "CIARD",
+  "verification_record": "../preparation_20261008/verification.json",
+  "policy": {
+    "computation_and_scripts": "byte-identical to selected process snapshots",
+    "documentation_changes_only": true,
+    "directly_runnable": false,
+    "new_training_or_evaluation": false,
+    "published": false,
+    "checkpoint_data_logs_copied": false
+  },
+  "metric_order": [
+    "clean",
+    "whitebox_fgsm",
+    "whitebox_pgdsat",
+    "whitebox_pgdtrades",
+    "whitebox_cw",
+    "blackbox_pgdtrades",
+    "blackbox_square",
+    "blackbox_cw"
+  ],
+  "mean_rounding": "Decimal ROUND_HALF_UP to two decimals after calculation; AA excluded",
+  "entries": [
+    {
+      "id": "M1",
+      "target": "CIARD_Expansion_mobilenetv2_cifar10",
+      "copy_source": "process/CIARD_Expansion_mobilenetv2_cifar10",
+      "previous_selected_source": "origin_code/1004/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar10",
+      "original_run": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50",
+      "prefix": "Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50",
+      "fixed_cfg": {
+        "training_views": 2,
+        "awp_gamma": 0.001,
+        "consistency_weight": 0.5,
+        "method_start": 120,
+        "method_warmup": 40,
+        "consistency_temperature": 0.5,
+        "push_soft": true,
+        "push_feature": false,
+        "push_gamma": 4.0,
+        "push_T": 5.0,
+        "push_eta": 0.3,
+        "proj_dim": 128,
+        "push_lambda": 0.05,
+        "push_warmup": 80,
+        "push_require_robust_correct": true,
+        "adaptive_weight": false,
+        "adv_weight_floor": 0.35,
+        "clean_ce_weight": 0.05,
+        "adv_ce_weight": 0.0,
+        "ce_start": 120,
+        "ce_warmup": 80,
+        "clean_ce_robust_gate": true,
+        "clean_ce_gate_tau": 2.0,
+        "clean_ce_gate_floor": 0.0,
+        "adv_margin_weight": 0.0,
+        "adv_margin_kappa": 0.0,
+        "adv_margin_start": 120,
+        "adv_margin_warmup": 80,
+        "teacher_margin_weight": 0.01,
+        "teacher_margin_start": 140,
+        "teacher_margin_warmup": 80,
+        "teacher_margin_tau": 2.0,
+        "teacher_margin_cap": 2.0,
+        "teacher_margin_clean_gate": false,
+        "teacher_margin_clean_tau": 1.0,
+        "teacher_margin_clean_floor": 0.0,
+        "teacher_margin_adv_gate": false,
+        "teacher_margin_adv_tau": 1.0,
+        "teacher_margin_adv_floor": 0.0,
+        "teacher_margin_conflict_gate": false,
+        "teacher_margin_conflict_threshold": 0.0,
+        "teacher_margin_conflict_floor": 0.0,
+        "student_arch_adaptive_margin": false,
+        "resnet_teacher_margin_weight": 0.005,
+        "resnet_teacher_margin_start": 180,
+        "resnet_teacher_margin_warmup": 80,
+        "teacher_margin_per_sample_conflict": false,
+        "teacher_margin_per_sample_tau": 1.0,
+        "teacher_margin_per_sample_floor": 0.0,
+        "robust_kd_reliable": false,
+        "robust_kd_floor": 0.5,
+        "capacity_aware": false,
+        "capacity_xi": 1.0,
+        "capacity_floor": 0.5,
+        "capacity_start": 60,
+        "ema_itt": false,
+        "ema_decay": 0.99,
+        "teacher_warmup": 50,
+        "ema_use_start": 70,
+        "attack_teacher_alpha": 0.0,
+        "student_ema": true,
+        "student_ema_decay": 0.999,
+        "eval_student_ema": true,
+        "save_ema_as_student": true
+      },
+      "train_job": "134636",
+      "eval_job": "135053",
+      "epoch": 250,
+      "selection_protocol": "historical_50k_train_test_loader_selection",
+      "test_samples": 10000,
+      "correct_counts": {
+        "autoattack": 4701,
+        "clean": 8961,
+        "whitebox_fgsm": 6087,
+        "whitebox_pgdsat": 5067,
+        "whitebox_pgdtrades": 5336,
+        "whitebox_cw": 4901,
+        "blackbox_pgdtrades": 6767,
+        "blackbox_square": 8127,
+        "blackbox_cw": 6614
+      },
+      "display": {
+        "baseline_percent": {
+          "clean": "89.51",
+          "whitebox_fgsm": "59.10",
+          "whitebox_pgdsat": "47.67",
+          "whitebox_pgdtrades": "50.71",
+          "whitebox_cw": "46.88",
+          "blackbox_pgdtrades": "66.66",
+          "blackbox_square": "80.01",
+          "blackbox_cw": "66.12"
+        },
+        "metrics_percent": {
+          "clean": "89.61",
+          "whitebox_fgsm": "60.87",
+          "whitebox_pgdsat": "50.67",
+          "whitebox_pgdtrades": "53.36",
+          "whitebox_cw": "49.01",
+          "blackbox_pgdtrades": "67.67",
+          "blackbox_square": "81.27",
+          "blackbox_cw": "66.14"
+        },
+        "delta_pp": {
+          "clean": "+0.10",
+          "whitebox_fgsm": "+1.77",
+          "whitebox_pgdsat": "+3.00",
+          "whitebox_pgdtrades": "+2.65",
+          "whitebox_cw": "+2.13",
+          "blackbox_pgdtrades": "+1.01",
+          "blackbox_square": "+1.26",
+          "blackbox_cw": "+0.02"
+        },
+        "autoattack": "47.01",
+        "autoattack_baseline": "46.31",
+        "autoattack_delta_pp": "+0.70",
+        "seven_attack_mean": "61.28",
+        "seven_attack_baseline_mean": "59.59",
+        "seven_attack_mean_delta_pp": "+1.69",
+        "eight_metric_mean": "64.83",
+        "eight_metric_baseline_mean": "63.33",
+        "eight_metric_mean_delta_pp": "+1.49"
+      },
+      "archived_job_state": "COMPLETED / 0:0",
+      "job_state_note": "read from existing completed-run archive; no new Slurm query",
+      "attack_seed": null,
+      "evidence": {
+        "result": {
+          "project_relative_path": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/eval_best_0909v1_135053.json",
+          "sha256": "4256aa0662db333e15d8db6a654b9849bca3d93597963437e9c9b87decd453c8"
+        },
+        "checkpoint": {
+          "project_relative_path": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/student_best.pth",
+          "sha256": "3956b121747007143f5a9ddd561dafe080b197a4670f95d20ee831551dc8bc7e"
+        },
+        "evaluation_log": {
+          "project_relative_path": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/eval_best_stdout_135053.log",
+          "sha256": "d55279c58afa591e121667f638903a984142f55eadcb8c3218fbe911f2e0821b"
+        },
+        "training_log": {
+          "project_relative_path": "run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/logs/train_stdout_134636.log",
+          "sha256": "d690e8ecb461e702691a4d82c096debd0af7de4b27c220eace0ddbfbca5392c3"
+        },
+        "report": {
+          "project_relative_path": "结果分析/0917v1_结果分析.md",
+          "sha256": "8051dd301387b56e815351e50206b357b84eef172035e184a115821736c21eff"
+        },
+        "archived_job_status": {
+          "project_relative_path": "run/0917v1/preparation/mobilenet_results_20260918/slurm_status.txt",
+          "sha256": "9b50ab628cb478feeb29c9a8fdcdd0fc821e6fabcea730f2d7b5f3c68f12e386"
+        }
+      },
+      "files": [
+        {
+          "path": "CIARD.py",
+          "source_sha256": "bd1c5d51e2cd3072688063a754637cd197a1e1302c342106e458e6cee2772e04",
+          "sha256": "bd1c5d51e2cd3072688063a754637cd197a1e1302c342106e458e6cee2772e04",
+          "same_as_source": true
+        },
+        {
+          "path": "M4_REPRODUCTION.md",
+          "source_sha256": "006d7d21875da1e1baf8ebb1c6a628729a15658b8a18ce88eda36e38bb4a7c34",
+          "sha256": "b0d905b2c550230afc09cf066d1f2a92c4c2def19bca7a814b67c1f43c41cf7c",
+          "same_as_source": false
+        },
+        {
+          "path": "README.md",
+          "source_sha256": "f801a610ba8dbd769d198a68bc1e9fba59de49717d75dd1899a261a2b4ee1132",
+          "sha256": "65e792410e1b6812d7a0f4bb78ee9ba17190acef4b78a825168720623b9d02d4",
+          "same_as_source": false
+        },
+        {
+          "path": "attack_eval.py",
+          "source_sha256": "ea395e24cdb7f1089a4e10aca7c3911d09e5ec55cac8a8d48c702a34dfeac152",
+          "sha256": "ea395e24cdb7f1089a4e10aca7c3911d09e5ec55cac8a8d48c702a34dfeac152",
+          "same_as_source": true
+        },
+        {
+          "path": "awp_consistency.py",
+          "source_sha256": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
+          "sha256": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
+          "same_as_source": true
+        },
+        {
+          "path": "check_eval_log.py",
+          "source_sha256": "580308176d927d32e7727b4e15896088676d0d9a4f58f23c6670d80a4125306f",
+          "sha256": "580308176d927d32e7727b4e15896088676d0d9a4f58f23c6670d80a4125306f",
+          "same_as_source": true
+        },
+        {
+          "path": "check_train_complete.py",
+          "source_sha256": "012e6549beff5b794f59b3a0105da71668c662112b6da39cb2462eebb870d290",
+          "sha256": "012e6549beff5b794f59b3a0105da71668c662112b6da39cb2462eebb870d290",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/__init__.py",
+          "source_sha256": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c",
+          "sha256": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/mobilenet_v2.py",
+          "source_sha256": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca",
+          "sha256": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/resnet.py",
+          "source_sha256": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3",
+          "sha256": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/wideresnet.py",
+          "source_sha256": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac",
+          "sha256": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/__init__.py",
+          "source_sha256": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437",
+          "sha256": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/mobilenetv2.py",
+          "source_sha256": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce",
+          "sha256": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/repvgg.py",
+          "source_sha256": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15",
+          "sha256": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/resnet.py",
+          "source_sha256": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98",
+          "sha256": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/shufflenetv2.py",
+          "source_sha256": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
+          "sha256": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/vgg.py",
+          "source_sha256": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
+          "sha256": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/vit.py",
+          "source_sha256": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4",
+          "sha256": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4",
+          "same_as_source": true
+        },
+        {
+          "path": "convert_rb_teacher.py",
+          "source_sha256": "3d8dca5139b7791318ceaed8b34f55daf463ed458f0d9e291e3c5ec06126e85d",
+          "sha256": "3d8dca5139b7791318ceaed8b34f55daf463ed458f0d9e291e3c5ec06126e85d",
+          "same_as_source": true
+        },
+        {
+          "path": "eval_4090_best.sbatch",
+          "source_sha256": "f3ed3c3b476b2e7a4c655e90d36fd09951ec86572362e35f1f78dac846d803d6",
+          "sha256": "f3ed3c3b476b2e7a4c655e90d36fd09951ec86572362e35f1f78dac846d803d6",
+          "same_as_source": true
+        },
+        {
+          "path": "fast_eval.py",
+          "source_sha256": "b37e1aaf01e52f6dd3927984549df40dcd15acdadf22f81765b8b889ae2c29c2",
+          "sha256": "b37e1aaf01e52f6dd3927984549df40dcd15acdadf22f81765b8b889ae2c29c2",
+          "same_as_source": true
+        },
+        {
+          "path": "mtard_loss.py",
+          "source_sha256": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d",
+          "sha256": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d",
+          "same_as_source": true
+        },
+        {
+          "path": "requirements.txt",
+          "source_sha256": "c8e45d46dc08ec7651aaa6646cbf81091a1615346f9cc1cd515eba34534a2ffd",
+          "sha256": "c8e45d46dc08ec7651aaa6646cbf81091a1615346f9cc1cd515eba34534a2ffd",
+          "same_as_source": true
+        },
+        {
+          "path": "run_checks.py",
+          "source_sha256": "8ad3cfae0c7cbe50522b7c10d74093d81a0b633eb23dcb7f3088e1bab64e56f8",
+          "sha256": "8ad3cfae0c7cbe50522b7c10d74093d81a0b633eb23dcb7f3088e1bab64e56f8",
+          "same_as_source": true
+        },
+        {
+          "path": "setup_models.sh",
+          "source_sha256": "378e425becaf5bbe47c19f23abb98e0a3a3860fc0d0c556c19d46a4f75a6fab6",
+          "sha256": "378e425becaf5bbe47c19f23abb98e0a3a3860fc0d0c556c19d46a4f75a6fab6",
+          "same_as_source": true
+        },
+        {
+          "path": "split_target_mix.py",
+          "source_sha256": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
+          "sha256": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
+          "same_as_source": true
+        },
+        {
+          "path": "train_4090.sbatch",
+          "source_sha256": "37ac33a9b7fb1c514b1d7800532a8fb8e9ed5ae3e80a5b25bf09f328374d1070",
+          "sha256": "37ac33a9b7fb1c514b1d7800532a8fb8e9ed5ae3e80a5b25bf09f328374d1070",
+          "same_as_source": true
+        },
+        {
+          "path": "train_teacher.py",
+          "source_sha256": "50d6b578936b61191afd4016cea625291a14b15ac9f30e244245ef99feac93c6",
+          "sha256": "50d6b578936b61191afd4016cea625291a14b15ac9f30e244245ef99feac93c6",
+          "same_as_source": true
+        },
+        {
+          "path": "validate_ciardpp.py",
+          "source_sha256": "21cefa0017e669ba29b77ce30ea6ec32a0936657859bc6d097f06f495bf1b886",
+          "sha256": "21cefa0017e669ba29b77ce30ea6ec32a0936657859bc6d097f06f495bf1b886",
+          "same_as_source": true
+        }
+      ],
+      "archived_job_lines": [
+        "134636|tr917m1|COMPLETED|0:0|1-05:27:26|aias-compute-2",
+        "135053|ev917m1|COMPLETED|0:0|01:09:23|aias-compute-2"
+      ],
+      "dataset": "CIFAR-10",
+      "num_classes": 10,
+      "student_architecture": "MobileNet-V2"
+    },
+    {
+      "id": "R4",
+      "target": "CIARD_Expansion_resnet18_cifar10",
+      "copy_source": "process/CIARD_Expansion_resnet18_cifar10",
+      "previous_selected_source": "origin_code/1004/IJCV_KD/CIARD_Expansion_resnet18_cifar10",
+      "original_run": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75",
+      "prefix": "Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75",
+      "fixed_cfg": {
+        "training_views": 2,
+        "awp_gamma": 0.002,
+        "consistency_weight": 0.75,
+        "method_start": 120,
+        "method_warmup": 40,
+        "consistency_temperature": 0.5,
+        "target_mix_alpha": 0.2,
+        "target_mix_start": 120,
+        "target_mix_warmup": 40,
+        "split_target_mix": true,
+        "split_target_alpha": 0.25,
+        "split_nontarget_alpha": 0.0,
+        "push_soft": true,
+        "push_feature": false,
+        "push_gamma": 4.0,
+        "push_T": 5.0,
+        "push_eta": 0.3,
+        "proj_dim": 128,
+        "push_lambda": 0.08174,
+        "push_warmup": 80,
+        "push_require_robust_correct": true,
+        "adaptive_weight": false,
+        "adv_weight_floor": 0.35,
+        "clean_ce_weight": 0.036067,
+        "adv_ce_weight": 0.0,
+        "ce_start": 158,
+        "ce_warmup": 116,
+        "clean_ce_robust_gate": true,
+        "clean_ce_gate_tau": 0.682852,
+        "clean_ce_gate_floor": 0.0,
+        "adv_margin_weight": 0.0,
+        "adv_margin_kappa": 0.0,
+        "adv_margin_start": 120,
+        "adv_margin_warmup": 80,
+        "teacher_margin_weight": 0.011316,
+        "teacher_margin_start": 120,
+        "teacher_margin_warmup": 89,
+        "teacher_margin_tau": 1.124788,
+        "teacher_margin_cap": 1.428932,
+        "teacher_margin_clean_gate": false,
+        "teacher_margin_clean_tau": 1.0,
+        "teacher_margin_clean_floor": 0.0,
+        "teacher_margin_adv_gate": false,
+        "teacher_margin_adv_tau": 1.0,
+        "teacher_margin_adv_floor": 0.0,
+        "teacher_margin_relative": false,
+        "teacher_margin_relative_eta": 0.5,
+        "teacher_margin_conflict_gate": true,
+        "teacher_margin_conflict_threshold": 0.0,
+        "teacher_margin_conflict_floor": 0.211797,
+        "student_arch_adaptive_margin": false,
+        "resnet_teacher_margin_weight": 0.005,
+        "resnet_teacher_margin_start": 180,
+        "resnet_teacher_margin_warmup": 80,
+        "teacher_margin_per_sample_conflict": false,
+        "teacher_margin_per_sample_tau": 1.0,
+        "teacher_margin_per_sample_floor": 0.0,
+        "robust_kd_reliable": false,
+        "robust_kd_floor": 0.5,
+        "capacity_aware": false,
+        "capacity_xi": 1.0,
+        "capacity_floor": 0.5,
+        "capacity_start": 60,
+        "ema_itt": false,
+        "ema_decay": 0.99,
+        "teacher_warmup": 50,
+        "ema_use_start": 70,
+        "attack_teacher_alpha": 0.0,
+        "student_ema": true,
+        "student_ema_decay": 0.999642,
+        "eval_student_ema": true,
+        "save_ema_as_student": true,
+        "weight_averaging": true,
+        "wa_alpha": 0.5,
+        "pcgrad_teacher_margin": true,
+        "pcgrad_start": 120
+      },
+      "train_job": "134643",
+      "eval_job": "134905",
+      "epoch": 252,
+      "selection_protocol": "historical_50k_train_test_loader_selection",
+      "test_samples": 10000,
+      "correct_counts": {
+        "autoattack": 4910,
+        "clean": 8910,
+        "whitebox_fgsm": 6180,
+        "whitebox_pgdsat": 5206,
+        "whitebox_pgdtrades": 5486,
+        "whitebox_cw": 5124,
+        "blackbox_pgdtrades": 6728,
+        "blackbox_square": 8077,
+        "blackbox_cw": 6562
+      },
+      "display": {
+        "baseline_percent": {
+          "clean": "88.87",
+          "whitebox_fgsm": "61.88",
+          "whitebox_pgdsat": "51.70",
+          "whitebox_pgdtrades": "54.46",
+          "whitebox_cw": "50.61",
+          "blackbox_pgdtrades": "66.28",
+          "blackbox_square": "80.03",
+          "blackbox_cw": "64.79"
+        },
+        "metrics_percent": {
+          "clean": "89.10",
+          "whitebox_fgsm": "61.80",
+          "whitebox_pgdsat": "52.06",
+          "whitebox_pgdtrades": "54.86",
+          "whitebox_cw": "51.24",
+          "blackbox_pgdtrades": "67.28",
+          "blackbox_square": "80.77",
+          "blackbox_cw": "65.62"
+        },
+        "delta_pp": {
+          "clean": "+0.23",
+          "whitebox_fgsm": "-0.08",
+          "whitebox_pgdsat": "+0.36",
+          "whitebox_pgdtrades": "+0.40",
+          "whitebox_cw": "+0.63",
+          "blackbox_pgdtrades": "+1.00",
+          "blackbox_square": "+0.74",
+          "blackbox_cw": "+0.83"
+        },
+        "autoattack": "49.10",
+        "autoattack_baseline": "48.88",
+        "autoattack_delta_pp": "+0.22",
+        "seven_attack_mean": "61.95",
+        "seven_attack_baseline_mean": "61.39",
+        "seven_attack_mean_delta_pp": "+0.55",
+        "eight_metric_mean": "65.34",
+        "eight_metric_baseline_mean": "64.83",
+        "eight_metric_mean_delta_pp": "+0.51"
+      },
+      "archived_job_state": "COMPLETED / 0:0",
+      "job_state_note": "read from existing completed-run archive; no new Slurm query",
+      "attack_seed": null,
+      "evidence": {
+        "result": {
+          "project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/eval_best_0909v1_134905.json",
+          "sha256": "4dd026354052907b445668b0be8f2a500136fee80aa1298274b5eec7e7cf5bf9"
+        },
+        "checkpoint": {
+          "project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/student_best.pth",
+          "sha256": "208cc7dbe1a4158c8c6d3a41f0f442e3952dd92cf011f3419e00edb9845694e8"
+        },
+        "evaluation_log": {
+          "project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/eval_best_stdout_134905.log",
+          "sha256": "f30a6cac866ef90b3867a0948103752f859ed91bfe8e98fc9d22d11855c5e66d"
+        },
+        "training_log": {
+          "project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/train_stdout_134643.log",
+          "sha256": "a20116b9fd983d3100a88fc4f3c340948a9684d674b83c1f4ac9d13c9f26b309"
+        },
+        "report": {
+          "project_relative_path": "结果分析/0917v1_结果分析.md",
+          "sha256": "8051dd301387b56e815351e50206b357b84eef172035e184a115821736c21eff"
+        },
+        "archived_job_status": {
+          "project_relative_path": "run/0917v1/preparation/resnet_results_20260918/slurm_status.txt",
+          "sha256": "c4d05568c6a427eaf72d4ca815c715f64c0ef655d7c7b507ddeb19f534b68bad"
+        }
+      },
+      "files": [
+        {
+          "path": "CIARD.py",
+          "source_sha256": "514bec930a8095f990a91130d9f6040b21991ed6425616dc8f11c4e3ad8e49f6",
+          "sha256": "514bec930a8095f990a91130d9f6040b21991ed6425616dc8f11c4e3ad8e49f6",
+          "same_as_source": true
+        },
+        {
+          "path": "README.md",
+          "source_sha256": "2c92905a232fcc308eaa99174b9be4ccbddbc01781dbc2d1aace8c553bdede45",
+          "sha256": "3fcbd4180ee6d95973a49a8f9790fd5a3a3df4c3f4398ec2eca6047b537210bd",
+          "same_as_source": false
+        },
+        {
+          "path": "attack_eval.py",
+          "source_sha256": "86803bff2df8b0a88b7a4f43d82ca412f80ad42c7ec297cd8d97ceddc59b6bd3",
+          "sha256": "86803bff2df8b0a88b7a4f43d82ca412f80ad42c7ec297cd8d97ceddc59b6bd3",
+          "same_as_source": true
+        },
+        {
+          "path": "awp_consistency.py",
+          "source_sha256": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
+          "sha256": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
+          "same_as_source": true
+        },
+        {
+          "path": "check_eval_log.py",
+          "source_sha256": "580308176d927d32e7727b4e15896088676d0d9a4f58f23c6670d80a4125306f",
+          "sha256": "580308176d927d32e7727b4e15896088676d0d9a4f58f23c6670d80a4125306f",
+          "same_as_source": true
+        },
+        {
+          "path": "check_train_complete.py",
+          "source_sha256": "012e6549beff5b794f59b3a0105da71668c662112b6da39cb2462eebb870d290",
+          "sha256": "012e6549beff5b794f59b3a0105da71668c662112b6da39cb2462eebb870d290",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/__init__.py",
+          "source_sha256": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c",
+          "sha256": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/mobilenet_v2.py",
+          "source_sha256": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca",
+          "sha256": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/resnet.py",
+          "source_sha256": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3",
+          "sha256": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/wideresnet.py",
+          "source_sha256": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac",
+          "sha256": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/__init__.py",
+          "source_sha256": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437",
+          "sha256": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/mobilenetv2.py",
+          "source_sha256": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce",
+          "sha256": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/repvgg.py",
+          "source_sha256": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15",
+          "sha256": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/resnet.py",
+          "source_sha256": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98",
+          "sha256": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/shufflenetv2.py",
+          "source_sha256": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
+          "sha256": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/vgg.py",
+          "source_sha256": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
+          "sha256": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/vit.py",
+          "source_sha256": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4",
+          "sha256": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4",
+          "same_as_source": true
+        },
+        {
+          "path": "eval_4090_best.sbatch",
+          "source_sha256": "793dbc56606ef5911c0e32ca81a1145e743b231627f833413fa612b459973786",
+          "sha256": "793dbc56606ef5911c0e32ca81a1145e743b231627f833413fa612b459973786",
+          "same_as_source": true
+        },
+        {
+          "path": "mtard_loss.py",
+          "source_sha256": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d",
+          "sha256": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d",
+          "same_as_source": true
+        },
+        {
+          "path": "requirements.txt",
+          "source_sha256": "c8e45d46dc08ec7651aaa6646cbf81091a1615346f9cc1cd515eba34534a2ffd",
+          "sha256": "c8e45d46dc08ec7651aaa6646cbf81091a1615346f9cc1cd515eba34534a2ffd",
+          "same_as_source": true
+        },
+        {
+          "path": "run_checks.py",
+          "source_sha256": "8ad3cfae0c7cbe50522b7c10d74093d81a0b633eb23dcb7f3088e1bab64e56f8",
+          "sha256": "8ad3cfae0c7cbe50522b7c10d74093d81a0b633eb23dcb7f3088e1bab64e56f8",
+          "same_as_source": true
+        },
+        {
+          "path": "split_target_mix.py",
+          "source_sha256": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
+          "sha256": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
+          "same_as_source": true
+        },
+        {
+          "path": "train_4090.sbatch",
+          "source_sha256": "50f1cf4a32999e82e988a1c355afac8407bc609d05c7871628e4dcf6d55cd843",
+          "sha256": "50f1cf4a32999e82e988a1c355afac8407bc609d05c7871628e4dcf6d55cd843",
+          "same_as_source": true
+        },
+        {
+          "path": "validate_ciardpp.py",
+          "source_sha256": "21cefa0017e669ba29b77ce30ea6ec32a0936657859bc6d097f06f495bf1b886",
+          "sha256": "21cefa0017e669ba29b77ce30ea6ec32a0936657859bc6d097f06f495bf1b886",
+          "same_as_source": true
+        }
+      ],
+      "archived_job_lines": [
+        "134643|tr917r4|COMPLETED|0:0|22:39:48|aias-compute-4",
+        "134905|ev917r4|COMPLETED|0:0|01:00:31|aias-compute-4"
+      ],
+      "dataset": "CIFAR-10",
+      "num_classes": 10,
+      "student_architecture": "ResNet-18"
+    },
+    {
+      "id": "C100-M1",
+      "target": "CIARD_Expansion_mobilenetv2_cifar100",
+      "copy_source": "process/CIARD_Expansion_mobilenetv2_cifar100",
+      "previous_selected_source": "origin_code/1004/IJCV_KD/CIARD_Expansion_mobilenetv2_cifar100",
+      "original_run": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50",
+      "prefix": "Cifar100_MobileNetV2_0914v1_natorig_awp0p002_cr0p50",
+      "fixed_cfg": {
+        "training_views": 2,
+        "awp_gamma": 0.002,
+        "consistency_weight": 0.5,
+        "method_start": 120,
+        "method_warmup": 40,
+        "consistency_temperature": 0.5,
+        "push_soft": true,
+        "push_feature": false,
+        "push_gamma": 4.0,
+        "push_T": 5.0,
+        "push_eta": 0.3,
+        "proj_dim": 128,
+        "push_lambda": 0.05,
+        "push_warmup": 80,
+        "push_require_robust_correct": true,
+        "adaptive_weight": false,
+        "adv_weight_floor": 0.35,
+        "clean_ce_weight": 0.05,
+        "adv_ce_weight": 0.0,
+        "ce_start": 120,
+        "ce_warmup": 80,
+        "clean_ce_robust_gate": true,
+        "clean_ce_gate_tau": 2.0,
+        "clean_ce_gate_floor": 0.0,
+        "adv_margin_weight": 0.0,
+        "adv_margin_kappa": 0.0,
+        "adv_margin_start": 120,
+        "adv_margin_warmup": 80,
+        "teacher_margin_weight": 0.01,
+        "teacher_margin_start": 140,
+        "teacher_margin_warmup": 80,
+        "teacher_margin_tau": 2.0,
+        "teacher_margin_cap": 2.0,
+        "teacher_margin_clean_gate": false,
+        "teacher_margin_clean_tau": 1.0,
+        "teacher_margin_clean_floor": 0.0,
+        "teacher_margin_adv_gate": false,
+        "teacher_margin_adv_tau": 1.0,
+        "teacher_margin_adv_floor": 0.0,
+        "teacher_margin_conflict_gate": false,
+        "teacher_margin_conflict_threshold": 0.0,
+        "teacher_margin_conflict_floor": 0.0,
+        "student_arch_adaptive_margin": false,
+        "resnet_teacher_margin_weight": 0.005,
+        "resnet_teacher_margin_start": 180,
+        "resnet_teacher_margin_warmup": 80,
+        "teacher_margin_per_sample_conflict": false,
+        "teacher_margin_per_sample_tau": 1.0,
+        "teacher_margin_per_sample_floor": 0.0,
+        "robust_kd_reliable": false,
+        "robust_kd_floor": 0.5,
+        "capacity_aware": false,
+        "capacity_xi": 1.0,
+        "capacity_floor": 0.5,
+        "capacity_start": 60,
+        "ema_itt": false,
+        "ema_decay": 0.99,
+        "teacher_warmup": 50,
+        "ema_use_start": 70,
+        "attack_teacher_alpha": 0.0,
+        "student_ema": true,
+        "student_ema_decay": 0.999,
+        "eval_student_ema": true,
+        "save_ema_as_student": true
+      },
+      "train_job": "133792",
+      "eval_job": "134582",
+      "epoch": 230,
+      "selection_protocol": "historical_50k_train_test_loader_selection",
+      "test_samples": 10000,
+      "correct_counts": {
+        "autoattack": 2495,
+        "clean": 6691,
+        "whitebox_fgsm": 3457,
+        "whitebox_pgdsat": 2861,
+        "whitebox_pgdtrades": 3006,
+        "whitebox_cw": 2728,
+        "blackbox_pgdtrades": 4482,
+        "blackbox_square": 5329,
+        "blackbox_cw": 4367
+      },
+      "display": {
+        "baseline_percent": {
+          "clean": "66.72",
+          "whitebox_fgsm": "33.56",
+          "whitebox_pgdsat": "27.02",
+          "whitebox_pgdtrades": "28.95",
+          "whitebox_cw": "25.54",
+          "blackbox_pgdtrades": "42.70",
+          "blackbox_square": "50.85",
+          "blackbox_cw": "42.85"
+        },
+        "metrics_percent": {
+          "clean": "66.91",
+          "whitebox_fgsm": "34.57",
+          "whitebox_pgdsat": "28.61",
+          "whitebox_pgdtrades": "30.06",
+          "whitebox_cw": "27.28",
+          "blackbox_pgdtrades": "44.82",
+          "blackbox_square": "53.29",
+          "blackbox_cw": "43.67"
+        },
+        "delta_pp": {
+          "clean": "+0.19",
+          "whitebox_fgsm": "+1.01",
+          "whitebox_pgdsat": "+1.59",
+          "whitebox_pgdtrades": "+1.11",
+          "whitebox_cw": "+1.74",
+          "blackbox_pgdtrades": "+2.12",
+          "blackbox_square": "+2.44",
+          "blackbox_cw": "+0.82"
+        },
+        "autoattack": "24.95",
+        "autoattack_baseline": null,
+        "autoattack_delta_pp": null,
+        "seven_attack_mean": "37.47",
+        "seven_attack_baseline_mean": "35.92",
+        "seven_attack_mean_delta_pp": "+1.55",
+        "eight_metric_mean": "41.15",
+        "eight_metric_baseline_mean": "39.77",
+        "eight_metric_mean_delta_pp": "+1.38"
+      },
+      "archived_job_state": "COMPLETED / 0:0",
+      "job_state_note": "read from existing completed-run archive; no new Slurm query",
+      "attack_seed": null,
+      "evidence": {
+        "result": {
+          "project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/model/Cifar100_MobileNetV2_0914v1_natorig_awp0p002_cr0p50/eval_best_0909v1_134582.json",
+          "sha256": "acc87bf80883cd1f54741799f77f79c933bfb421ad753a98966b3f9c0dcb958b"
+        },
+        "checkpoint": {
+          "project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/model/Cifar100_MobileNetV2_0914v1_natorig_awp0p002_cr0p50/student_best.pth",
+          "sha256": "5df58522edfee576f61ecd102be396d9e893d447347c92d89f04bf183f8ece1e"
+        },
+        "evaluation_log": {
+          "project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/eval_best_stdout_134582.log",
+          "sha256": "a9a4123c8c2e15116a8a46f51bbb37c8ac7b77569a132981abb5358bd1873820"
+        },
+        "training_log": {
+          "project_relative_path": "run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/logs/train_stdout_133792.log",
+          "sha256": "6b3de3044fcb4f18ee5566d226f51b3119fc47ee43a01a6fd923a7e599a4a5f4"
+        },
+        "report": {
+          "project_relative_path": "结果分析/0914v1_cifar100_结果分析.md",
+          "sha256": "6cfd4d3332b4e51c54a518c9d40b985df3e4e45a0ae4e369112da5926405497b"
+        },
+        "archived_job_status": {
+          "project_relative_path": "run/0914v1/preparation_cifar100/full_results_sync_20260918/slurm_completion.txt",
+          "sha256": "ea593f360a04b92fa3e2c74fefe5ded55e874e5a335c7094ee1a0b021cc180aa"
+        }
+      },
+      "files": [
+        {
+          "path": "CIARD.py",
+          "source_sha256": "29494b84b2085aea750c3fc960196b6d4a3d209d99187615fa2584787c5e8467",
+          "sha256": "29494b84b2085aea750c3fc960196b6d4a3d209d99187615fa2584787c5e8467",
+          "same_as_source": true
+        },
+        {
+          "path": "README.md",
+          "source_sha256": "aa30a0ab71820d74ee749808255f1bd05b726589bf4b35a30d3aafb9157d13a5",
+          "sha256": "7dedc88b04b4f4bdc638ee81fef925192f20ef4a7ae681aadeb3d3a45a5f0e22",
+          "same_as_source": false
+        },
+        {
+          "path": "attack_eval.py",
+          "source_sha256": "277e1f93759be6acc064b7a7d93c116278a854f9623b183d052aa8ec5b832439",
+          "sha256": "277e1f93759be6acc064b7a7d93c116278a854f9623b183d052aa8ec5b832439",
+          "same_as_source": true
+        },
+        {
+          "path": "awp_consistency.py",
+          "source_sha256": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
+          "sha256": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
+          "same_as_source": true
+        },
+        {
+          "path": "check_eval_log.py",
+          "source_sha256": "580308176d927d32e7727b4e15896088676d0d9a4f58f23c6670d80a4125306f",
+          "sha256": "580308176d927d32e7727b4e15896088676d0d9a4f58f23c6670d80a4125306f",
+          "same_as_source": true
+        },
+        {
+          "path": "check_train_complete.py",
+          "source_sha256": "012e6549beff5b794f59b3a0105da71668c662112b6da39cb2462eebb870d290",
+          "sha256": "012e6549beff5b794f59b3a0105da71668c662112b6da39cb2462eebb870d290",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar100_teacher.py",
+          "source_sha256": "c2b8410fd6b5ef7eec02f2bdda3e5e01e3f620418f02425cff687e769ddbdf6e",
+          "sha256": "c2b8410fd6b5ef7eec02f2bdda3e5e01e3f620418f02425cff687e769ddbdf6e",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/__init__.py",
+          "source_sha256": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c",
+          "sha256": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/mobilenet_v2.py",
+          "source_sha256": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca",
+          "sha256": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/resnet.py",
+          "source_sha256": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3",
+          "sha256": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/wideresnet.py",
+          "source_sha256": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac",
+          "sha256": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/__init__.py",
+          "source_sha256": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437",
+          "sha256": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/mobilenetv2.py",
+          "source_sha256": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce",
+          "sha256": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/repvgg.py",
+          "source_sha256": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15",
+          "sha256": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/resnet.py",
+          "source_sha256": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98",
+          "sha256": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/shufflenetv2.py",
+          "source_sha256": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
+          "sha256": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/vgg.py",
+          "source_sha256": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
+          "sha256": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/vit.py",
+          "source_sha256": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4",
+          "sha256": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4",
+          "same_as_source": true
+        },
+        {
+          "path": "convert_rb_teacher.py",
+          "source_sha256": "3d8dca5139b7791318ceaed8b34f55daf463ed458f0d9e291e3c5ec06126e85d",
+          "sha256": "3d8dca5139b7791318ceaed8b34f55daf463ed458f0d9e291e3c5ec06126e85d",
+          "same_as_source": true
+        },
+        {
+          "path": "eval_4090_best.sbatch",
+          "source_sha256": "d150b602279433e7342c6f4130af670a1ec70fceb75216d24150d24a73d31a7f",
+          "sha256": "d150b602279433e7342c6f4130af670a1ec70fceb75216d24150d24a73d31a7f",
+          "same_as_source": true
+        },
+        {
+          "path": "fast_eval.py",
+          "source_sha256": "b37e1aaf01e52f6dd3927984549df40dcd15acdadf22f81765b8b889ae2c29c2",
+          "sha256": "b37e1aaf01e52f6dd3927984549df40dcd15acdadf22f81765b8b889ae2c29c2",
+          "same_as_source": true
+        },
+        {
+          "path": "mtard_loss.py",
+          "source_sha256": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d",
+          "sha256": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d",
+          "same_as_source": true
+        },
+        {
+          "path": "requirements.txt",
+          "source_sha256": "c8e45d46dc08ec7651aaa6646cbf81091a1615346f9cc1cd515eba34534a2ffd",
+          "sha256": "c8e45d46dc08ec7651aaa6646cbf81091a1615346f9cc1cd515eba34534a2ffd",
+          "same_as_source": true
+        },
+        {
+          "path": "run_checks.py",
+          "source_sha256": "0c1840229fefa5cc18f5a2e214c45f36216d17c4c16f91390365642f441dead3",
+          "sha256": "0c1840229fefa5cc18f5a2e214c45f36216d17c4c16f91390365642f441dead3",
+          "same_as_source": true
+        },
+        {
+          "path": "split_target_mix.py",
+          "source_sha256": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
+          "sha256": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
+          "same_as_source": true
+        },
+        {
+          "path": "train_4090.sbatch",
+          "source_sha256": "f92e77607bf255e3d2ae8b7106614aa9c29d4ba74a92c5de25e4aafb08c4e53d",
+          "sha256": "f92e77607bf255e3d2ae8b7106614aa9c29d4ba74a92c5de25e4aafb08c4e53d",
+          "same_as_source": true
+        },
+        {
+          "path": "train_teacher.py",
+          "source_sha256": "50d6b578936b61191afd4016cea625291a14b15ac9f30e244245ef99feac93c6",
+          "sha256": "50d6b578936b61191afd4016cea625291a14b15ac9f30e244245ef99feac93c6",
+          "same_as_source": true
+        },
+        {
+          "path": "validate_ciardpp.py",
+          "source_sha256": "21cefa0017e669ba29b77ce30ea6ec32a0936657859bc6d097f06f495bf1b886",
+          "sha256": "21cefa0017e669ba29b77ce30ea6ec32a0936657859bc6d097f06f495bf1b886",
+          "same_as_source": true
+        }
+      ],
+      "archived_job_lines": [
+        "133792|COMPLETED|0:0|aias-compute-4",
+        "134582|COMPLETED|0:0|aias-compute-2"
+      ],
+      "dataset": "CIFAR-100",
+      "num_classes": 100,
+      "student_architecture": "MobileNet-V2"
+    },
+    {
+      "id": "C100-H2",
+      "target": "CIARD_Expansion_resnet18_cifar100",
+      "copy_source": "process/CIARD_Expansion_resnet18_cifar100",
+      "previous_selected_source": "origin_code/1004/IJCV_KD/CIARD_Expansion_resnet18_cifar100",
+      "original_run": "run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0",
+      "prefix": "Cifar100_ResNet18_1004_binary_v1_H2",
+      "fixed_cfg": {
+        "clean_ce_transfer_ratio": 0.0,
+        "clean_ce_preserve_loss": false,
+        "natural_binary_weight": 2.0,
+        "natural_binary_awp": false,
+        "natural_binary_start": 120,
+        "natural_binary_warmup": 40,
+        "robust_kd_error_swap": false,
+        "clean_ce_robust_projection": false,
+        "training_views": 2,
+        "awp_gamma": 0.003,
+        "consistency_weight": 0.5,
+        "method_start": 120,
+        "method_warmup": 40,
+        "consistency_temperature": 0.5,
+        "target_mix_alpha": 0.2,
+        "target_mix_start": 120,
+        "target_mix_warmup": 40,
+        "split_target_mix": true,
+        "split_target_alpha": 0.25,
+        "split_nontarget_alpha": 0.0,
+        "push_soft": true,
+        "push_feature": false,
+        "push_gamma": 4.0,
+        "push_T": 5.0,
+        "push_eta": 0.3,
+        "proj_dim": 128,
+        "push_lambda": 0.08174,
+        "push_warmup": 80,
+        "push_require_robust_correct": true,
+        "adaptive_weight": false,
+        "adv_weight_floor": 0.35,
+        "clean_ce_weight": 0.036067,
+        "adv_ce_weight": 0.0,
+        "ce_start": 158,
+        "ce_warmup": 116,
+        "clean_ce_robust_gate": true,
+        "clean_ce_gate_tau": 0.682852,
+        "clean_ce_gate_floor": 0.0,
+        "adv_margin_weight": 0.0,
+        "adv_margin_kappa": 0.0,
+        "adv_margin_start": 120,
+        "adv_margin_warmup": 80,
+        "teacher_margin_weight": 0.011316,
+        "teacher_margin_start": 120,
+        "teacher_margin_warmup": 89,
+        "teacher_margin_tau": 1.124788,
+        "teacher_margin_cap": 1.428932,
+        "teacher_margin_clean_gate": false,
+        "teacher_margin_clean_tau": 1.0,
+        "teacher_margin_clean_floor": 0.0,
+        "teacher_margin_adv_gate": false,
+        "teacher_margin_adv_tau": 1.0,
+        "teacher_margin_adv_floor": 0.0,
+        "teacher_margin_relative": false,
+        "teacher_margin_relative_eta": 0.5,
+        "teacher_margin_conflict_gate": true,
+        "teacher_margin_conflict_threshold": 0.0,
+        "teacher_margin_conflict_floor": 0.211797,
+        "student_arch_adaptive_margin": false,
+        "resnet_teacher_margin_weight": 0.005,
+        "resnet_teacher_margin_start": 180,
+        "resnet_teacher_margin_warmup": 80,
+        "teacher_margin_per_sample_conflict": false,
+        "teacher_margin_per_sample_tau": 1.0,
+        "teacher_margin_per_sample_floor": 0.0,
+        "robust_kd_reliable": false,
+        "robust_kd_floor": 0.5,
+        "capacity_aware": false,
+        "capacity_xi": 1.0,
+        "capacity_floor": 0.5,
+        "capacity_start": 60,
+        "ema_itt": false,
+        "ema_decay": 0.99,
+        "teacher_warmup": 50,
+        "ema_use_start": 70,
+        "attack_teacher_alpha": 0.0,
+        "student_ema": true,
+        "student_ema_decay": 0.999642,
+        "eval_student_ema": true,
+        "save_ema_as_student": true,
+        "weight_averaging": false,
+        "wa_alpha": 0.5,
+        "pcgrad_teacher_margin": true,
+        "pcgrad_start": 120
+      },
+      "train_job": "137534",
+      "eval_job": "137729",
+      "epoch": 190,
+      "selection_protocol": "fixed_epoch190_no_test_selection",
+      "test_samples": 10000,
+      "correct_counts": {
+        "autoattack": 2422,
+        "clean": 6596,
+        "whitebox_fgsm": 3452,
+        "whitebox_pgdsat": 2976,
+        "whitebox_pgdtrades": 3078,
+        "whitebox_cw": 2666,
+        "blackbox_pgdtrades": 4352,
+        "blackbox_square": 5190,
+        "blackbox_cw": 4229
+      },
+      "display": {
+        "baseline_percent": {
+          "clean": "65.73",
+          "whitebox_fgsm": "34.47",
+          "whitebox_pgdsat": "28.05",
+          "whitebox_pgdtrades": "29.45",
+          "whitebox_cw": "24.43",
+          "blackbox_pgdtrades": "42.29",
+          "blackbox_square": "49.76",
+          "blackbox_cw": "41.44"
+        },
+        "metrics_percent": {
+          "clean": "65.96",
+          "whitebox_fgsm": "34.52",
+          "whitebox_pgdsat": "29.76",
+          "whitebox_pgdtrades": "30.78",
+          "whitebox_cw": "26.66",
+          "blackbox_pgdtrades": "43.52",
+          "blackbox_square": "51.90",
+          "blackbox_cw": "42.29"
+        },
+        "delta_pp": {
+          "clean": "+0.23",
+          "whitebox_fgsm": "+0.05",
+          "whitebox_pgdsat": "+1.71",
+          "whitebox_pgdtrades": "+1.33",
+          "whitebox_cw": "+2.23",
+          "blackbox_pgdtrades": "+1.23",
+          "blackbox_square": "+2.14",
+          "blackbox_cw": "+0.85"
+        },
+        "autoattack": "24.22",
+        "autoattack_baseline": null,
+        "autoattack_delta_pp": null,
+        "seven_attack_mean": "37.06",
+        "seven_attack_baseline_mean": "35.70",
+        "seven_attack_mean_delta_pp": "+1.36",
+        "eight_metric_mean": "40.67",
+        "eight_metric_baseline_mean": "39.45",
+        "eight_metric_mean_delta_pp": "+1.22"
+      },
+      "archived_job_state": "COMPLETED / 0:0",
+      "job_state_note": "read from existing completed-run archive; no new Slurm query",
+      "attack_seed": 0,
+      "evidence": {
+        "result": {
+          "project_relative_path": "run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/eval_137729.json",
+          "sha256": "b44db407d901618a76cd4e682b52472d0fed864d217ef1564148e3a761923162"
+        },
+        "checkpoint": {
+          "project_relative_path": "run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/student_epoch190.pth",
+          "sha256": "e32461425fc112b763c6650c65756979e8ca75c3342119acbe4363075be0d13b"
+        },
+        "evaluation_log": {
+          "project_relative_path": "run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/eval_stdout_137729.log",
+          "sha256": "91d2dfb3170a5fea6ae7e21813d4b16772e5f48d4bee787c4b81c678e69c2d80"
+        },
+        "training_log": {
+          "project_relative_path": "run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/logs/train_stdout_137534.log",
+          "sha256": "213d53afbde5e3d31172414662865c2d679a0c94b28995dea5da90ffd3fa806f"
+        },
+        "report": {
+          "project_relative_path": "结果分析/1004-cifar100-binary-v1_结果分析.md",
+          "sha256": "cf47567cd5deedcaaf47b6798f2772252f83a2ab24f370df4872f064e277cf61"
+        },
+        "archived_job_status": {
+          "project_relative_path": "run/1004-cifar100-binary-v1/preparation/results_20261005/slurm_status.txt",
+          "sha256": "c26768111c77929e41643fa129b50320bfe35e02504815e3560ff920229e4b00"
+        }
+      },
+      "files": [
+        {
+          "path": "CIARD.py",
+          "source_sha256": "050fce5eb0e6209165a19246c218625c38537338cb8d3eeed85ca42ca08a0953",
+          "sha256": "050fce5eb0e6209165a19246c218625c38537338cb8d3eeed85ca42ca08a0953",
+          "same_as_source": true
+        },
+        {
+          "path": "README.md",
+          "source_sha256": "a159b2312aab40fa6eddad3c8efd29322d7fb9ebecf2e67719c17756a0d41428",
+          "sha256": "642995c41ddd2b1ee842dcf67889a23503452acf7264c336ea07d2bcb7f17e7e",
+          "same_as_source": false
+        },
+        {
+          "path": "attack_eval.py",
+          "source_sha256": "e730fef8329fd3352c6e7c9884988ccb66f37c3ed0492ca84b0633ea44c6de1f",
+          "sha256": "e730fef8329fd3352c6e7c9884988ccb66f37c3ed0492ca84b0633ea44c6de1f",
+          "same_as_source": true
+        },
+        {
+          "path": "awp_consistency.py",
+          "source_sha256": "a5fb0b336ac7f56d027668739fb1f87b17d2837984039404cbddd52e308392cf",
+          "sha256": "a5fb0b336ac7f56d027668739fb1f87b17d2837984039404cbddd52e308392cf",
+          "same_as_source": true
+        },
+        {
+          "path": "check_a800_runtime.py",
+          "source_sha256": "c5011092bda6b6033c5ab34b04c632f16668785711607c644fd9c7513510bd22",
+          "sha256": "c5011092bda6b6033c5ab34b04c632f16668785711607c644fd9c7513510bd22",
+          "same_as_source": true
+        },
+        {
+          "path": "check_eval_log.py",
+          "source_sha256": "8a20862b50d673d85b537eb91eb35b099b429a7a83015c38e01a5273258b4e66",
+          "sha256": "8a20862b50d673d85b537eb91eb35b099b429a7a83015c38e01a5273258b4e66",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar100_teacher.py",
+          "source_sha256": "c2b8410fd6b5ef7eec02f2bdda3e5e01e3f620418f02425cff687e769ddbdf6e",
+          "sha256": "c2b8410fd6b5ef7eec02f2bdda3e5e01e3f620418f02425cff687e769ddbdf6e",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/__init__.py",
+          "source_sha256": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c",
+          "sha256": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/mobilenet_v2.py",
+          "source_sha256": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca",
+          "sha256": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/resnet.py",
+          "source_sha256": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3",
+          "sha256": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_models/wideresnet.py",
+          "source_sha256": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac",
+          "sha256": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/__init__.py",
+          "source_sha256": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437",
+          "sha256": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/mobilenetv2.py",
+          "source_sha256": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce",
+          "sha256": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/repvgg.py",
+          "source_sha256": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15",
+          "sha256": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/resnet.py",
+          "source_sha256": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98",
+          "sha256": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/shufflenetv2.py",
+          "source_sha256": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
+          "sha256": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/vgg.py",
+          "source_sha256": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
+          "sha256": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
+          "same_as_source": true
+        },
+        {
+          "path": "cifar10_nat_teacher_models/vit.py",
+          "source_sha256": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4",
+          "sha256": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4",
+          "same_as_source": true
+        },
+        {
+          "path": "clean_supervision.py",
+          "source_sha256": "16ff88be03f909a8f9d04ccc0f9a22b3b7ae169c73aa331cfbf0eb77477f0e1b",
+          "sha256": "16ff88be03f909a8f9d04ccc0f9a22b3b7ae169c73aa331cfbf0eb77477f0e1b",
+          "same_as_source": true
+        },
+        {
+          "path": "error_swap.py",
+          "source_sha256": "1a5f72c41a0cf4ddaddb6ef7fc3c4e72883334b05815ad195b7d08fd89063f14",
+          "sha256": "1a5f72c41a0cf4ddaddb6ef7fc3c4e72883334b05815ad195b7d08fd89063f14",
+          "same_as_source": true
+        },
+        {
+          "path": "eval_a800.sbatch",
+          "source_sha256": "c4109c01779f40aa5ab7a17bf34b545ba02c565345dc48905cd1f635e9091520",
+          "sha256": "c4109c01779f40aa5ab7a17bf34b545ba02c565345dc48905cd1f635e9091520",
+          "same_as_source": true
+        },
+        {
+          "path": "eval_seed.py",
+          "source_sha256": "d714cde195145670f424aa57ba908166d6ac10e1c83b7859d99b0fac67da0af1",
+          "sha256": "d714cde195145670f424aa57ba908166d6ac10e1c83b7859d99b0fac67da0af1",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/CIARD.py",
+          "source_sha256": "c39a85d91842256add5937f625b0bff64dee8037055585eded4cfc8fc3289094",
+          "sha256": "c39a85d91842256add5937f625b0bff64dee8037055585eded4cfc8fc3289094",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/attack_eval.py",
+          "source_sha256": "fe76dc8a0f345a831d528ac3c6809c5435933523cd47cd5f1549b27ed0980a9f",
+          "sha256": "fe76dc8a0f345a831d528ac3c6809c5435933523cd47cd5f1549b27ed0980a9f",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/awp_consistency.py",
+          "source_sha256": "a5fb0b336ac7f56d027668739fb1f87b17d2837984039404cbddd52e308392cf",
+          "sha256": "a5fb0b336ac7f56d027668739fb1f87b17d2837984039404cbddd52e308392cf",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/check_a800_runtime.py",
+          "source_sha256": "c5011092bda6b6033c5ab34b04c632f16668785711607c644fd9c7513510bd22",
+          "sha256": "c5011092bda6b6033c5ab34b04c632f16668785711607c644fd9c7513510bd22",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/check_eval_log.py",
+          "source_sha256": "8a20862b50d673d85b537eb91eb35b099b429a7a83015c38e01a5273258b4e66",
+          "sha256": "8a20862b50d673d85b537eb91eb35b099b429a7a83015c38e01a5273258b4e66",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/cifar100_teacher.py",
+          "source_sha256": "c2b8410fd6b5ef7eec02f2bdda3e5e01e3f620418f02425cff687e769ddbdf6e",
+          "sha256": "c2b8410fd6b5ef7eec02f2bdda3e5e01e3f620418f02425cff687e769ddbdf6e",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/cifar10_models/__init__.py",
+          "source_sha256": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c",
+          "sha256": "ef2b254322a9e73e4ed52cfb4bc7e03d450990f029e7ae45caad0c8eb983b01c",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/cifar10_models/mobilenet_v2.py",
+          "source_sha256": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca",
+          "sha256": "e1e58da5605b4afa1a5df2c103a745bbdd55b30ec634b3ea302ad061eb95f0ca",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/cifar10_models/resnet.py",
+          "source_sha256": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3",
+          "sha256": "e5ea91dd4c5fc3c7d1c485637bda2ea155c1e785bc7af34436f64ef47254ecb3",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/cifar10_models/wideresnet.py",
+          "source_sha256": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac",
+          "sha256": "497de9f2c8033f83b887ba725e093cd15a7cab149959bdccb0de8d575e345fac",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/cifar10_nat_teacher_models/__init__.py",
+          "source_sha256": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437",
+          "sha256": "91f40ae8ba797235d84271cc2b37ae191a79deb2b7b89346cdb328f8a42bc437",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/cifar10_nat_teacher_models/mobilenetv2.py",
+          "source_sha256": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce",
+          "sha256": "a603d2eaa3893fbc331d218330af511a28e5be6c417e1928718ba8e6164df3ce",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/cifar10_nat_teacher_models/repvgg.py",
+          "source_sha256": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15",
+          "sha256": "b885b78c5b20fea68bbe22f1839d1910e732a9be25afb8571fc4f1f6348a3c15",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/cifar10_nat_teacher_models/resnet.py",
+          "source_sha256": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98",
+          "sha256": "52842491e5e57836e73f3fc36ad7bede6e3c5d040b033dd46cdc3ae66937ba98",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/cifar10_nat_teacher_models/shufflenetv2.py",
+          "source_sha256": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
+          "sha256": "8a85b853456879c0032a6ecba0b716e6ab41f8997e708bb8b3f5d980ea42319e",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/cifar10_nat_teacher_models/vgg.py",
+          "source_sha256": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
+          "sha256": "1a98f70547f6734bf576d0a89ef2ef8aaa5af59f1133de0da72e852526659ec2",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/cifar10_nat_teacher_models/vit.py",
+          "source_sha256": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4",
+          "sha256": "4f8b80a8b79b57e787293c88ed9d9a04afce14354f55ccd0388ddbbdcf622fa4",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/clean_supervision.py",
+          "source_sha256": "16ff88be03f909a8f9d04ccc0f9a22b3b7ae169c73aa331cfbf0eb77477f0e1b",
+          "sha256": "16ff88be03f909a8f9d04ccc0f9a22b3b7ae169c73aa331cfbf0eb77477f0e1b",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/error_swap.py",
+          "source_sha256": "1a5f72c41a0cf4ddaddb6ef7fc3c4e72883334b05815ad195b7d08fd89063f14",
+          "sha256": "1a5f72c41a0cf4ddaddb6ef7fc3c4e72883334b05815ad195b7d08fd89063f14",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/eval_seed.py",
+          "source_sha256": "d714cde195145670f424aa57ba908166d6ac10e1c83b7859d99b0fac67da0af1",
+          "sha256": "d714cde195145670f424aa57ba908166d6ac10e1c83b7859d99b0fac67da0af1",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/mtard_loss.py",
+          "source_sha256": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d",
+          "sha256": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/run_checks.py",
+          "source_sha256": "ea5fadf96b2baad49b37130a8102886783d822246bd2f8df82acb9bb5296e3ea",
+          "sha256": "ea5fadf96b2baad49b37130a8102886783d822246bd2f8df82acb9bb5296e3ea",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/split_target_mix.py",
+          "source_sha256": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
+          "sha256": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/train_data.py",
+          "source_sha256": "ee76634b06a5c704899bceeb2282ee614d10a05006d5203d373366b341e38c67",
+          "sha256": "ee76634b06a5c704899bceeb2282ee614d10a05006d5203d373366b341e38c67",
+          "same_as_source": true
+        },
+        {
+          "path": "frozen_source/training_state.py",
+          "source_sha256": "c15871e451a1ba5e88523ed75bc09684622a1d06fa3ca58062c0c02a9f4379cb",
+          "sha256": "c15871e451a1ba5e88523ed75bc09684622a1d06fa3ca58062c0c02a9f4379cb",
+          "same_as_source": true
+        },
+        {
+          "path": "mtard_loss.py",
+          "source_sha256": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d",
+          "sha256": "07ec022c626fc4b1c87170a280ed0ef360d5c064a79f26b47ee258374da2528d",
+          "same_as_source": true
+        },
+        {
+          "path": "requirements.txt",
+          "source_sha256": "c8e45d46dc08ec7651aaa6646cbf81091a1615346f9cc1cd515eba34534a2ffd",
+          "sha256": "c8e45d46dc08ec7651aaa6646cbf81091a1615346f9cc1cd515eba34534a2ffd",
+          "same_as_source": true
+        },
+        {
+          "path": "run_checks.py",
+          "source_sha256": "e64e5db22d99fc86675b8223f7c5aa7d15c54e294f0d7425449a03248eb927c4",
+          "sha256": "e64e5db22d99fc86675b8223f7c5aa7d15c54e294f0d7425449a03248eb927c4",
+          "same_as_source": true
+        },
+        {
+          "path": "split_target_mix.py",
+          "source_sha256": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
+          "sha256": "ef059f02861714aba63ff7ad4a4125c8d2823cde332cda0106067e2604e3fbf4",
+          "same_as_source": true
+        },
+        {
+          "path": "train_a800.sbatch",
+          "source_sha256": "13ae1c84561eb7c0589b6a4f12fee599f9a8b4f54a66b14dd00d1e78a8a8cc36",
+          "sha256": "13ae1c84561eb7c0589b6a4f12fee599f9a8b4f54a66b14dd00d1e78a8a8cc36",
+          "same_as_source": true
+        },
+        {
+          "path": "train_data.py",
+          "source_sha256": "ee76634b06a5c704899bceeb2282ee614d10a05006d5203d373366b341e38c67",
+          "sha256": "ee76634b06a5c704899bceeb2282ee614d10a05006d5203d373366b341e38c67",
+          "same_as_source": true
+        },
+        {
+          "path": "training_state.py",
+          "source_sha256": "c15871e451a1ba5e88523ed75bc09684622a1d06fa3ca58062c0c02a9f4379cb",
+          "sha256": "c15871e451a1ba5e88523ed75bc09684622a1d06fa3ca58062c0c02a9f4379cb",
+          "same_as_source": true
+        }
+      ],
+      "archived_job_lines": [
+        "137534|COMPLETED|0:0|21:39:48|aias-compute-6",
+        "137729|COMPLETED|0:0|00:51:34|aias-compute-6"
+      ],
+      "dataset": "CIFAR-100",
+      "num_classes": 100,
+      "student_architecture": "ResNet-18"
+    }
+  ],
+  "paper_baseline_sources": [
+    {
+      "project_relative_path": "ICCV_CIARD_Supplementary.pdf",
+      "sha256": "69e984db9d20796c86db2b962b3cbdeecd18ea11279142b2047ff483492a4fc7",
+      "tables": "Table 1/2: Clean and white-box by model/dataset; Table 5: CIFAR-10 AA"
+    },
+    {
+      "project_relative_path": "Lu_CIARD_Cyclic_Iterative_Adversarial_Robustness_Distillation_ICCV_2025_paper.pdf",
+      "sha256": "2c60e040a0de34dd1c9adae4936e375c5f68318d45935ab6b56d80c4ec2bb98a",
+      "tables": "Table 5/6: black-box Robust columns by model/dataset"
+    }
+  ],
+  "documentation": {
+    "README.md": "144e1ad376d50aa767f9c20e213d87cbcd13e099bcf442ca3d68d1691ed4a424",
+    "CIARD扩展方法改进说明.md": "9b85983a5a9ef9579c5e455f215a9bd76a9da869fed6341a5008fcca5fdb6e6d"
+  },
+  "path_conventions": {
+    "copy_source_target_files": "relative to this package",
+    "original_run_previous_selected_source_evidence_paper_sources": "relative to CIARD_Expansion project root",
+    "verification_record": "relative to this package"
+  }
+}

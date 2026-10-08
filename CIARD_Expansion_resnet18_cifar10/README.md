@@ -1,6 +1,12 @@
 # CIFAR-10 / ResNet-18 — 0917v1 R4 已评测活动入口
 
-2026-09-19：按用户选择同步已测来源。同版冻结备份见[best_backup/resnet18_cifar10_0917v1_r4](../best_backup/resnet18_cifar10_0917v1_r4/README.md)。
+**2026-10-08 论文讨论源码副本。** 本目录从 `../process/CIARD_Expansion_resnet18_cifar10` 完整复制，计算源码、固定配置、依赖与历史脚本保持原样；本次只整理说明和链接。下文早于本日期的同步与核验记录均描述原版本。
+
+[返回1008总导航](../README.md) · [中文方法改进说明](../CIARD扩展方法改进说明.md) · [本次来源清单](../SOURCE_MANIFEST.json)
+
+**本目录用于阅读与追溯现有结果，不能直接提交。** 未打包数据、教师和学生权重、日志或资源链接；下文 `run/`、`model/`、`logs/` 产物均属于所列原实验。复跑须另建独立实验并重建身份、路径及校验绑定。
+
+2026-09-19：按用户选择同步已测来源。同版冻结备份见[best_backup/resnet18_cifar10_0917v1_r4](../process/best_backup/resnet18_cifar10_0917v1_r4/README.md)。
 
 R4按用户选择成为当前入口，八项中7项严格高于论文；FGSM=61.80%，仍低.08pp，严格超过61.88%需达到61.89%。AA=49.10%（+.22pp），八项均值65.34%。相对历史R5，FGSM只提高.04pp，八项均值及AA下降；这次源码选择不表示R4全面优于R5，也不表示ResNet已达成八项全面提升。
 
@@ -18,7 +24,7 @@ ResNet保留split KD target=.25/non-target=0/reference=.20、push=.081740、clea
 
 ## 已完成测试结果
 
-单位为%，括号为本结果减同模型论文baseline的百分点差值。论文来源、历史对照及两个数据集结果见[总README](../README.md)。均值不含AA，先计算再舍入。
+单位为%，括号为本结果减同模型论文baseline的百分点差值。论文来源、历史对照及两个数据集结果见[历史结果总README](../process/README.md)。均值不含AA，先计算再舍入。
 
 | Metric | Paper CIARD baseline | 0909v1 R5 (historical) (Δ vs paper) | 0917v1 R4 (Δ vs paper) |
 | --- | ---: | ---: | ---: |
@@ -46,6 +52,6 @@ ResNet保留split KD target=.25/non-target=0/reference=.20、push=.081740、clea
 
 ## 源码模板与复跑
 
-本目录包含20份Python，与已测run逐字一致，完整CFG和文件哈希见[SYNC_MANIFEST.json](../SYNC_MANIFEST.json)。训练与完整评测入口为CIARD.py、attack_eval.py，配套train_4090.sbatch与eval_4090_best.sbatch；其他辅助脚本保留历史用途。脚本只修改工作目录及日志路径；保留原rtx4090分区、aias-compute-4、单4090、4CPU/16GB配置。
+本目录包含20份Python，与已测run逐字一致，完整CFG和文件哈希见[SYNC_MANIFEST.json](../process/SYNC_MANIFEST.json)。训练与完整评测入口为CIARD.py、attack_eval.py，配套train_4090.sbatch与eval_4090_best.sbatch；其他辅助脚本保留历史用途。脚本在历史同步时修改了工作目录及日志路径；1008逐字保留该模板，工作和日志路径仍指向 `origin_code/0917v1-cifar10`，不能直接执行；保留原rtx4090分区、aias-compute-4、单4090、4CPU/16GB配置。
 
 本包只有源码、依赖和说明，不包含data/models链接、checkpoint、model/logs或缓存，当前不能直接提交。未来复跑需复制到新的独立run，设置唯一身份/prefix、匹配评测路径和脚本目录，建立公共data/models链接及空输出目录。原已测run保持冻结，全部GPU训练与评测由用户手动提交；本次同步无需重训。
