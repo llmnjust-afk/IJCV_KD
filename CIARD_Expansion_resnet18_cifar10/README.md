@@ -1,59 +1,53 @@
-# CIFAR-10 / ResNet-18 — 0917v1 R4 已评测活动入口
+# CIFAR-10 / ResNet-18 — 1007 C_s1 已评测论文讨论入口
 
-**2026-10-08 论文讨论源码副本。** 本目录从 `../process/CIARD_Expansion_resnet18_cifar10` 完整复制，计算源码、固定配置、依赖与历史脚本保持原样；初次整理只调整说明和链接，现补充所选成功训练与评测日志。下文早于本日期的同步与核验记录均描述原版本。
+**2026-10-09按用户选择更新。C_s1在完整10000张测试上八项逐项严格高于论文，AA为49.31%。** 本次报告同一个固定252轮EMA：Clean89.08%（+0.21pp）、FGSM62.10%（+0.22pp），八项均值65.41%。来源为R4配方的1007 C_s1，seed1、AWP内层自然KD系数η恒定1。
 
-[返回1008总导航](../README.md) · [中文方法改进说明](../CIARD扩展方法改进说明.md) · [本次来源清单](../SOURCE_MANIFEST.json)
+[返回1008总导航](../README.md) · [中文方法改进说明](../CIARD扩展方法改进说明.md) · [本次来源清单](../SOURCE_MANIFEST.json) · [本地更新核验](../../local_r10_cs1_20261009/verification.json)
 
-**本目录用于阅读与追溯现有结果，不能直接提交。** 已附所选成功训练与评测日志，未打包数据、教师和学生权重或资源链接。下文 `run/`、`model/`、结果JSON、完整报告及校验记录仍在原实验或项目目录，仅供本地追溯。复跑须另建独立实验并重建身份、路径及校验绑定。
+本目录复制已测C_s1的计算源码、固定配置、依赖、脚本和成功日志，保留来源字节，仅说明文件适配阅读入口。本次更新已获用户授权同步至GitHub。**本目录用于阅读与追溯已有结果，不能直接提交作业。** 数据、教师和学生权重、资源软链接及缓存未打包，原run保持冻结。
 
-`logs/`保留本组训练与评测的stdout及对应Slurm `.out/.err`，共6份；stdout与对应`.out`逐字节一致，`.err`为空，未复制锁文件。四组共24份、约7.9 MB的归档范围见[总README](../README.md)，来源及hash见[来源清单](../SOURCE_MANIFEST.json)。
+## 来源与固定配置
 
-2026-09-19：按用户选择同步已测来源。同版冻结备份见[best_backup/resnet18_cifar10_0917v1_r4](../process/best_backup/resnet18_cifar10_0917v1_r4/README.md)。
+方法沿0917 R4配方，经0919 E5形成1007 C_s1；原R4源码、结果及R5对比保留于[process历史入口](../process/CIARD_Expansion_resnet18_cifar10/README.md)和[原R4备份](../process/best_backup/resnet18_cifar10_0917v1_r4/README.md)。当前来源为[1007 C_s1原run（仅本地）](../../../../run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/README.md)。
 
-R4按用户选择成为当前入口，八项中7项严格高于论文；FGSM=61.80%，仍低.08pp，严格超过61.88%需达到61.89%。AA=49.10%（+.22pp），八项均值65.34%。相对历史R5，FGSM只提高.04pp，八项均值及AA下降；这次源码选择不表示R4全面优于R5，也不表示ResNet已达成八项全面提升。
+VARIANT_NAME=`resnet18_cifar10_c_s1`，prefix=`Cifar10_ResNet18_1007_r4_awpschedule_v1_C_s1`，recipe=`C`。AWP gamma=.002、consistency_weight=.75；η初值与终值均1，调度接口不改变本组实际η。保留split KD target=.25/non-target=0/reference=.20、push=.081740、clean CE=.036067、teacher margin=.011316、margin PCGrad及学生EMA=.999642。
 
-## 固定配置与方法
+完整50,000张训练、batch128、seed1，Python／NumPy／Torch均采用本组seed。保留双视图、method_start120／warmup40及consistency_temperature=.5；从头训练到252轮，沿原300轮学生／教师学习率公式，不压缩日程。训练不构造test loader，不做周期测试选best、WA或alpha sweep；正式评测固定第252轮最后更新后的EMA `student_epoch252.pth`。完整CFG见[CIARD.py](CIARD.py)，文件来源与hash见[清单](../SOURCE_MANIFEST.json)。
 
-AWP gamma=0.002，consistency_weight=0.75。VARIANT_NAME=`resnet18_cifar10_v2_awp0p002_cr0p75`，prefix=`Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75`。
-
-ResNet保留split KD target=.25/non-target=0/reference=.20、push=.081740、clean CE=.036067、teacher margin=.011316、PCGrad和EMA=.999642。
-
-两组模型均沿用已测KD-AWP＋对抗双视图一致性方法，50,000张训练/10,000张测试，300 epochs、batch=128、seed=0、training_views=2、method_start=120、method_warmup=40、consistency_temperature=.5。实际CFG由原CIARD.py打印，完整配置及Python哈希见同步清单。同步没有改变损失、模型、教师、攻击、选模或评测输出。
-
-教师保持raw输入的WRN-34-10（models/model_cifar_wrn.pt）与ResNet-56（models/nat_teacher_checkpoint/cifar10_resnnet56.pth），不增加外部Normalize。训练PGD-10、预算8/255、步长2/255；完整评测保留PGDsat20步/2/255、PGDtrades20步/.003、CW30步/2/255、Square100queries与AA。黑盒PGDtrades/CW由鲁棒教师生成迁移样本，Square查询学生。
-
-沿用test-loader的(Clean+PGD proxy)/2选EMA best，存在测试集选择偏差；历史随机攻击未全部显式固定seed。PGDtrades步长.003继承官方实现，与论文文字2/255不同。本次是单seed固定checkpoint结果，不能据此宣称稳定的多seed优势或严格同协议复现；均值不代表联合最坏情况准确率。
+教师保持raw输入的WRN-34-10与ResNet-56；训练为PGD-10、L∞预算8/255、步长2/255。完整评测保留历史PGDsat20步/2/255、PGDtrades20步/.003、CW30步/2/255、Square100 queries与AA；PGDtrades/CW黑盒项由鲁棒教师生成迁移样本，Square查询学生。
 
 ## 已完成测试结果
 
-单位为%，括号为本结果减同模型论文baseline的百分点差值。论文来源、历史对照及两个数据集结果见[历史结果总README](../process/README.md)。均值不含AA，先计算再舍入。
+全部指标来自本组同一个预先固定252轮EMA、完整10000张测试。单位为%；差值为C_s1减原论文CIARD的百分点，均值不含AA，从整数正确数计算后舍入。论文口径见[总README](../README.md)。
 
-| Metric | Paper CIARD baseline | 0909v1 R5 (historical) (Δ vs paper) | 0917v1 R4 (Δ vs paper) |
-| --- | ---: | ---: | ---: |
-| Clean | 88.87 | 89.07 (+0.20 pp) | 89.10 (+0.23 pp) |
-| White-box FGSM | 61.88 | 61.76 (-0.12 pp) | 61.80 (-0.08 pp) |
-| White-box PGDsat | 51.70 | 52.34 (+0.64 pp) | 52.06 (+0.36 pp) |
-| White-box PGDtrades | 54.46 | 55.01 (+0.55 pp) | 54.86 (+0.40 pp) |
-| White-box CW | 50.61 | 51.77 (+1.16 pp) | 51.24 (+0.63 pp) |
-| Black-box PGDtrades | 66.28 | 67.16 (+0.88 pp) | 67.28 (+1.00 pp) |
-| Square (query-based) | 80.03 | 80.87 (+0.84 pp) | 80.77 (+0.74 pp) |
-| Black-box CW | 64.79 | 65.71 (+0.92 pp) | 65.62 (+0.83 pp) |
-| AutoAttack (separate) | 48.88 | 49.35 (+0.47 pp) | 49.10 (+0.22 pp) |
-| Seven-attack mean | 61.39 | 62.09 (+0.70 pp) | 61.95 (+0.55 pp) |
-| Eight-metric mean | 64.83 | 65.46 (+0.63 pp) | 65.34 (+0.51 pp) |
+| 指标 | 原论文 CIARD | C_s1 | 差值 pp |
+|---|---:|---:|---:|
+| Clean | 88.87 | 89.08 | +0.21 |
+| 白盒 FGSM | 61.88 | 62.10 | +0.22 |
+| 白盒 PGDsat | 51.70 | 52.37 | +0.67 |
+| 白盒 PGDtrades | 54.46 | 54.90 | +0.44 |
+| 白盒 CW | 50.61 | 51.54 | +0.93 |
+| 黑盒 PGDtrades | 66.28 | 67.16 | +0.88 |
+| Square 查询攻击 | 80.03 | 80.63 | +0.60 |
+| 黑盒 CW | 64.79 | 65.47 | +0.68 |
+| AutoAttack 单列 | 48.88 | 49.31 | +0.43 |
+| 七项攻击均值 | 61.39 | 62.02 | +0.63 |
+| 八项均值 | 64.83 | 65.41 | +0.58 |
+
+C_s1是测试后选定的已测单次结果；同配方C的两个seed中1/2达到八项及AA门槛，完整记录见[1007结果报告（仅本地）](../../../../结果分析/1007-cifar10-r4-awpschedule-v1_结果分析.md)。本组η恒定1，达标不作为动态η调度的贡献。固定终点和配方参考过历史测试；历史随机攻击未全部显式定seed，不能据此宣称多seed稳定全胜或严格同协议复现。
 
 ## 完成证据
 
-- 已测来源：`/home/lixidong25/mycode/CIARD_Expansion/run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75`。
-- 训练/评测：`134643 / 134905`，均为`COMPLETED / 0:0`；固定EMA best epoch=252，完整10000张测试集。
-- 权重：`model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/student_best.pth`；checkpoint SHA256：`208cc7dbe1a4158c8c6d3a41f0f442e3952dd92cf011f3419e00edb9845694e8`。
-- evaluator SHA256：`86803bff2df8b0a88b7a4f43d82ca412f80ad42c7ec297cd8d97ceddc59b6bd3`。
-- 结果：`run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/eval_best_0909v1_134905.json`；历史JSON文件名保留0909v1，不代表来源批次。
-- 仓库内日志：[训练](logs/train_stdout_134643.log)、[评测](logs/eval_best_stdout_134905.log)；对应Slurm输出保存在[logs/slurm](logs/slurm/)。
-- 已核验CPU严格加载、完成标记、源码/权重/评测器哈希、九项正确数及日志/JSON一致性；原始权重和日志保留在原run。
+- 训练／评测为 **138301／138611**，均为`COMPLETED/0:0`；九项正确数、日志与结果JSON一致。
+- 固定权重：[student_epoch252.pth（仅本地）](../../../../run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/model/Cifar10_ResNet18_1007_r4_awpschedule_v1_C_s1/student_epoch252.pth)，SHA256：`f57b1e8cb3cfd696ed004a2f5766527e2b6dc4734bb0065d3f46ebb41dbc0754`。
+- 结果：[eval_best_0909v1_138611.json（仅本地）](../../../../run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/model/Cifar10_ResNet18_1007_r4_awpschedule_v1_C_s1/eval_best_0909v1_138611.json)；0909v1仅为保留的历史文件命名，本结果身份为1007 C_s1。
+- evaluator SHA256：`7b47fa319fa6df83a482234f9cdfbd92728f711e7747f63b073cbdb3c84e68e9`。权重与训练完成记录、最终EMA状态指纹、源码／脚本／manifest及评测结果已核验，见[1007完成核验（仅本地）](../../../../run/1007-cifar10-r4-awpschedule-v1/preparation/results_20261009/verification.json)。
+- 包内日志：[训练138301](logs/train_stdout_138301.log)、[评测138611](logs/eval_stdout_138611.log)，以及[Slurm out/err](logs/slurm/)。6份文件共1,911,824字节，stdout与对应out逐字节一致，两份err为空；未复制运行锁，四入口日志总量见[总README](../README.md)。
 
-## 源码模板与复跑
+## 源码与运行绑定
 
-本目录包含20份Python，与已测run逐字一致，完整CFG和文件哈希见[SYNC_MANIFEST.json](../process/SYNC_MANIFEST.json)。训练与完整评测入口为CIARD.py、attack_eval.py，配套train_4090.sbatch与eval_4090_best.sbatch；其他辅助脚本保留历史用途。脚本在历史同步时修改了工作目录及日志路径；1008逐字保留该模板，工作和日志路径仍指向 `origin_code/0917v1-cifar10`，不能直接执行；保留原rtx4090分区、aias-compute-4、单4090、4CPU/16GB配置。
+本目录共31份文件：21份Python、2份sbatch、requirements.txt、本文和6份成功日志。计算源码、依赖与脚本均来自已测run且逐字一致；[training_state.py](training_state.py)保留训练状态指纹实现。训练与完整评测入口为[CIARD.py](CIARD.py)、[attack_eval.py](attack_eval.py)，配套[train_4090.sbatch](train_4090.sbatch)和[eval_4090_fixed.sbatch](eval_4090_fixed.sbatch)。
 
-本包包含源码、依赖、说明和上述成功日志，不包含data/models链接、checkpoint、model目录或缓存，当前不能直接提交。未来复跑需复制到新的独立run，设置唯一身份/prefix、匹配评测路径和脚本目录，建立公共data/models链接及空输出目录。原已测run保持冻结，全部GPU训练与评测由用户手动提交；本次同步无需重训。
+源码与脚本保留原 `run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1` 路径、prefix、父manifest及固定权重绑定；资源仍为rtx4090、aias-compute-4、单4090、4CPU/16GB。复制到1008不改变这些运行身份，不能在本目录直接执行，也不能向已完成原run重提。
+
+未来复跑须另建独立run，重新准备唯一身份、公共资源链接、输出目录和配套校验，所有GPU作业由用户手动提交。本次仅整理已有已测源码与日志，无需重训或重评。

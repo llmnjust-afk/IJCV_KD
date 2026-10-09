@@ -1,4 +1,4 @@
-"""CIARD 0909v1: KD-conditioned AWP and adversarial two-view consistency.
+"""CIARD 0919: vary natural KD's contribution to the AWP inner direction.
 
 References: Wu et al., NeurIPS 2020 (AWP); Tack et al., AAAI 2022
 (Consistency Regularization for Adversarial Robustness). This is an adaptation,
@@ -40,12 +40,32 @@ def method_enabled(cfg, epoch):
         cfg['training_views'] == 2 or cfg['awp_gamma'] > 0 or cfg['consistency_weight'] > 0)
 
 
+def awp_natural_weight(cfg, epoch):
+    """Only the AWP proxy's natural-KD coefficient follows this epoch schedule."""
+    initial = cfg.get('awp_nat_weight', 1.0)
+    final = cfg.get('awp_nat_weight_final', initial)
+    if initial == final:
+        return initial
+    ramp = min(1.0, max(0.0, (epoch - cfg['awp_nat_schedule_start']) /
+                             float(cfg['awp_nat_schedule_warmup'])))
+    return initial + (final - initial) * ramp
+
+
 def validate_config(cfg):
     if cfg['training_views'] not in (1, 2) or cfg['method_warmup'] <= 0:
         raise ValueError('Expected one/two views and a positive method warmup')
     for key in ('awp_gamma', 'consistency_weight', 'consistency_temperature'):
         if not np.isfinite(cfg[key]) or cfg[key] < 0:
             raise ValueError('Invalid method parameter: ' + key)
+    natural_weight = cfg.get('awp_nat_weight', 1.0)
+    if not np.isfinite(natural_weight) or not 0 <= natural_weight <= 1:
+        raise ValueError('awp_nat_weight must be finite and between zero and one')
+    final_weight = cfg.get('awp_nat_weight_final', natural_weight)
+    if not np.isfinite(final_weight) or not 0 <= final_weight <= 1:
+        raise ValueError('awp_nat_weight_final must be finite and between zero and one')
+    if (cfg.get('awp_nat_schedule_start', 200) != 200
+            or cfg.get('awp_nat_schedule_warmup', 40) != 40):
+        raise ValueError('Expected approved AWP natural-KD schedule 200/40')
     if cfg['consistency_temperature'] == 0 or (cfg['consistency_weight'] > 0 and cfg['training_views'] != 2):
         raise ValueError('Consistency requires positive temperature and two views')
     unsupported = ['adaptive_weight', 'capacity_aware', 'robust_kd_reliable', 'ema_itt',
@@ -239,6 +259,27 @@ def update_dynamics(state, metrics, targets, weight, epoch, optimizer, teacher_o
     return ta, tn, initial_adv, initial_nat, wlr, tlr
 
 
+def awp_gradient_metrics(adv_grads, nat_grads, natural_weight):
+    """Diagnostics on view-averaged gradients of the AWP-eligible parameters.
+
+    These are gradient directions before layerwise AWP normalization. A cosine
+    involving a zero norm is reported as zero, with the norms alongside it.
+    """
+    adv_sq = sum(g.square().sum() for g in adv_grads)
+    nat_sq = sum(g.square().sum() for g in nat_grads)
+    dot = sum((a * n).sum() for a, n in zip(adv_grads, nat_grads))
+    mixed = [a + natural_weight * n for a, n in zip(adv_grads, nat_grads)]
+    mix_sq = sum(g.square().sum() for g in mixed)
+    mix_dot = sum((a * m).sum() for a, m in zip(adv_grads, mixed))
+    return {
+        'awp_adv_grad_norm': float(adv_sq.sqrt()),
+        'awp_nat_grad_norm': float(nat_sq.sqrt()),
+        'awp_mix_grad_norm': float(mix_sq.sqrt()),
+        'awp_adv_nat_cos': float(dot / ((adv_sq * nat_sq).sqrt() + 1e-12)),
+        'awp_mix_adv_cos': float(mix_dot / ((adv_sq * mix_sq).sqrt() + 1e-12)),
+    }
+
+
 class MethodRunner:
     def __init__(self, student, teacher, natural_teacher, cfg):
         validate_config(cfg)
@@ -246,7 +287,7 @@ class MethodRunner:
         self.proxy = copy.deepcopy(student)
 
     def step(self, images, labels, optimizer, teacher_optimizer, ema_student,
-             epoch, epsilon, state, weight):
+             epoch, epsilon, state, weight, diagnose_awp=False):
         cfg, student, teacher, natural = self.cfg, self.student, self.teacher, self.natural_teacher
         device = next(student.parameters()).device
         views = images if isinstance(images, (list, tuple)) else [images]
@@ -281,14 +322,37 @@ class MethodRunner:
         ramp = method_ramp(cfg, epoch)
         gamma = cfg['awp_gamma'] * ramp
         consistency_weight = cfg['consistency_weight'] * ramp
+        natural_weight = awp_natural_weight(cfg, epoch)
+        diagnostics = {}
         if gamma > 0:
             self.proxy.load_state_dict(student.state_dict())
             self.proxy.zero_grad()
             self.proxy.train()
+            if diagnose_awp:
+                awp_params = [p for p in self.proxy.parameters() if p.requires_grad and p.ndim > 1]
+                adv_average = [torch.zeros_like(p) for p in awp_params]
+                nat_average = [torch.zeros_like(p) for p in awp_params]
             for view, adversarial, target in zip(views, adversarials, targets):
                 kd_adv, kd_nat = kd_losses(self.proxy(view), self.proxy(adversarial), target,
                     labels, cfg, epoch, state[0], state[1])
-                ((kd_adv + kd_nat) / len(views)).backward()
+                if diagnose_awp:
+                    for loss, averages in ((kd_adv, adv_average), (kd_nat, nat_average)):
+                        gradients = torch.autograd.grad(loss, awp_params, retain_graph=True, allow_unused=True)
+                        for average, gradient in zip(averages, gradients):
+                            if gradient is not None:
+                                average.add_(gradient.detach(), alpha=1.0 / len(views))
+                    del gradients
+                # Keep both forwards and their BN updates even when eta is zero.
+                # eta=1 executes the original arithmetic and backward path.
+                if natural_weight == 1.0:
+                    ((kd_adv + kd_nat) / len(views)).backward()
+                elif natural_weight == 0.0:
+                    (kd_adv / len(views)).backward()
+                else:
+                    ((kd_adv + natural_weight * kd_nat) / len(views)).backward()
+            if diagnose_awp:
+                diagnostics = awp_gradient_metrics(adv_average, nat_average, natural_weight)
+                del adv_average, nat_average
 
         student.train()
         with perturb_weights(student, self.proxy, gamma) as relative_norm:
@@ -320,6 +384,7 @@ class MethodRunner:
                 consistency_weight=consistency_weight, awp_relative_norm_max=relative_norm,
                 views=len(views), pcgrad_conflicts=conflicts, teacher_ce=sum(teacher_ce) / len(views),
                 student_updates=1, teacher_updates=int(epoch > 50), temperature_updates=1)
+            metrics.update(awp_nat_weight=natural_weight, **diagnostics)
         # The context restored theta exactly. SGD momentum/decay use theta, never theta+v.
         state = update_dynamics(state, metrics, targets, weight, epoch, optimizer, teacher_optimizer)
         optimizer.step()

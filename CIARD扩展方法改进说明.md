@@ -1,23 +1,23 @@
 # CIARD 扩展方法改进说明
 
-中文论文讨论稿，2026 年 10 月 8 日。
+中文论文讨论稿，2026 年 10 月 9 日。本次将 CIFAR-10 ResNet-18 入口更新为 1007 C_s1，用户已授权同步源码、成功日志及相关说明至 GitHub。
 
 本项工作是在 ICCV 2025 CIARD 的双教师循环对抗鲁棒蒸馏基础上，进一步改善学生对可靠知识的利用、自然准确率与鲁棒性的协调，以及蒸馏训练的稳定性。当前选定的四份代码覆盖 MobileNet-V2、ResNet-18 与 CIFAR-10、CIFAR-100 的四种组合；它们共享同一扩展框架，但存在明确的模块开关和训练配方差异。
 
 **适合与师兄交流的结论是：四份代码属于同一个 CIARD 扩展框架，不能表述为只替换网络和数据集的完全相同算法。** 四份共同使用可靠 logit push、鲁棒门控自然监督、教师 margin 匹配、蒸馏目标驱动的对抗权重扰动、双视图对抗一致性和学生 EMA。两个 ResNet 配方还启用分解式蒸馏目标修正与 margin 梯度投影；CIFAR-100 ResNet 的 H2 配方进一步加入只作用于学生外层的自然二元监督。下面分别解释原方法、共同改进和这些差异。
 
-当前成果可用于组织论文的方法和实验讨论，但四份结果支持的具体说法应保留边界：三个模型与数据集组合在本次完整测试的八项数值上全部超过论文公布值；CIFAR-10 ResNet 的 FGSM 为 61.80%，低于论文 61.88% 共 0.08 个百分点，其余七项及 AA 更高。接受这一小幅回落作为研究取舍，与宣称全部指标提升是两件不同的事。完整数值见后文，不将不同 checkpoint 的单项最好值拼接为一行。
+**当前选定的四个单次 checkpoint，在各自完整 10,000 张测试的八项指标上均严格高于原 CIARD 论文对应数值。** CIFAR-10 两个模型的 AA 也高于论文对应值；CIFAR-100 的 AA 单列。每行均来自同一个 checkpoint，不拼接单项最好值；这些是已完成评测的观测结果，不代表多 seed 稳定性或各模块的独立贡献。
 
 ## 代码范围与四份配方
 
 | 本文简称 | 模型与数据集 | 当前来源 | 本目录源码 |
 | --- | --- | --- | --- |
 | M10 | MobileNet-V2，CIFAR-10 | 0917v1 M1 | [MobileNet CIFAR-10](CIARD_Expansion_mobilenetv2_cifar10/README.md) |
-| R10 | ResNet-18，CIFAR-10 | 0917v1 R4 | [ResNet CIFAR-10](CIARD_Expansion_resnet18_cifar10/README.md) |
+| R10 | ResNet-18，CIFAR-10 | 1007 C_s1 | [ResNet CIFAR-10](CIARD_Expansion_resnet18_cifar10/README.md) |
 | M100 | MobileNet-V2，CIFAR-100 | 0914v1 M1 | [MobileNet CIFAR-100](CIARD_Expansion_mobilenetv2_cifar100/README.md) |
 | R100 | ResNet-18，CIFAR-100 | 1004 H2 | [ResNet CIFAR-100](CIARD_Expansion_resnet18_cifar100/README.md) |
 
-这里的“当前最好”指当前选定、已有完整结果的论文候选配方，不表示每个指标都达到全部历史实验中的最大值。例如 R10 相比历史 R5 更接近 FGSM 论文值，但历史 R5 的部分鲁棒指标及八项均值更高；R100 H2 补齐了相对论文的 Clean 缺口，也付出了相对部分历史配方的强攻击准确率代价。当前选择与历史最优单项应分开理解。
+这里列出的是当前选定、已有完整结果的论文候选配方，不表示每个指标都达到全部历史实验中的最大值。R10 采用原 R4 核心配方的恒定 η=1 控制组，更新的是 seed、固定训练终点与结果绑定；没有把动态 η 调度作为当前方法。同期对照与重复 seed 结果见 [R10 入口说明](CIARD_Expansion_resnet18_cifar10/README.md)，历史比较见各批结果报告。
 
 [CIARD](CIARD/README.md) 保存原会议版本；[process](process/README.md) 保存此前整理的历史代码与记录。`process/IMPROVEMENTS_SUMMARY.md` 是历史设计说明，其中的 Label Smoothing、Adaptive Temperature 叙事不能直接用来描述本次四份已测配方。本文以实际启用的配置和训练调用为准。
 
@@ -116,6 +116,8 @@ g_W=\nabla_W\operatorname{AvgViews}(L_{\mathrm{KD}}^a+L_{\mathrm{KD}}^n).
 需要明确区分内外层：**AWP 内层仅使用 adversarial KD 与 natural KD，不包含 push、clean CE、teacher margin 或 JS。** 两个 ResNet 的 KD 内层包含其分解式目标修正；H2 的自然二元项仍不进入 AWP 内层。对应代码是 [perturb_weights 和 MethodRunner.step](CIARD_Expansion_mobilenetv2_cifar10/awp_consistency.py)，H2 的内层开关见 [awp_kd_loss](CIARD_Expansion_resnet18_cifar100/awp_consistency.py)。
 
 AWP 是已有优化思想。本项工作的表述重点应放在它如何与双教师蒸馏目标、后续一致性和特定纠正项结合，不能将 AWP 本身写成本工作的原创。
+
+R10 源码保留 η 日程函数和梯度诊断，但本次 C_s1 的 `awp_nat_weight=awp_nat_weight_final=1`，全程沿用上式的两条 KD 等权方向；它没有启用动态降低自然 KD 权重。
 
 ### 两个独立增强视图的对抗一致性
 
@@ -266,18 +268,18 @@ CIFAR-100 自然教师曾从较早实验使用的微调权重换为原始包权�
 
 ### 训练终点与 checkpoint 选择
 
-四份均使用 seed0、50,000 张训练图像、batch size 128、PGD-10 和同一类原始学习率日程。M10/R10 历史训练使用单张 4090；M100 历史训练使用两张 4090，全局 batch128、每卡64；H2 使用单张 A800。硬件与每卡 batch 会影响 BN 和数值轨迹，后续跨配置比较不能只归因为模型结构。
+四份均使用 50,000 张训练图像、batch size 128、PGD-10 和同一类原始学习率日程。R10 使用 seed1，Python、NumPy 与 Torch 统一设种子；其余三份使用 seed0。M10/R10 使用单张 4090；M100 历史训练使用两张 4090，全局 batch128、每卡64；H2 使用单张 A800。硬件与每卡 batch 会影响 BN 和数值轨迹，后续跨配置比较不能只归因为模型结构。
 
-| 配方 | 总训练轮数 | 报告 checkpoint | 选模规则 | 评测随机种子记录 |
-| --- | ---: | --- | --- | --- |
-| M10 | 300 | epoch250 EMA `student_best.pth` | 历史 test-loader 上 `(Clean+PGD proxy)/2` 选 best | 未全部显式固定，JSON 为 null |
-| R10 | 300 | epoch252 EMA `student_best.pth` | 同上 | 未全部显式固定，JSON 为 null |
-| M100 | 300 | epoch230 EMA `student_best.pth` | 同上 | 未全部显式固定，JSON 为 null |
-| R100 H2 | 190 | 固定 epoch190 EMA `student_epoch190.pth` | 本次训练不读取 test 选 checkpoint | 各指标 seed0 |
+| 配方 | 训练 seed | 总训练轮数 | 报告 checkpoint | 选模规则 | 评测随机种子记录 |
+| --- | ---: | ---: | --- | --- | --- |
+| M10 | 0 | 300 | epoch250 EMA `student_best.pth` | 历史 test-loader 上 `(Clean+PGD proxy)/2` 选 best | 未全部显式固定，JSON 为 null |
+| R10 | 1 | 252 | 固定 epoch252 EMA `student_epoch252.pth` | 本次训练不读取 test 选 checkpoint | 未全部显式固定，JSON 为 null |
+| M100 | 0 | 300 | epoch230 EMA `student_best.pth` | 历史 test-loader 上 `(Clean+PGD proxy)/2` 选 best | 未全部显式固定，JSON 为 null |
+| R100 H2 | 0 | 190 | 固定 epoch190 EMA `student_epoch190.pth` | 本次训练不读取 test 选 checkpoint | 各指标 seed0 |
 
-前三份的 250、252、230 是完整 300 轮训练中选出的 best 来源轮次，不是预先规定的训练终点。H2 则沿原 300 轮学习率函数训练至 190 轮，不把学习率日程压缩为 190 轮；它不存在同一训练轨迹内的 test-loader 选 best。H2 的配方和终点来自已有研究过程，因此也不能扩大为“整个研究从未参考过测试结果”。
+两份 MobileNet 的 250、230 是完整 300 轮训练中选出的 best 来源轮次，不是预先规定的训练终点。R10 与 H2 分别沿原 300 轮学习率函数训练至固定 252、190 轮，不压缩学习率日程；两者训练均不构造 test loader 或在同一轨迹中用 test 选 best。配方和固定终点参考过历史实验，因此不能扩大为“整个研究从未参考过测试结果”。
 
-R10 源码仍保留训练后的权重平均 WA 分支，但本表评测的是 EMA `student_best.pth`，没有采用 WA 权重。H2 的 WA 关闭。不能将权重平均或模型集成作为这四行成绩的来源。
+R10 关闭并移除了训练后的 WA 与 alpha sweep，H2 的 WA 也关闭。四行成绩均来自单个 EMA checkpoint，没有采用跨轨迹权重融合或模型集成。
 
 ## 四份完整测试结果
 
@@ -290,9 +292,9 @@ R10 源码仍保留训练后的权重平均 WA 分支，但本表评测的是 EM
 | 论文 MobileNet-V2 | 89.51 | 59.10 | 47.67 | 50.71 | 46.88 | 66.66 | 80.01 | 66.12 |
 | M10 0917 M1 | 89.61 (+0.10) | 60.87 (+1.77) | 50.67 (+3.00) | 53.36 (+2.65) | 49.01 (+2.13) | 67.67 (+1.01) | 81.27 (+1.26) | 66.14 (+0.02) |
 | 论文 ResNet-18 | 88.87 | 61.88 | 51.70 | 54.46 | 50.61 | 66.28 | 80.03 | 64.79 |
-| R10 0917 R4 | 89.10 (+0.23) | 61.80 (-0.08) | 52.06 (+0.36) | 54.86 (+0.40) | 51.24 (+0.63) | 67.28 (+1.00) | 80.77 (+0.74) | 65.62 (+0.83) |
+| R10 1007 C_s1 | 89.08 (+0.21) | 62.10 (+0.22) | 52.37 (+0.67) | 54.90 (+0.44) | 51.54 (+0.93) | 67.16 (+0.88) | 80.63 (+0.60) | 65.47 (+0.68) |
 
-M10 的八项均高于论文，最小余量是黑盒 CW 的 +0.02pp；R10 的七项更高，FGSM 低 0.08pp。完整 10k 上 0.08pp 对应 8 个样本的正确数差；它可以如实作为方法的一个小幅回落报告，不能在保留该结果时改写为八项全胜，也不能在没有重复实验时断言它必然属于随机噪声。来源为 [0917v1 结果分析](../../../结果分析/0917v1_结果分析.md)。
+M10 与 R10 的八项均严格高于论文。M10 最小余量为黑盒 CW 的 +0.02pp；R10 最小余量为 Clean 的 +0.21pp。来源分别为 [0917v1 结果分析](../../../结果分析/0917v1_结果分析.md)与 [1007 C_s1 结果分析](../../../结果分析/1007-cifar10-r4-awpschedule-v1_结果分析.md)；后者保留完整同期对照与历史比较。
 
 ### CIFAR-100
 
@@ -303,7 +305,7 @@ M10 的八项均高于论文，最小余量是黑盒 CW 的 +0.02pp；R10 的七
 | 论文 ResNet-18 | 65.73 | 34.47 | 28.05 | 29.45 | 24.43 | 42.29 | 49.76 | 41.44 |
 | R100 1004 H2 | 65.96 (+0.23) | 34.52 (+0.05) | 29.76 (+1.71) | 30.78 (+1.33) | 26.66 (+2.23) | 43.52 (+1.23) | 51.90 (+2.14) | 42.29 (+0.85) |
 
-这两个配方在本次结果中均为八项数值高于论文。H2 最小余量是 FGSM 的 +0.05pp；它的“八项过线”并不等于全面超过历史 R2 或其他强攻击更高的配方。M100 使用原始 4090 评测 134582，不混入之后同权重 A800 复评或重新训练的数值。来源为 [0914v1 CIFAR-100 结果分析](../../../结果分析/0914v1_cifar100_结果分析.md) 和 [1004 H2 结果分析](../../../结果分析/1004-cifar100-binary-v1_结果分析.md)。
+这两个配方在本次结果中均为八项数值高于论文，H2 最小余量是 FGSM 的 +0.05pp。M100 使用原始 4090 评测 134582，不混入之后同权重 A800 复评或重新训练的数值。来源与历史比较见 [0914v1 CIFAR-100 结果分析](../../../结果分析/0914v1_cifar100_结果分析.md)和 [1004 H2 结果分析](../../../结果分析/1004-cifar100-binary-v1_结果分析.md)。
 
 ### AutoAttack 与均值
 
@@ -312,7 +314,7 @@ M10 的八项均高于论文，最小余量是黑盒 CW 的 +0.02pp；R10 的七
 | 配方 | AA | AA 论文差 | 七项攻击均值 | 七项均值论文差 | 八项均值 | 八项均值论文差 | 八项严格更高 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | M10 | 47.01 | +0.70 | 61.28 | +1.69 | 64.83 | +1.49 | 8/8 |
-| R10 | 49.10 | +0.22 | 61.95 | +0.55 | 65.34 | +0.51 | 7/8 |
+| R10 | 49.31 | +0.43 | 62.02 | +0.63 | 65.41 | +0.58 | 8/8 |
 | M100 | 24.95 | 不适用 | 37.47 | +1.55 | 41.15 | +1.38 | 8/8 |
 | R100 H2 | 24.22 | 不适用 | 37.06 | +1.36 | 40.67 | +1.22 | 8/8 |
 
@@ -330,13 +332,13 @@ AWP、JS 一致性、EMA、PCGrad 以及 KL 的二元分解都不是仅凭本次
 
 ## 结果解释与使用边界
 
-所有数值均是单训练 seed 的已完成结果，小于 0.1pp 的差异应按观测值陈述，不称为统计显著、稳定复现或必然噪声。前三份历史 test-loader 参与选 checkpoint，存在测试集选择偏差；H2 固定终点改善了该次训练内的选模方式，但四份整体不能统一标记为严格相同的 test-only 流程。
+四个所选 checkpoint 均在本次完整测试八项严格超过论文，对应结果仍是单次训练与评测的观测值，不能表述为多 seed 稳定复现。两份 MobileNet 沿用历史 test-loader 选 best，R10 与 H2 使用预先固定训练终点；四份的选模流程不能混写为完全一致。R10 的重复 seed 与同期对照范围见[入口说明](CIARD_Expansion_resnet18_cifar10/README.md)。
 
-评测沿用本项目冻结的历史攻击实现：L-infinity 预算 8/255，PGDsat 为 20 步、步长 2/255，PGDtrades 为 20 步、步长 0.003，CW 为 30 步、步长 2/255，Square 为 100 queries，AA 单列。名为 PGDtrades 的历史入口使用 CE 攻击目标，不应根据名称写成 KL-TRADES 攻击；0.003 与论文文字的 2/255 存在差异，因此“高于论文公布数值”不等于已经完成严格同协议复现。前三份随机攻击未全部显式定 seed，H2 记录每指标 seed0，这一差异也需保留。
+评测沿用本项目冻结的历史攻击实现：L-infinity 预算 8/255，PGDsat 为 20 步、步长 2/255，PGDtrades 为 20 步、步长 0.003，CW 为 30 步、步长 2/255，Square 为 100 queries，AA 单列。名为 PGDtrades 的历史入口使用 CE 攻击目标，不应根据名称写成 KL-TRADES 攻击；0.003 与论文文字的 2/255 存在差异，因此“高于论文公布数值”不等于已经完成严格同协议复现。M10、R10、M100 的随机攻击未全部显式定 seed，H2 记录每指标 seed0。
 
-八项均值只帮助概括趋势，不替代单项结果或 AA。R10 的 FGSM 回落、M10 的黑盒 CW 小余量与 H2 的 FGSM 小余量都应留在主结果讨论中。用“总体取得改善，同时存在少数指标权衡”描述当前证据，比“所有设置全面提升”更准确。
+八项均值只帮助概括趋势，不替代逐项验收或 AA。论文主结果可表述为“四个所选单次 checkpoint 的八项指标均超过论文公布值”；最小余量、完整对照和历史差异由结果表及所链接的报告提供。
 
-本目录是与既有结果一一对应的源码归档，源码已于2026-10-08发布至GitHub（145bfb8）。现补充四组成功训练与评测的24份原始日志，共7,924,782字节（约7.9 MB），保留stdout及对应Slurm `.out/.err`；stdout与对应`.out`逐字节一致，8份`.err`均为空。7个锁文件和CIFAR-100 MobileNet失败作业133782的3份日志未纳入，原文件仍在原run。教师、数据、checkpoint、结果JSON与完整报告仍在仓库外，相关链接仅供本地追溯；本文训练和评测日志链接改为仓库内副本，原日志正文与绝对路径保持不变。源码中的运行身份、prefix、旧脚本路径及 H2 manifest 绑定应按各入口 README 理解，不能因复制到新目录就认为可直接重提；后续若需要复跑，应另行准备独立运行目录并由用户手动提交。本次方法说明没有引入新的训练或评测前置要求。
+本目录是与既有结果一一对应的源码归档。2026-10-08 的源码发布（145bfb8）及日志发布（ac40c9a）为此前 R4 入口的历史版本；本次 C_s1 替换已完成核验并获用户授权同步至GitHub，实际推送结果见[发布记录（仅本地）](../publication_r10_cs1_20261009/publication.json)。当前四组成功训练与评测共有24份日志，共7,774,664字节（约7.8 MB），保留stdout及对应Slurm `.out/.err`；stdout与对应`.out`逐字节一致，8份`.err`均为空。锁文件与失败作业日志不纳入，原文件仍在原run。教师、数据、checkpoint、结果JSON与完整报告仍在仓库外，相关链接仅供本地追溯；日志正文与绝对路径保持不变。运行身份、prefix、脚本路径以及 R10/H2 manifest 绑定应按各入口 README 理解；这些是阅读快照，复跑须另建独立目录并由用户手动提交。本次替换核验见[本地核验记录](../local_r10_cs1_20261009/verification.json)，保留发布前整理时点事实，没有运行新的训练或评测。
 
 ## checkpoint 与原始证据
 
@@ -345,14 +347,14 @@ AWP、JS 一致性、EMA、PCGrad 以及 KL 的二元分解都不是仅凭本次
 | 配方 | 固定权重（仅本地） | 训练日志 | 评测日志 | 结果 JSON（仅本地） |
 | --- | --- | --- | --- | --- |
 | M10 | [epoch250 EMA](../../../run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/student_best.pth) | [134636](CIARD_Expansion_mobilenetv2_cifar10/logs/train_stdout_134636.log) | [135053](CIARD_Expansion_mobilenetv2_cifar10/logs/eval_best_stdout_135053.log) | [整数计数与身份](../../../run/0917v1/mobilenetv2_cifar10_v2_awp0p001_cr0p50/model/Cifar10_MobileNetV2_0917v1_v2_awp0p001_cr0p50/eval_best_0909v1_135053.json) |
-| R10 | [epoch252 EMA](../../../run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/student_best.pth) | [134643](CIARD_Expansion_resnet18_cifar10/logs/train_stdout_134643.log) | [134905](CIARD_Expansion_resnet18_cifar10/logs/eval_best_stdout_134905.log) | [整数计数与身份](../../../run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/eval_best_0909v1_134905.json) |
+| R10 | [固定 epoch252 EMA](../../../run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/model/Cifar10_ResNet18_1007_r4_awpschedule_v1_C_s1/student_epoch252.pth) | [138301](CIARD_Expansion_resnet18_cifar10/logs/train_stdout_138301.log) | [138611](CIARD_Expansion_resnet18_cifar10/logs/eval_stdout_138611.log) | [整数计数与身份](../../../run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/model/Cifar10_ResNet18_1007_r4_awpschedule_v1_C_s1/eval_best_0909v1_138611.json) |
 | M100 | [epoch230 EMA](../../../run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/model/Cifar100_MobileNetV2_0914v1_natorig_awp0p002_cr0p50/student_best.pth) | [133792](CIARD_Expansion_mobilenetv2_cifar100/logs/train_stdout_133792.log) | [134582](CIARD_Expansion_mobilenetv2_cifar100/logs/eval_best_stdout_134582.log) | [整数计数与身份](../../../run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50/model/Cifar100_MobileNetV2_0914v1_natorig_awp0p002_cr0p50/eval_best_0909v1_134582.json) |
 | R100 H2 | [固定 epoch190 EMA](../../../run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/student_epoch190.pth) | [137534](CIARD_Expansion_resnet18_cifar100/logs/train_stdout_137534.log) | [137729](CIARD_Expansion_resnet18_cifar100/logs/eval_stdout_137729.log) | [整数计数与身份](../../../run/1004-cifar100-binary-v1/resnet18_cifar100_nb_l2_w40_s0/model/Cifar100_ResNet18_1004_binary_v1_H2/eval_137729.json) |
 
 | 配方 | checkpoint SHA256 |
 | --- | --- |
 | M10 | `3956b121747007143f5a9ddd561dafe080b197a4670f95d20ee831551dc8bc7e` |
-| R10 | `208cc7dbe1a4158c8c6d3a41f0f442e3952dd92cf011f3419e00edb9845694e8` |
+| R10 | `f57b1e8cb3cfd696ed004a2f5766527e2b6dc4734bb0065d3f46ebb41dbc0754` |
 | M100 | `5df58522edfee576f61ecd102be396d9e893d447347c92d89f04bf183f8ece1e` |
 | R100 H2 | `e32461425fc112b763c6650c65756979e8ca75c3342119acbe4363075be0d13b` |
 
@@ -367,9 +369,9 @@ AWP、JS 一致性、EMA、PCGrad 以及 KL 的二元分解都不是仅凭本次
 | 原会议方法的 KD 温度 push 循环教师 | [原版 CIARD.py](CIARD/CIARD.py)，重点看 200 行起的训练损失与教师更新；[原版 mtard_loss.py](CIARD/mtard_loss.py) 的 `robust_inner_loss_push` |
 | 四份固定参数与入口 | [M10 CFG](CIARD_Expansion_mobilenetv2_cifar10/CIARD.py)、[R10 CFG](CIARD_Expansion_resnet18_cifar10/CIARD.py)、[M100 CFG](CIARD_Expansion_mobilenetv2_cifar100/CIARD.py)、[R100 CFG](CIARD_Expansion_resnet18_cifar100/CIARD.py) |
 | 可靠 push 与 EMA 数值实现 | [mtard_loss.py](CIARD_Expansion_mobilenetv2_cifar10/mtard_loss.py)，`soft_push_weight`、`soft_feature_push_loss`、`ema_update_teacher` |
-| 共同 KD 门控 CE margin AWP JS 更新次序 | [awp_consistency.py](CIARD_Expansion_mobilenetv2_cifar10/awp_consistency.py)，`kd_losses`、`base_losses`、`perturb_weights`、`js_divergence`、`MethodRunner.step`；M10/R10/M100 此文件相同 |
+| 共同 KD 门控 CE margin AWP JS 更新次序 | [awp_consistency.py](CIARD_Expansion_mobilenetv2_cifar10/awp_consistency.py)，`kd_losses`、`base_losses`、`perturb_weights`、`js_divergence`、`MethodRunner.step`；M10/M100 此文件相同；[R10 实现](CIARD_Expansion_resnet18_cifar10/awp_consistency.py)另含 η 函数和梯度诊断，C_s1 固定 η=1 |
 | ResNet 分解式目标修正 | [split_target_mix.py](CIARD_Expansion_resnet18_cifar10/split_target_mix.py)，`split_target_mix_loss`；由 `kd_losses` 根据 CFG 调用 |
 | ResNet 逐参数 margin 投影 | [awp_consistency.py](CIARD_Expansion_resnet18_cifar10/awp_consistency.py)，`backward_student` |
 | H2 自然二元监督 | [clean_supervision.py](CIARD_Expansion_resnet18_cifar100/clean_supervision.py)，`natural_binary_loss`；[awp_consistency.py](CIARD_Expansion_resnet18_cifar100/awp_consistency.py) 的 `base_losses` 与 `awp_kd_loss` 分别说明外层加入和内层关闭 |
-| H2 固定终点与训练状态 | [CIARD.py](CIARD_Expansion_resnet18_cifar100/CIARD.py) 的 `SELECTION_PROTOCOL`、`epochs=190` 与保存部分；[training_state.py](CIARD_Expansion_resnet18_cifar100/training_state.py) 保存状态身份 |
+| R10/H2 固定终点与训练状态 | [R10 CIARD.py](CIARD_Expansion_resnet18_cifar10/CIARD.py) 固定 `epochs=252`，[H2 CIARD.py](CIARD_Expansion_resnet18_cifar100/CIARD.py) 固定 `epochs=190`；各自 `SELECTION_PROTOCOL` 与 [R10 状态记录](CIARD_Expansion_resnet18_cifar10/training_state.py)、[H2 状态记录](CIARD_Expansion_resnet18_cifar100/training_state.py)绑定固定 EMA |
 | 最终评测身份与固定权重 | [M10 evaluator](CIARD_Expansion_mobilenetv2_cifar10/attack_eval.py)、[R10 evaluator](CIARD_Expansion_resnet18_cifar10/attack_eval.py)、[M100 evaluator](CIARD_Expansion_mobilenetv2_cifar100/attack_eval.py)、[R100 evaluator](CIARD_Expansion_resnet18_cifar100/attack_eval.py) |

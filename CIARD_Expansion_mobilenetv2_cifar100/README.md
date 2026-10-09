@@ -6,7 +6,7 @@
 
 **本目录用于阅读与追溯现有结果，不能直接提交。** 已附所选成功训练与评测日志，未打包数据、教师和学生权重或资源链接。下文 `run/`、`model/`、结果JSON、完整报告及校验记录仍在原实验或项目目录，仅供本地追溯。复跑须另建独立实验并重建身份、路径及校验绑定。
 
-`logs/`保留本组训练与评测的stdout及对应Slurm `.out/.err`，共6份；stdout与对应`.out`逐字节一致，`.err`为空，未复制锁文件。四组共24份、约7.9 MB的归档范围见[总README](../README.md)，来源及hash见[来源清单](../SOURCE_MANIFEST.json)。
+`logs/`保留本组训练与评测的stdout及对应Slurm `.out/.err`，共6份；stdout与对应`.out`逐字节一致，`.err`为空，未复制锁文件。四组共24份，归档范围与总字节数见[总README](../README.md)，来源及hash见[来源清单](../SOURCE_MANIFEST.json)。
 
 2026-09-17：按用户指定，从`run/0914v1/mobilenetv2_cifar100_natorig_awp0p002_cr0p50`同步已测完整轻量源码与结果。**同一个固定checkpoint的八项数值全部高于论文，Clean=66.91%，高0.19个百分点；八项也均高于旧教师0911v1 M1。Clean优势较小，单seed不能证明统计显著性或多次训练的稳定优势。**
 

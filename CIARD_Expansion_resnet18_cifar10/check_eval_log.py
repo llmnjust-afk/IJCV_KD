@@ -50,11 +50,11 @@ def main():
         'training_job_id': completed['job_id'], 'epoch': completed['epoch'], 'checkpoint': completed['checkpoint'],
         'checkpoint_sha256': completed['checkpoint_sha256'], 'evaluator_sha256': sha256('attack_eval.py'),
         'source_hashes': completed['source_hashes'], 'test_samples': 10000, 'attack_seed': None,
-        'selection_protocol': 'historical_50k_train_test_loader_selection',
+        'selection_protocol': completed['selection_protocol'],
         'protocol': 'frozen_source_historical_attacks', 'metrics_percent': metrics,
         'correct_counts': {key: round(value * 100) for key, value in metrics.items()},
         'evaluation_log': str(Path(log).resolve()),
-        'note': 'Test-loader selection bias; historical stochastic attacks not explicitly seeded.'}
+        'note': 'Predeclared epoch EMA; design informed by historical tests; historical stochastic attacks not explicitly seeded.'}
     destination = Path(completed['checkpoint']).parent / ('eval_best_0909v1_' + str(job) + '.json')
     with destination.open('x') as stream:
         json.dump(result, stream, indent=2, allow_nan=False)

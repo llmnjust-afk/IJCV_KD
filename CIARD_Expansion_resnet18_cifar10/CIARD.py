@@ -8,7 +8,10 @@ Lr stage decay
 import os
 import copy
 import time
-from awp_consistency import EpochViews, MethodRunner, method_enabled, method_ramp
+import random
+import numpy as np
+from training_state import record_training_state
+from awp_consistency import EpochViews, MethodRunner, method_enabled, method_ramp, awp_natural_weight
 import torch
 from mtard_loss import *
 from cifar10_models import *
@@ -19,8 +22,11 @@ from loguru import logger
 import math
 from split_target_mix import split_target_mix_loss
 # we fix the random seed to 0, this method can keep the results consistent in the same conputer.
-torch.manual_seed(0)
-torch.cuda.manual_seed_all(0)
+TRAIN_SEED = 1
+torch.manual_seed(TRAIN_SEED)
+torch.cuda.manual_seed_all(TRAIN_SEED)
+random.seed(TRAIN_SEED)
+np.random.seed(TRAIN_SEED)
 torch.backends.cudnn.deterministic = True
 
 # Independent variants respect Slurm CUDA_VISIBLE_DEVICES and ignore legacy runtime overrides.
@@ -28,17 +34,17 @@ for _legacy_runtime_env in ("CIARD_GPU", "CIARD_STUDENT", "CIARD_PREFIX"):
     os.environ.pop(_legacy_runtime_env, None)
 
 # Fixed output prefix for this independent variant.
-VARIANT_NAME = 'resnet18_cifar10_v2_awp0p002_cr0p75'
-prefix = 'Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75'
-draw_file = prefix
+VARIANT_NAME = 'resnet18_cifar10_c_s1'
+prefix = 'Cifar10_ResNet18_1007_r4_awpschedule_v1_C_s1'
+SELECTION_PROTOCOL = 'fixed_epoch252_no_test_selection'
+RECIPE = 'C'
 model_dir = './model/' + prefix
 # Refuse reuse of a training trajectory, including a concurrent duplicate job.
 os.makedirs(model_dir, exist_ok=False)
 
-with open('./model/' + prefix+ '/'+ draw_file,'w') as f:
-    text = "epoch student_robust_acc student_natural_acc adv_teacher_robust_acc adv_teacher_natural_acc nat_teacher_robust_acc nat_teacher_natural_acc\n"
-    f.write(text)
-epochs = 300
+FINAL_EPOCH = 252
+STATE_EPOCHS = [120, 200, 240, 252]
+epochs = 252
 batch_size = 128
 epsilon = 8/255.0
 
@@ -59,6 +65,10 @@ CFG = {
     # 0909v1 fixed method configuration.
     'training_views': 2,
     'awp_gamma': 0.002,
+    'awp_nat_weight': 1.0,
+    'awp_nat_weight_final': 1.0,
+    'awp_nat_schedule_start': 200,
+    'awp_nat_schedule_warmup': 40,
     'consistency_weight': 0.75,
     'method_start': 120,
     'method_warmup': 40,
@@ -240,7 +250,7 @@ CFG = {
     #   alpha=0.0: pure black-box-optimal (black-box CW gain, white-box drop)
     #   alpha=0.5: balanced
     # =========================================================================
-    "weight_averaging": True,
+    "weight_averaging": False,
     "wa_alpha": 0.5,             # weight of pre-margin checkpoint (1.0=white-box, 0.0=black-box)
     # -------------------------------------------------------------------------
     # PCGrad-style gradient surgery for teacher-margin.
@@ -277,16 +287,11 @@ transform_train = transforms.Compose([
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
 ])
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-])
 
-trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
+trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=False, transform=transform_train)
 training_data = EpochViews(trainset)
 trainloader = torch.utils.data.DataLoader(training_data, batch_size=batch_size, shuffle=True, num_workers=0)
 
-testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=0)
 
 # Student architecture is fixed for this independent variant.
 student = resnet18()
@@ -452,8 +457,6 @@ weight_learn_rate = 0.025
 temp_learn_rate = 0.001
 
 ce_loss = torch.nn.CrossEntropyLoss().cuda()
-ce_loss_test = torch.nn.CrossEntropyLoss(reduction='none')
-best_accuracy = 0
 
 temp_adv = 1
 temp_nat = 1
@@ -477,15 +480,16 @@ logger.info("CIARD explicit teacher-margin config: prefix={}, student={}, weight
 logger.info("""CIARD resolved train config:
 variant: {}
 prefix: {}
-dataset: {} train_samples={} test_samples={}
+dataset: {} train_samples={} training_test_selection: disabled
 student: {} num_classes={}
 epochs: {}
 batch_size: {}
 epsilon: {}
 train_pgd_steps: 10
 train_pgd_step_size: 2/255
-training_seed: 0
-selection_protocol: historical_50k_train_test_loader_selection
+training_seed: {}
+selection_protocol: fixed_epoch252_no_test_selection
+learning_rate_horizon: 300
 target_mix_teacher: live_robust_teacher_clean_logits_existing_forward
 target_mix_temperature: current_batch_temp_adv_before_update
 target_mix_reduction: original_mean_over_batch_and_classes
@@ -499,8 +503,8 @@ model_dir: {}
 CFG:
 {}
 """.format(
-    VARIANT_NAME, prefix, trainset.__class__.__name__, len(trainset), len(testset),
-    student.__class__.__name__, student.linear.out_features, epochs, batch_size, epsilon,
+    VARIANT_NAME, prefix, trainset.__class__.__name__, len(trainset),
+    student.__class__.__name__, student.linear.out_features, epochs, batch_size, epsilon, TRAIN_SEED,
     teacher1_path, teacher2_path, USE_CIARDPP, CIARD_SAFE_PLUS, model_dir,
     "\n".join("  {}: {}".format(k, CFG[k]) for k in sorted(CFG))))
 
@@ -509,9 +513,9 @@ for epoch in range(begin_epoch,epochs+1):
     epoch_started = time.perf_counter()
     training_data.views = CFG["training_views"] if epoch > CFG["method_start"] else 1
     torch.cuda.reset_peak_memory_stats()
-    logger.info("METHOD epoch={} views={} awp_gamma={} consistency_weight={}".format(
+    logger.info("METHOD epoch={} views={} awp_gamma={} consistency_weight={} awp_nat_weight={}".format(
         epoch, training_data.views, CFG["awp_gamma"] * method_ramp(CFG, epoch),
-        CFG["consistency_weight"] * method_ramp(CFG, epoch)))
+        CFG["consistency_weight"] * method_ramp(CFG, epoch), awp_natural_weight(CFG, epoch)))
     logger.info('the {}th epoch '.format(epoch)) 
     for step,(train_batch_data,train_batch_labels) in enumerate(trainloader): 
 
@@ -521,7 +525,7 @@ for epoch in range(begin_epoch,epochs+1):
             method_state, method_metrics = method_runner.step(
                 train_batch_data, train_batch_labels, optimizer, ADV_teacher_optimizer,
                 ema_student, epoch, epsilon,
-                (temp_adv, temp_nat, init_loss_adv, init_loss_nat, weight_learn_rate, temp_learn_rate), weight)
+                (temp_adv, temp_nat, init_loss_adv, init_loss_nat, weight_learn_rate, temp_learn_rate), weight, diagnose_awp=(step % 100 == 0))
             temp_adv, temp_nat, init_loss_adv, init_loss_nat, weight_learn_rate, temp_learn_rate = method_state
             if step % 100 == 0:
                 logger.info("METHOD_BATCH epoch={} step={} ".format(epoch, step) +
@@ -1012,278 +1016,26 @@ for epoch in range(begin_epoch,epochs+1):
     logger.info("TRAIN_EPOCH_RESOURCE epoch={} seconds={} peak_allocated_bytes={}".format(
         epoch, time.perf_counter() - epoch_started, torch.cuda.max_memory_allocated()))
 
-    if epoch == 1 or epoch%10==  0 or epoch >= 250: 
-        loss_nat_test = AverageMeter()
-        loss_adv_test = AverageMeter()
+    if epoch in STATE_EPOCHS:
+        state_record = record_training_state(
+            os.path.join(model_dir, 'training_state_{}.json'.format(epoch)),
+            epoch, VARIANT_NAME, TRAIN_SEED, student, ema_student, teacher,
+            optimizer, ADV_teacher_optimizer,
+            {'temp_adv': temp_adv, 'temp_nat': temp_nat,
+             'init_loss_adv': init_loss_adv, 'init_loss_nat': init_loss_nat,
+             'weight_learn_rate': weight_learn_rate, 'temp_learn_rate': temp_learn_rate,
+             'weight': weight, 'training_views': training_data.views},
+            selection_protocol=SELECTION_PROTOCOL, recipe=RECIPE,
+            awp_nat_weight=awp_natural_weight(CFG, epoch))
+    if epoch == epochs:
+        checkpoint_path = os.path.join(model_dir, 'student_epoch{}.pth'.format(epoch))
+        torch.save({'model': ema_student.state_dict(), 'epoch': epoch,
+                    'variant': VARIANT_NAME, 'training_seed': TRAIN_SEED, 'config': CFG,
+                    'selection_protocol': SELECTION_PROTOCOL, 'recipe': RECIPE,
+                    'awp_nat_weight': awp_natural_weight(CFG, epoch),
+                    'checkpoint_role': 'ema_student',
+                    'final_state_fingerprint': state_record['fingerprint_sha256']}, checkpoint_path)
+        print('FIXED_CHECKPOINT epoch={} role=ema_student path={}'.format(
+            epoch, checkpoint_path), flush=True)
 
-        eval_student = ema_student if (USE_CIARDPP and CFG["eval_student_ema"] and ema_student is not None) else student
-        eval_student.eval()
-        student.eval()
-        teacher.eval()
-        teacher_nat.eval()
-
-        optimizer.zero_grad()
-        ADV_teacher_optimizer.zero_grad()
-        test_accs = []
-        test_accs_naturals = []
-        teacher_test_accs = []
-        teacher_test_accs_naturals = []
-
-        nat_teacher_test_accs = []
-        nat_teacher_test_accs_naturals = []
-
-
-        for step,(test_batch_data,test_batch_labels) in enumerate(testloader):
-            test_batch_data = test_batch_data.float().cuda()
-            test_batch_labels = test_batch_labels.cuda()
-            test_ifgsm_data = attack_pgd(eval_student,test_batch_data,test_batch_labels,attack_iters=20,step_size=0.003,epsilon=8.0/255.0)
-            with torch.no_grad():
-                logits = eval_student(test_ifgsm_data)
-                loss = ce_loss(logits, test_batch_labels)
-            loss = loss.float()
-            loss_adv_test.update(loss.item(), test_batch_data.size(0))
-            
-            predictions = np.argmax(logits.cpu().detach().numpy(),axis=1)
-            predictions = predictions - test_batch_labels.cpu().detach().numpy()
-            test_accs = test_accs + predictions.tolist()
-            teacher_logits = teacher(test_ifgsm_data)
-            teacher_predictions = np.argmax(teacher_logits.cpu().detach().numpy(),axis=1)
-            teacher_predictions = teacher_predictions - test_batch_labels.cpu().detach().numpy()
-            teacher_test_accs = teacher_test_accs + teacher_predictions.tolist()
-
-            nat_teacher_logits = teacher_nat(test_ifgsm_data)
-            nat_teacher_predictions = np.argmax(nat_teacher_logits.cpu().detach().numpy(),axis=1)
-            nat_teacher_predictions = nat_teacher_predictions - test_batch_labels.cpu().detach().numpy()
-            nat_teacher_test_accs = nat_teacher_test_accs + nat_teacher_predictions.tolist()
-
-
-        test_accs = np.array(test_accs)
-        test_adv = np.sum(test_accs==0)/len(test_accs)
-        teacher_test_accs = np.array(teacher_test_accs)
-        teacher_test_acc = np.sum(teacher_test_accs==0)/len(teacher_test_accs)
-
-        nat_teacher_test_accs = np.array(nat_teacher_test_accs)
-        nat_teacher_test_acc = np.sum(nat_teacher_test_accs==0)/len(nat_teacher_test_accs)
-        
-        text = f'student robust acc {np.sum(test_accs==0)/len(test_accs):.4f}, teacher robust acc {np.sum(teacher_test_accs==0)/len(teacher_test_accs):.4f}, nat teacher robust acc {np.sum(nat_teacher_test_accs==0)/len(nat_teacher_test_accs):.4f}'
-        logger.info(text)
-
-        for step,(test_batch_data,test_batch_labels) in enumerate(testloader): 
-            test_batch_data = test_batch_data.float().cuda()
-            test_batch_labels = test_batch_labels.cuda()
-            with torch.no_grad():
-                logits = eval_student(test_batch_data)
-                loss = ce_loss(logits, test_batch_labels)
-            loss = loss.float()
-            loss_nat_test.update(loss.item(), test_batch_data.size(0))
-            predictions = np.argmax(logits.cpu().detach().numpy(),axis=1)
-            predictions = predictions - test_batch_labels.cpu().detach().numpy()
-            test_accs_naturals = test_accs_naturals + predictions.tolist()
-
-            teacher_logits = teacher(test_batch_data)
-            teacher_predictions = np.argmax(teacher_logits.cpu().detach().numpy(),axis=1)
-            teacher_predictions = teacher_predictions - test_batch_labels.cpu().detach().numpy()
-            teacher_test_accs_naturals = teacher_test_accs_naturals + teacher_predictions.tolist()
-
-            nat_teacher_logits = teacher_nat(test_batch_data)
-            nat_teacher_predictions = np.argmax(nat_teacher_logits.cpu().detach().numpy(),axis=1)
-            nat_teacher_predictions = nat_teacher_predictions - test_batch_labels.cpu().detach().numpy()
-            nat_teacher_test_accs_naturals = nat_teacher_test_accs_naturals + nat_teacher_predictions.tolist()
-        test_accs_naturals = np.array(test_accs_naturals)
-        test_nat = np.sum(test_accs_naturals==0)/len(test_accs_naturals)
-        teacher_test_accs_naturals = np.array(teacher_test_accs_naturals)
-        teacher_test_accs_natural = np.sum(teacher_test_accs_naturals==0)/len(teacher_test_accs_naturals)
-
-        nat_teacher_test_accs_naturals = np.array(nat_teacher_test_accs_naturals)
-        nat_teacher_test_accs_natural = np.sum(nat_teacher_test_accs_naturals==0)/len(nat_teacher_test_accs_naturals)
-
-        # ---- Save pre-margin checkpoint for weight averaging ----
-        # This checkpoint is saved at teacher_margin_start (before margin kicks
-        # in), so it has baseline-level white-box + clean (no margin disturbance).
-        # After training, its weights are averaged with the final checkpoint to
-        # produce a model that retains both white-box and black-box benefits.
-        if (USE_CIARDPP and CFG.get("weight_averaging", False)
-                and epoch == CFG["teacher_margin_start"]
-                and not os.path.exists('./model/' + prefix + "/student_pre_margin.pth")):
-            save_student_pre = ema_student if (USE_CIARDPP and CFG["save_ema_as_student"] and ema_student is not None) else student
-            state_pre = {'model': save_student_pre.state_dict(), 'epoch': epoch}
-            torch.save(state_pre, './model/' + prefix + "/student_pre_margin.pth")
-            logger.info("Saved pre-margin checkpoint at epoch {} for weight averaging".format(epoch))
-
-        if epoch%50 == 0 :
-            save_student = ema_student if (USE_CIARDPP and CFG["save_ema_as_student"] and ema_student is not None) else student
-            state = { 'model': save_student.state_dict(),
-                'optimizer': optimizer.state_dict(), 'epoch': epoch}
-            if USE_CIARDPP and ema_student is not None:
-                state['raw_student'] = student.state_dict()
-                state['ema_student'] = ema_student.state_dict()
-            # (A) persist the student projection head so training can be resumed.
-            if USE_CIARDPP and student_head is not None:
-                state['student_head'] = student_head.state_dict()
-            torch.save(state,'./model/' + prefix + "/student_" + str(epoch)+ '.pth')
-            state = { 'model': teacher.state_dict(),
-                'optimizer': ADV_teacher_optimizer.state_dict(), 'epoch': epoch}
-            # (D) persist the EMA robust teacher (the one used for distillation).
-            if USE_CIARDPP and ema_teacher is not None:
-                state['ema_teacher'] = ema_teacher.state_dict()
-            torch.save(state,'./model/'+ prefix + "/teacher_" + str(epoch)+ '.pth')
-        if epoch > 250:
-            save_student = ema_student if (USE_CIARDPP and CFG["save_ema_as_student"] and ema_student is not None) else student
-            state = { 'model': save_student.state_dict(),
-                'optimizer': optimizer.state_dict(), 'epoch': epoch}
-            if USE_CIARDPP and ema_student is not None:
-                state['raw_student'] = student.state_dict()
-                state['ema_student'] = ema_student.state_dict()
-            torch.save(state,'./model/' + prefix + "/student_latest.pth")
-            state = { 'model': teacher.state_dict(),
-                'optimizer': ADV_teacher_optimizer.state_dict(), 'epoch': epoch}
-            torch.save(state,'./model/'+ prefix + "/teacher_latest.pth")
-        if (test_nat + test_adv) / 2 > best_accuracy:
-            best_accuracy = (test_nat + test_adv)/2
-            save_student = ema_student if (USE_CIARDPP and CFG["save_ema_as_student"] and ema_student is not None) else student
-            state = { 'model': save_student.state_dict(),
-                'optimizer': optimizer.state_dict(), 'epoch': epoch}
-            if USE_CIARDPP and ema_student is not None:
-                state['raw_student'] = student.state_dict()
-                state['ema_student'] = ema_student.state_dict()
-            torch.save(state,'./model/' + prefix + "/student_best"+ '.pth')
-            state = { 'model': teacher.state_dict(),
-                'optimizer': ADV_teacher_optimizer.state_dict(), 'epoch': epoch}
-            torch.save(state,'./model/' + prefix + "/teacher_best"+ '.pth')
-            logger.info("best accuracy:"+str(best_accuracy))
-            
-        text = f'student natural acc {np.sum(test_accs_naturals==0)/len(test_accs_naturals):.4f}, adv teacher natural acc {np.sum(teacher_test_accs_naturals==0)/len(teacher_test_accs_naturals):.4f}, nat teacher natural acc {np.sum(nat_teacher_test_accs_naturals==0)/len(nat_teacher_test_accs_naturals):.4f}'
-        logger.info(text)
-        
-        test_acc = np.sum(test_accs==0)/len(test_accs)
-        test_accs_natural = np.sum(test_accs_naturals==0)/len(test_accs_naturals)
-        with open('./model/' + prefix+ '/'+ draw_file,'a') as f:
-            text = str(epoch) + " " + str(test_acc) + " " + str(test_accs_natural) + " " + str(teacher_test_acc) + " "+ str(teacher_test_accs_natural)+ " "+ str(nat_teacher_test_acc) + " "+ str(nat_teacher_test_accs_natural)+'\n'
-            f.write(text)
-
-# =============================================================================
-# POST-TRAINING: WEIGHT SPACE AVERAGING (Model Soup)
-# =============================================================================
-# After training, average the weights of the pre-margin checkpoint (white-box-
-# optimal) and the final/best checkpoint (black-box-optimal). This produces a
-# single model that retains both white-box and black-box benefits.
-# =============================================================================
-if USE_CIARDPP and CFG.get("weight_averaging", False):
-    pre_margin_path = './model/' + prefix + "/student_pre_margin.pth"
-    post_margin_path = './model/' + prefix + "/student_best.pth"
-    if not os.path.exists(post_margin_path):
-        post_margin_path = './model/' + prefix + "/student_latest.pth"
-
-    if os.path.exists(pre_margin_path) and os.path.exists(post_margin_path):
-        logger.info("=" * 60)
-        logger.info("WEIGHT SPACE AVERAGING (Model Soup)")
-        logger.info("  pre-margin checkpoint:  {}".format(pre_margin_path))
-        logger.info("  post-margin checkpoint: {}".format(post_margin_path))
-        alpha = CFG["wa_alpha"]
-        logger.info("  alpha = {} (1.0=white-box-optimal, 0.0=black-box-optimal)".format(alpha))
-
-        # load both checkpoints
-        pre_state = torch.load(pre_margin_path, map_location='cpu')
-        post_state = torch.load(post_margin_path, map_location='cpu')
-        pre_sd = pre_state['model']
-        post_sd = post_state['model']
-
-        # average weights
-        averaged_sd = {}
-        for k in post_sd.keys():
-            if k in pre_sd:
-                averaged_sd[k] = alpha * pre_sd[k].float() + (1.0 - alpha) * post_sd[k].float()
-            else:
-                averaged_sd[k] = post_sd[k]
-        # cast back to original dtype
-        for k in averaged_sd:
-            averaged_sd[k] = averaged_sd[k].to(post_sd[k].dtype)
-
-        # load averaged weights into a fresh student
-        wa_student = resnet18()
-        wa_student.load_state_dict(averaged_sd)
-        wa_student = wa_student.cuda()
-        wa_student.eval()
-
-        # evaluate the averaged model
-        wa_test_accs = []
-        wa_test_accs_naturals = []
-        for step,(test_batch_data,test_batch_labels) in enumerate(testloader):
-            test_batch_data = test_batch_data.float().cuda()
-            test_batch_labels = test_batch_labels.cuda()
-            # white-box PGD
-            test_ifgsm_data = attack_pgd(wa_student, test_batch_data, test_batch_labels,
-                                         attack_iters=20, step_size=0.003, epsilon=8.0/255.0)
-            with torch.no_grad():
-                logits = wa_student(test_ifgsm_data)
-            predictions = np.argmax(logits.cpu().detach().numpy(), axis=1)
-            predictions = predictions - test_batch_labels.cpu().detach().numpy()
-            wa_test_accs = wa_test_accs + predictions.tolist()
-            # clean
-            with torch.no_grad():
-                logits = wa_student(test_batch_data)
-            predictions = np.argmax(logits.cpu().detach().numpy(), axis=1)
-            predictions = predictions - test_batch_labels.cpu().detach().numpy()
-            wa_test_accs_naturals = wa_test_accs_naturals + predictions.tolist()
-
-        wa_test_accs = np.array(wa_test_accs)
-        wa_test_adv = np.sum(wa_test_accs == 0) / len(wa_test_accs)
-        wa_test_accs_naturals = np.array(wa_test_accs_naturals)
-        wa_test_nat = np.sum(wa_test_accs_naturals == 0) / len(wa_test_accs_naturals)
-
-        logger.info("Weight-averaged model (alpha={}):".format(alpha))
-        logger.info("  Clean acc:   {:.4f}".format(wa_test_nat))
-        logger.info("  Robust acc:  {:.4f} (white-box PGD-20)".format(wa_test_adv))
-        logger.info("  (Compare with final model: clean={:.4f}, robust={:.4f})".format(
-            test_accs_natural, test_acc))
-
-        # save the averaged model
-        wa_state = {'model': wa_student.state_dict(), 'epoch': epochs, 'alpha': alpha}
-        torch.save(wa_state, './model/' + prefix + "/student_weight_averaged.pth")
-        logger.info("  Saved to: ./model/{}/student_weight_averaged.pth".format(prefix))
-        logger.info("=" * 60)
-
-        # also sweep alpha to find the best trade-off
-        logger.info("Sweeping alpha to find best trade-off...")
-        best_wa_score = 0
-        best_wa_alpha = alpha
-        for sweep_alpha in [0.0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0]:
-            sweep_sd = {}
-            for k in post_sd.keys():
-                if k in pre_sd:
-                    sweep_sd[k] = (sweep_alpha * pre_sd[k].float() + (1.0 - sweep_alpha) * post_sd[k].float()).to(post_sd[k].dtype)
-                else:
-                    sweep_sd[k] = post_sd[k]
-            sweep_student = resnet18()
-            sweep_student.load_state_dict(sweep_sd)
-            sweep_student = sweep_student.cuda()
-            sweep_student.eval()
-            sw_accs = []
-            sw_nats = []
-            for step,(test_batch_data,test_batch_labels) in enumerate(testloader):
-                test_batch_data = test_batch_data.float().cuda()
-                test_batch_labels = test_batch_labels.cuda()
-                test_ifgsm_data = attack_pgd(sweep_student, test_batch_data, test_batch_labels,
-                                             attack_iters=20, step_size=0.003, epsilon=8.0/255.0)
-                with torch.no_grad():
-                    logits = sweep_student(test_ifgsm_data)
-                predictions = np.argmax(logits.cpu().detach().numpy(), axis=1) - test_batch_labels.cpu().detach().numpy()
-                sw_accs = sw_accs + predictions.tolist()
-                with torch.no_grad():
-                    logits = sweep_student(test_batch_data)
-                predictions = np.argmax(logits.cpu().detach().numpy(), axis=1) - test_batch_labels.cpu().detach().numpy()
-                sw_nats = sw_nats + predictions.tolist()
-            sw_adv = np.sum(np.array(sw_accs) == 0) / len(sw_accs)
-            sw_nat = np.sum(np.array(sw_nats) == 0) / len(sw_nats)
-            sw_score = 0.5 * sw_nat + 0.5 * sw_adv
-            logger.info("  alpha={:.1f}: clean={:.4f}, robust={:.4f}, score={:.4f}".format(
-                sweep_alpha, sw_nat, sw_adv, sw_score))
-            if sw_score > best_wa_score:
-                best_wa_score = sw_score
-                best_wa_alpha = sweep_alpha
-        logger.info("Best alpha={:.1f} with score={:.4f}".format(best_wa_alpha, best_wa_score))
-        logger.info("To use best alpha, set CFG['wa_alpha']={} and re-run".format(best_wa_alpha))
-    else:
-        logger.warning("Weight averaging skipped: pre_margin or post_margin checkpoint not found.")
-        logger.warning("  pre_margin: {} (exists={})".format(pre_margin_path, os.path.exists(pre_margin_path)))
-        logger.warning("  post_margin: {} (exists={})".format(post_margin_path, os.path.exists(post_margin_path)))
+print('TRAINING_FINISHED epoch={} variant={}'.format(epochs, VARIANT_NAME), flush=True)

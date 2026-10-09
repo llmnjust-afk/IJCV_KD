@@ -2,22 +2,22 @@
   "schema_version": 1,
   "prepared_on": "2026-10-08",
   "purpose": "CIARD拓展论文讨论源码与已完成实验日志集合",
-  "status": "source_and_log_archive",
-  "source_package": "process",
+  "status": "source_and_log_archive_verified",
+  "source_package": "per-entry copy_source: process snapshots and original 1007 C_s1 run",
   "historical_sync_manifest": "process/SYNC_MANIFEST.json",
   "historical_sync_manifest_sha256": "a0dc60d1a61b40fe314ea43e1f916aeca15a0c070aa2a6361402eab4a6c770f7",
   "baseline_code": "CIARD",
-  "verification_record": "../preparation_20261008/verification.json",
+  "verification_record": "../local_r10_cs1_20261009/verification.json",
   "policy": {
-    "computation_and_scripts": "byte-identical to selected process snapshots",
+    "computation_and_scripts": "byte-identical to each selected source; R10 replaced with completed 1007 C_s1",
     "documentation_changes_only": false,
     "directly_runnable": false,
     "new_training_or_evaluation": false,
-    "published": true,
-    "changes": "documentation and copies of existing completed-run logs only; computation and scripts unchanged",
-    "publication_note": "Source package published at 145bfb88d4e8c723056f0d6bb5fcf48c62ed8815; log publication is recorded separately in log_archive_20261008/publication.json beside this repository.",
+    "changes": "verified R10 source and six-log replacement, associated documentation, provenance and log ignore entries",
+    "publication_note": "The user authorized publication of the verified C_s1 update to https://github.com/llmnjust-afk/IJCV_KD.git main on 2026-10-09. Actual push outcome and remote commit are recorded separately in ../publication_r10_cs1_20261009/publication.json. The 145bfb8 and ac40c9a publications refer to the previous R4 snapshot.",
     "checkpoint_data_copied": false,
-    "logs_copied": true
+    "logs_copied": true,
+    "publication_authorized": true
   },
   "metric_order": [
     "clean",
@@ -206,7 +206,7 @@
         {
           "path": "README.md",
           "source_sha256": "f801a610ba8dbd769d198a68bc1e9fba59de49717d75dd1899a261a2b4ee1132",
-          "sha256": "09f41e9dfd39cbebe2ebd825e5bd9c43c4e80eaf007e8bc3f08078efb61c043a",
+          "sha256": "d814cba97e1443dafcbc6cda85bc7b17277eb396a113a7e0ee1bf58e1eb6b217",
           "same_as_source": false
         },
         {
@@ -431,15 +431,16 @@
       }
     },
     {
-      "id": "R4",
+      "id": "C_s1",
       "target": "CIARD_Expansion_resnet18_cifar10",
-      "copy_source": "process/CIARD_Expansion_resnet18_cifar10",
-      "previous_selected_source": "origin_code/1004/IJCV_KD/CIARD_Expansion_resnet18_cifar10",
-      "original_run": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75",
-      "prefix": "Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75",
+      "copy_source": "../../../run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1",
+      "previous_selected_source": "origin_code/1008/local_r10_cs1_20261009/before/origin_code/1008/IJCV_KD/CIARD_Expansion_resnet18_cifar10",
+      "original_run": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1",
+      "prefix": "Cifar10_ResNet18_1007_r4_awpschedule_v1_C_s1",
       "fixed_cfg": {
         "training_views": 2,
         "awp_gamma": 0.002,
+        "awp_nat_weight": 1.0,
         "consistency_weight": 0.75,
         "method_start": 120,
         "method_warmup": 40,
@@ -510,26 +511,29 @@
         "student_ema_decay": 0.999642,
         "eval_student_ema": true,
         "save_ema_as_student": true,
-        "weight_averaging": true,
+        "weight_averaging": false,
         "wa_alpha": 0.5,
         "pcgrad_teacher_margin": true,
-        "pcgrad_start": 120
+        "pcgrad_start": 120,
+        "awp_nat_weight_final": 1.0,
+        "awp_nat_schedule_start": 200,
+        "awp_nat_schedule_warmup": 40
       },
-      "train_job": "134643",
-      "eval_job": "134905",
+      "train_job": "138301",
+      "eval_job": "138611",
       "epoch": 252,
-      "selection_protocol": "historical_50k_train_test_loader_selection",
+      "selection_protocol": "fixed_epoch252_no_test_selection",
       "test_samples": 10000,
       "correct_counts": {
-        "autoattack": 4910,
-        "clean": 8910,
-        "whitebox_fgsm": 6180,
-        "whitebox_pgdsat": 5206,
-        "whitebox_pgdtrades": 5486,
-        "whitebox_cw": 5124,
-        "blackbox_pgdtrades": 6728,
-        "blackbox_square": 8077,
-        "blackbox_cw": 6562
+        "autoattack": 4931,
+        "clean": 8908,
+        "whitebox_fgsm": 6210,
+        "whitebox_pgdsat": 5237,
+        "whitebox_pgdtrades": 5490,
+        "whitebox_cw": 5154,
+        "blackbox_pgdtrades": 6716,
+        "blackbox_square": 8063,
+        "blackbox_cw": 6547
       },
       "display": {
         "baseline_percent": {
@@ -543,93 +547,101 @@
           "blackbox_cw": "64.79"
         },
         "metrics_percent": {
-          "clean": "89.10",
-          "whitebox_fgsm": "61.80",
-          "whitebox_pgdsat": "52.06",
-          "whitebox_pgdtrades": "54.86",
-          "whitebox_cw": "51.24",
-          "blackbox_pgdtrades": "67.28",
-          "blackbox_square": "80.77",
-          "blackbox_cw": "65.62"
+          "clean": "89.08",
+          "whitebox_fgsm": "62.10",
+          "whitebox_pgdsat": "52.37",
+          "whitebox_pgdtrades": "54.90",
+          "whitebox_cw": "51.54",
+          "blackbox_pgdtrades": "67.16",
+          "blackbox_square": "80.63",
+          "blackbox_cw": "65.47"
         },
         "delta_pp": {
-          "clean": "+0.23",
-          "whitebox_fgsm": "-0.08",
-          "whitebox_pgdsat": "+0.36",
-          "whitebox_pgdtrades": "+0.40",
-          "whitebox_cw": "+0.63",
-          "blackbox_pgdtrades": "+1.00",
-          "blackbox_square": "+0.74",
-          "blackbox_cw": "+0.83"
+          "clean": "+0.21",
+          "whitebox_fgsm": "+0.22",
+          "whitebox_pgdsat": "+0.67",
+          "whitebox_pgdtrades": "+0.44",
+          "whitebox_cw": "+0.93",
+          "blackbox_pgdtrades": "+0.88",
+          "blackbox_square": "+0.60",
+          "blackbox_cw": "+0.68"
         },
-        "autoattack": "49.10",
+        "autoattack": "49.31",
         "autoattack_baseline": "48.88",
-        "autoattack_delta_pp": "+0.22",
-        "seven_attack_mean": "61.95",
+        "autoattack_delta_pp": "+0.43",
+        "seven_attack_mean": "62.02",
         "seven_attack_baseline_mean": "61.39",
-        "seven_attack_mean_delta_pp": "+0.55",
-        "eight_metric_mean": "65.34",
+        "seven_attack_mean_delta_pp": "+0.63",
+        "eight_metric_mean": "65.41",
         "eight_metric_baseline_mean": "64.83",
-        "eight_metric_mean_delta_pp": "+0.51"
+        "eight_metric_mean_delta_pp": "+0.58"
       },
       "archived_job_state": "COMPLETED / 0:0",
-      "job_state_note": "read from existing completed-run archive; no new Slurm query",
+      "job_state_note": "read from verified results_20261009 archive; no new training, evaluation or Slurm query during this replacement",
       "attack_seed": null,
       "evidence": {
         "result": {
-          "project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/eval_best_0909v1_134905.json",
-          "sha256": "4dd026354052907b445668b0be8f2a500136fee80aa1298274b5eec7e7cf5bf9"
+          "project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/model/Cifar10_ResNet18_1007_r4_awpschedule_v1_C_s1/eval_best_0909v1_138611.json",
+          "sha256": "557bfc016a0ac68f3b67ed768ede0382e8f0b8ecdfe7f0767bebeb9eb71a9ff3"
         },
         "checkpoint": {
-          "project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/model/Cifar10_ResNet18_0917v1_v2_awp0p002_cr0p75/student_best.pth",
-          "sha256": "208cc7dbe1a4158c8c6d3a41f0f442e3952dd92cf011f3419e00edb9845694e8"
+          "project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/model/Cifar10_ResNet18_1007_r4_awpschedule_v1_C_s1/student_epoch252.pth",
+          "sha256": "f57b1e8cb3cfd696ed004a2f5766527e2b6dc4734bb0065d3f46ebb41dbc0754"
         },
         "evaluation_log": {
-          "project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/eval_best_stdout_134905.log",
-          "sha256": "f30a6cac866ef90b3867a0948103752f859ed91bfe8e98fc9d22d11855c5e66d"
+          "project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/logs/eval_stdout_138611.log",
+          "sha256": "e7ec3b8dd3d449b139367abcf80c14490b81f1b5d4852ebfacb98e2b486ffee5"
         },
         "training_log": {
-          "project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/train_stdout_134643.log",
-          "sha256": "a20116b9fd983d3100a88fc4f3c340948a9684d674b83c1f4ac9d13c9f26b309"
+          "project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/logs/train_stdout_138301.log",
+          "sha256": "a0f542d286780be42b34492f7e461c9b821327fff09e1c63dc1ac7d806b01fc3"
         },
         "report": {
-          "project_relative_path": "结果分析/0917v1_结果分析.md",
-          "sha256": "8051dd301387b56e815351e50206b357b84eef172035e184a115821736c21eff"
+          "project_relative_path": "结果分析/1007-cifar10-r4-awpschedule-v1_结果分析.md",
+          "sha256": "ed0c05bd6ee1ec0b0ba2612f9bbec2a4a5e9e25451c77ae3e926bf2a9cca2cfe"
         },
         "archived_job_status": {
-          "project_relative_path": "run/0917v1/preparation/resnet_results_20260918/slurm_status.txt",
-          "sha256": "c4d05568c6a427eaf72d4ca815c715f64c0ef655d7c7b507ddeb19f534b68bad"
+          "project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/preparation/results_20261009/slurm_readback.txt",
+          "sha256": "8def656d249e17d70390c76766ec299907439f527539d8b0dc6ff7b9bf043758"
+        },
+        "training_completion": {
+          "project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/model/Cifar10_ResNet18_1007_r4_awpschedule_v1_C_s1/training_complete.json",
+          "sha256": "f591e4b1a9e6b070d732a14b07bf38eb54e590f7c600cae9dc6f9f4ac113f28a"
+        },
+        "completed_result_verification": {
+          "project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/preparation/results_20261009/verification.json",
+          "sha256": "18a79701eeec9f2aa920ff1d20fd6164f4378705f7642d97516cfa3d47ab0006"
         }
       },
       "files": [
         {
           "path": "CIARD.py",
-          "source_sha256": "514bec930a8095f990a91130d9f6040b21991ed6425616dc8f11c4e3ad8e49f6",
-          "sha256": "514bec930a8095f990a91130d9f6040b21991ed6425616dc8f11c4e3ad8e49f6",
+          "source_sha256": "0c0aff01535b4b6a5a8fbc660a8bcd7d315846898a78385c9b0b56df14d8df98",
+          "sha256": "0c0aff01535b4b6a5a8fbc660a8bcd7d315846898a78385c9b0b56df14d8df98",
           "same_as_source": true
         },
         {
           "path": "README.md",
-          "source_sha256": "2c92905a232fcc308eaa99174b9be4ccbddbc01781dbc2d1aace8c553bdede45",
-          "sha256": "6bc735e3ff939f980066fc0ad741df69bcb157a074bdff9d89641ebe1795980f",
+          "source_sha256": "3b6ca188b59458550298da5c1066ce4c734406422c6753b8a4e92ed5bd637be5",
+          "sha256": "5d01774df34bc8169ddd72121decae82e91aaf4d863c9bc203a85a7b79f70261",
           "same_as_source": false
         },
         {
           "path": "attack_eval.py",
-          "source_sha256": "86803bff2df8b0a88b7a4f43d82ca412f80ad42c7ec297cd8d97ceddc59b6bd3",
-          "sha256": "86803bff2df8b0a88b7a4f43d82ca412f80ad42c7ec297cd8d97ceddc59b6bd3",
+          "source_sha256": "7b47fa319fa6df83a482234f9cdfbd92728f711e7747f63b073cbdb3c84e68e9",
+          "sha256": "7b47fa319fa6df83a482234f9cdfbd92728f711e7747f63b073cbdb3c84e68e9",
           "same_as_source": true
         },
         {
           "path": "awp_consistency.py",
-          "source_sha256": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
-          "sha256": "cc29d33d2b660ae60734333f68d0ca833a931e496a05dc8685042a7cd9408d0d",
+          "source_sha256": "43dafef77a54c1b4e28a18a365f69fdd428410751a8a11de794425071a42273e",
+          "sha256": "43dafef77a54c1b4e28a18a365f69fdd428410751a8a11de794425071a42273e",
           "same_as_source": true
         },
         {
           "path": "check_eval_log.py",
-          "source_sha256": "580308176d927d32e7727b4e15896088676d0d9a4f58f23c6670d80a4125306f",
-          "sha256": "580308176d927d32e7727b4e15896088676d0d9a4f58f23c6670d80a4125306f",
+          "source_sha256": "29b7276fd3c81d48a15e27589038aa6581e91511b03e19bfd046150fdaa4dc2f",
+          "sha256": "29b7276fd3c81d48a15e27589038aa6581e91511b03e19bfd046150fdaa4dc2f",
           "same_as_source": true
         },
         {
@@ -705,9 +717,9 @@
           "same_as_source": true
         },
         {
-          "path": "eval_4090_best.sbatch",
-          "source_sha256": "793dbc56606ef5911c0e32ca81a1145e743b231627f833413fa612b459973786",
-          "sha256": "793dbc56606ef5911c0e32ca81a1145e743b231627f833413fa612b459973786",
+          "path": "eval_4090_fixed.sbatch",
+          "source_sha256": "10365b951e1cca4d15cfe3814e8b00e34105101e8bc3d8b350f1349f7b821493",
+          "sha256": "10365b951e1cca4d15cfe3814e8b00e34105101e8bc3d8b350f1349f7b821493",
           "same_as_source": true
         },
         {
@@ -724,8 +736,8 @@
         },
         {
           "path": "run_checks.py",
-          "source_sha256": "8ad3cfae0c7cbe50522b7c10d74093d81a0b633eb23dcb7f3088e1bab64e56f8",
-          "sha256": "8ad3cfae0c7cbe50522b7c10d74093d81a0b633eb23dcb7f3088e1bab64e56f8",
+          "source_sha256": "d8b67e0ce00be8654de6d05a5943518ae59ad6c7c9c913955cc0206a3bcb3184",
+          "sha256": "d8b67e0ce00be8654de6d05a5943518ae59ad6c7c9c913955cc0206a3bcb3184",
           "same_as_source": true
         },
         {
@@ -736,8 +748,14 @@
         },
         {
           "path": "train_4090.sbatch",
-          "source_sha256": "50f1cf4a32999e82e988a1c355afac8407bc609d05c7871628e4dcf6d55cd843",
-          "sha256": "50f1cf4a32999e82e988a1c355afac8407bc609d05c7871628e4dcf6d55cd843",
+          "source_sha256": "bb4b35feebcda2ee7513bb0ca7465912daa3b2b51ddc0508e4ee817ef8fad014",
+          "sha256": "bb4b35feebcda2ee7513bb0ca7465912daa3b2b51ddc0508e4ee817ef8fad014",
+          "same_as_source": true
+        },
+        {
+          "path": "training_state.py",
+          "source_sha256": "6e6550cef8589420162919b640a269b5ac0d8569f93bf2f4d338ff81f33d2298",
+          "sha256": "6e6550cef8589420162919b640a269b5ac0d8569f93bf2f4d338ff81f33d2298",
           "same_as_source": true
         },
         {
@@ -748,8 +766,8 @@
         }
       ],
       "archived_job_lines": [
-        "134643|tr917r4|COMPLETED|0:0|22:39:48|aias-compute-4",
-        "134905|ev917r4|COMPLETED|0:0|01:00:31|aias-compute-4"
+        "138301|COMPLETED|0:0|17:14:59|aias-compute-4",
+        "138611|COMPLETED|0:0|01:00:23|aias-compute-4"
       ],
       "dataset": "CIFAR-10",
       "num_classes": 10,
@@ -757,59 +775,60 @@
       "log_archive": {
         "files": [
           {
-            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/train_stdout_134643.log",
-            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/train_stdout_134643.log",
-            "job": "134643",
-            "bytes": 1017257,
-            "sha256": "a20116b9fd983d3100a88fc4f3c340948a9684d674b83c1f4ac9d13c9f26b309"
+            "source_project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/logs/train_stdout_138301.log",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/train_stdout_138301.log",
+            "job": "138301",
+            "bytes": 942042,
+            "sha256": "a0f542d286780be42b34492f7e461c9b821327fff09e1c63dc1ac7d806b01fc3"
           },
           {
-            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/eval_best_stdout_134905.log",
-            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/eval_best_stdout_134905.log",
-            "job": "134905",
-            "bytes": 13714,
-            "sha256": "f30a6cac866ef90b3867a0948103752f859ed91bfe8e98fc9d22d11855c5e66d"
+            "source_project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/logs/eval_stdout_138611.log",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/eval_stdout_138611.log",
+            "job": "138611",
+            "bytes": 13870,
+            "sha256": "e7ec3b8dd3d449b139367abcf80c14490b81f1b5d4852ebfacb98e2b486ffee5"
           },
           {
-            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/slurm/train_134643.out",
-            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/slurm/train_134643.out",
-            "job": "134643",
-            "bytes": 1017257,
-            "sha256": "a20116b9fd983d3100a88fc4f3c340948a9684d674b83c1f4ac9d13c9f26b309"
+            "source_project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/logs/slurm/train_138301.out",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/slurm/train_138301.out",
+            "job": "138301",
+            "bytes": 942042,
+            "sha256": "a0f542d286780be42b34492f7e461c9b821327fff09e1c63dc1ac7d806b01fc3"
           },
           {
-            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/slurm/train_134643.err",
-            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/slurm/train_134643.err",
-            "job": "134643",
+            "source_project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/logs/slurm/train_138301.err",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/slurm/train_138301.err",
+            "job": "138301",
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           {
-            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/slurm/eval_best_134905.out",
-            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/slurm/eval_best_134905.out",
-            "job": "134905",
-            "bytes": 13714,
-            "sha256": "f30a6cac866ef90b3867a0948103752f859ed91bfe8e98fc9d22d11855c5e66d"
+            "source_project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/logs/slurm/eval_138611.out",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/slurm/eval_138611.out",
+            "job": "138611",
+            "bytes": 13870,
+            "sha256": "e7ec3b8dd3d449b139367abcf80c14490b81f1b5d4852ebfacb98e2b486ffee5"
           },
           {
-            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/slurm/eval_best_134905.err",
-            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/slurm/eval_best_134905.err",
-            "job": "134905",
+            "source_project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/logs/slurm/eval_138611.err",
+            "package_relative_path": "CIARD_Expansion_resnet18_cifar10/logs/slurm/eval_138611.err",
+            "job": "138611",
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           }
         ],
         "excluded": [
           {
-            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/.eval_best.lock",
+            "source_project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/logs/.eval.lock",
             "reason": "runtime lock file"
           },
           {
-            "source_project_relative_path": "run/0917v1/resnet18_cifar10_v2_awp0p002_cr0p75/logs/.train.lock",
+            "source_project_relative_path": "run/1007-cifar10-r4-awpschedule-v1/resnet18_cifar10_c_s1/logs/.train.lock",
             "reason": "runtime lock file"
           }
         ]
-      }
+      },
+      "training_seed": 1
     },
     {
       "id": "C100-M1",
@@ -980,7 +999,7 @@
         {
           "path": "README.md",
           "source_sha256": "aa30a0ab71820d74ee749808255f1bd05b726589bf4b35a30d3aafb9157d13a5",
-          "sha256": "0f24eb88db24494d88609c4147f6e54eb2df93f775a826116f54d1853dec1983",
+          "sha256": "ccafc9ffa3249b4d08cfe280c8e7eb7970594fcb9ab43ee51b96588bd2d2a4b0",
           "same_as_source": false
         },
         {
@@ -1405,7 +1424,7 @@
         {
           "path": "README.md",
           "source_sha256": "a159b2312aab40fa6eddad3c8efd29322d7fb9ebecf2e67719c17756a0d41428",
-          "sha256": "0e891bb1268d95816142ba098170b956a43263d69d8c7c7a3413f14ddca007b8",
+          "sha256": "b847488398ca25beaef387e03c52099fe8a415202af6754340273a29f21b1393",
           "same_as_source": false
         },
         {
@@ -1795,8 +1814,8 @@
     }
   ],
   "documentation": {
-    "README.md": "9f501da051c3e2212e6b4e61137ac96c610c520fc3d8eda3c9fc21f558397fe5",
-    "CIARD扩展方法改进说明.md": "ecebafe0e9ccd138baf399f62a0dd993c638665421b58008d0f204cee3def44d"
+    "README.md": "4c6070221fe68a9ba6b980192f5b76a88b46cb711a73861fbb7ca23ef0cfa75e",
+    "CIARD扩展方法改进说明.md": "56145657d086974637dabc8e5a33e8811ba877e82501a3a33215d3a49723fbbb"
   },
   "path_conventions": {
     "copy_source_target_files": "relative to this package",
@@ -1804,14 +1823,22 @@
     "verification_record": "relative to this package",
     "log_archive": "source_project_relative_path relative to CIARD_Expansion project root; package_relative_path relative to this package"
   },
-  "verification_record_note": "Initial source preparation verification only; later log archive verification is separate.",
+  "verification_record_note": "Frozen local replacement audit before publication wording changes. Publication verification is recorded separately in ../publication_r10_cs1_20261009/verification.json.",
   "log_archive": {
-    "archived_on": "2026-10-08",
+    "archived_on": "2026-10-09",
     "file_count": 24,
-    "total_bytes": 7924782,
+    "total_bytes": 7774664,
     "scope": "completed training and final evaluation stdout plus corresponding Slurm out/err; original files and contents unchanged",
-    "verification_record": "../log_archive_20261008/verification.json",
-    "publication_record": "../log_archive_20261008/publication.json",
-    "publication_record_note": "Local audit outside GitHub; commit and remote verification recorded after push succeeds."
+    "verification_record": "../local_r10_cs1_20261009/verification.json",
+    "publication_record": "../publication_r10_cs1_20261009/publication.json",
+    "publication_record_note": "User-authorized C_s1 publication; actual push outcome is recorded separately after remote verification. Previous publication records remain in historical_records."
+  },
+  "updated_on": "2026-10-09",
+  "historical_records": {
+    "initial_source_verification": "../preparation_20261008/verification.json",
+    "previous_log_verification": "../log_archive_20261008/verification.json",
+    "previous_log_publication": "../log_archive_20261008/publication.json",
+    "previous_source_manifest": "../local_r10_cs1_20261009/before/origin_code/1008/IJCV_KD/SOURCE_MANIFEST.json",
+    "previous_published_commit": "ac40c9a689d0140b2f792bbb8f012cf657f03b1f"
   }
 }
